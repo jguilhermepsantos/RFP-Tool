@@ -1,0 +1,127 @@
+The RFP Assistant Tool is designed to help Solution Engineers (SEs) streamline the process of responding to RFPs (Requests for Proposals) by:
+
+Centralizing project-specific documents.
+
+Leveraging a Retrieval-Augmented Generation (RAG) pipeline to generate AI-assisted answers.
+
+Supporting document ingestion, chunking, embedding, and knowledge management.
+
+Enabling team collaboration (owners and collaborators).
+
+Allowing admins to approve global knowledge documents suggested by SEs.
+
+The backend is built with Supabase (DB + Auth), Python FastAPI for the RAG engine, and ChromaDB for embeddings (soon to be replaced with a hosted vector DB like Pinecone or pgvector).
+
+The frontend is built using Next.js (App Router) with Tailwind CSS.
+
+🖥️ Pages Overview
+✅ 1) Login Page (/login)
+Purpose: Login with email and password (using Supabase Auth).
+
+Logic:
+
+If login is successful → redirect to /projects.
+
+If login fails → show a basic error toast/message.
+
+API / Auth Integration:
+
+Uses supabase.auth.signInWithPassword().
+
+Session management via @supabase/ssr.
+
+Needs: A basic form with:
+
+Email input.
+
+Password input.
+
+Login button.
+
+✅ 2) Homepage – List of Projects (/projects)
+Purpose: List all projects (MVP decision: all logged-in users can see all projects).
+
+Logic:
+
+Calls /api/projects to retrieve the list of projects.
+
+Shows:
+
+Project name (as link to /projects/[projectId]).
+
+Created date.
+
+Role (owner, collaborator, or viewer).
+
+Include a "Create New Project" button (calls /api/projects/create).
+
+Header: Should always include a Logout button (calls supabase.auth.signOut() → redirect to /login).
+
+✅ 3) Project Detail Page (/projects/[projectId])
+Purpose: Manage an individual project.
+
+Logic:
+
+Retrieve project info from /api/projects/[projectId].
+
+Uploaded RFP Documents Table:
+
+Shows: Document name (links to document page), status, actions.
+
+Status determines available action:
+
+unprocessed: Show "Process Questions".
+
+processed: Show "Review Answers".
+
+reviewed: Show "Mark as Done".
+
+done: Show "Chunk Content".
+
+Upload RFP CSV (new or past RFP):
+
+Upload field + "Is this a past RFP?" checkbox.
+
+Calls:
+
+/api/projects/[projectId]/rfp-documents/create-and-process for new RFPs.
+
+/api/past-rfp/upload for past RFPs.
+
+✅ 4) RFP Document Page (/projects/[projectId]/rfp-documents/[documentId])
+Purpose: View and manage RFP document questions and answers.
+
+Logic Based on Status:
+
+unprocessed: Show uploaded questions (waiting to process).
+
+processed: Show generated answers (editable).
+
+reviewed: For now, placeholder ("Under review").
+
+done: Show final answers (no editing allowed).
+
+API for Processing:
+
+Calls /api/projects/[projectId]/rfp-documents/[documentId]/process to trigger the RAG engine.
+
+Editing Flow (if status is processed):
+
+Opens modal on "Edit" click.
+
+Editable fields: compliance_answer, generated_answer.
+
+On Save: Calls Supabase update to rfp_answers table.
+
+✅ 5) Suggest Document for Ingestion Page (/suggest-document)
+Purpose: Allow SEs to suggest global-scope documents for ingestion (to feed the global knowledge base).
+
+Logic:
+
+Form to upload a file.
+
+Document saved with status = pending.
+
+Only admins will be able to approve or reject suggestions (approval UI not required for MVP).
+
+API: Calls /api/suggested-documents/create.
