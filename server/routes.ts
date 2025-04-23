@@ -4,11 +4,11 @@ import { storage } from "./storage";
 import {
   insertUserSchema,
   insertProjectSchema,
-  insertProjectMemberSchema,
+  insertProjectPermissionSchema,
   insertRfpDocumentSchema,
   insertRfpQuestionSchema,
   insertRfpAnswerSchema,
-  insertSuggestedDocumentSchema,
+  insertDocumentSchema,
   loginSchema,
   updateRfpAnswerSchema
 } from "@shared/schema";
@@ -140,16 +140,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Project Members routes
+  // Project Permissions routes
   apiRouter.post("/projects/:projectId/members", async (req: Request, res: Response) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       
-      if (isNaN(projectId)) {
+      if (!projectId) {
         return res.status(400).json({ message: "Valid project ID is required" });
       }
       
-      const memberData = insertProjectMemberSchema.parse({
+      const memberData = insertProjectPermissionSchema.parse({
         ...req.body,
         projectId
       });

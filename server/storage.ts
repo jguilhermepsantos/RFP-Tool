@@ -1,61 +1,70 @@
 import {
-  users, type User, type InsertUser,
-  projects, type Project, type InsertProject,
-  projectMembers, type ProjectMember, type InsertProjectMember,
-  rfpDocuments, type RfpDocument, type InsertRfpDocument,
-  rfpQuestions, type RfpQuestion, type InsertRfpQuestion,
-  rfpAnswers, type RfpAnswer, type InsertRfpAnswer,
-  knowledgeDocuments, type KnowledgeDocument, type InsertKnowledgeDocument,
-  suggestedDocuments, type SuggestedDocument, type InsertSuggestedDocument,
-  documentChunks, type DocumentChunk, type InsertDocumentChunk,
+  User, InsertUser,
+  Project, InsertProject,
+  ProjectPermission, InsertProjectPermission,
+  RfpDocument, InsertRfpDocument,
+  RfpQuestion, InsertRfpQuestion,
+  RfpAnswer, InsertRfpAnswer,
+  Document, InsertDocument, 
+  Chunk, InsertChunk,
+  ComplianceMapping, InsertComplianceMapping,
   UpdateRfpAnswer
 } from "@shared/schema";
 
 // Storage interface for all CRUD operations
 export interface IStorage {
   // User operations
-  getUser(id: number): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
   // Project operations
   getProjects(): Promise<Project[]>;
-  getProject(id: number): Promise<Project | undefined>;
+  getProject(id: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
-  getProjectsByUserId(userId: number): Promise<Project[]>;
+  getProjectsByUserId(userId: string): Promise<Project[]>;
   
-  // Project Members operations
-  getProjectMembers(projectId: number): Promise<ProjectMember[]>;
-  addProjectMember(projectMember: InsertProjectMember): Promise<ProjectMember>;
-  updateProjectMemberRole(id: number, role: 'owner' | 'collaborator' | 'viewer'): Promise<ProjectMember | undefined>;
+  // Project Permission operations
+  getProjectMembers(projectId: string): Promise<ProjectPermission[]>;
+  addProjectMember(projectMember: InsertProjectPermission): Promise<ProjectPermission>;
+  updateProjectMemberRole(id: string, role: string): Promise<ProjectPermission | undefined>;
   
   // RFP Document operations
-  getRfpDocuments(projectId: number): Promise<RfpDocument[]>;
-  getRfpDocument(id: number): Promise<RfpDocument | undefined>;
+  getRfpDocuments(projectId: string): Promise<RfpDocument[]>;
+  getRfpDocument(id: string): Promise<RfpDocument | undefined>;
   createRfpDocument(document: InsertRfpDocument): Promise<RfpDocument>;
-  updateRfpDocumentStatus(id: number, status: 'unprocessed' | 'processed' | 'reviewed' | 'done'): Promise<RfpDocument | undefined>;
+  updateRfpDocumentStatus(id: string, status: string): Promise<RfpDocument | undefined>;
   
   // RFP Question operations
-  getRfpQuestions(documentId: number): Promise<RfpQuestion[]>;
+  getRfpQuestions(documentId: string): Promise<RfpQuestion[]>;
   createRfpQuestion(question: InsertRfpQuestion): Promise<RfpQuestion>;
   
   // RFP Answer operations
-  getRfpAnswers(questionIds: number[]): Promise<RfpAnswer[]>;
+  getRfpAnswers(questionIds: string[]): Promise<RfpAnswer[]>;
   createRfpAnswer(answer: InsertRfpAnswer): Promise<RfpAnswer>;
   updateRfpAnswer(answer: UpdateRfpAnswer): Promise<RfpAnswer | undefined>;
   
-  // Knowledge Document operations
-  getKnowledgeDocuments(): Promise<KnowledgeDocument[]>;
-  createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument>;
+  // Document operations
+  getDocuments(): Promise<Document[]>;
+  getDocument(id: string): Promise<Document | undefined>;
+  createDocument(document: InsertDocument): Promise<Document>;
+  updateDocumentApprovalStatus(id: string, approved: boolean): Promise<Document | undefined>;
   
-  // Suggested Document operations
-  getSuggestedDocuments(): Promise<SuggestedDocument[]>;
-  createSuggestedDocument(document: InsertSuggestedDocument): Promise<SuggestedDocument>;
-  updateSuggestedDocumentStatus(id: number, status: 'approved' | 'rejected', reviewedBy: number): Promise<SuggestedDocument | undefined>;
+  // Chunk operations
+  getChunks(documentId: string): Promise<Chunk[]>;
+  createChunk(chunk: InsertChunk): Promise<Chunk>;
+  getDocumentChunks(documentId: string, documentType: string): Promise<Chunk[]>;
   
-  // Document Chunk operations
-  createDocumentChunk(chunk: InsertDocumentChunk): Promise<DocumentChunk>;
-  getDocumentChunks(documentId: number, documentType: string): Promise<DocumentChunk[]>;
+  // Compliance Mapping operations
+  getComplianceMappings(projectId: string): Promise<ComplianceMapping[]>;
+  createComplianceMapping(mapping: InsertComplianceMapping): Promise<ComplianceMapping>;
+  
+  // Compatibility methods
+  getKnowledgeDocuments(): Promise<Document[]>;
+  createKnowledgeDocument(document: any): Promise<Document>;
+  getSuggestedDocuments(): Promise<Document[]>;
+  createSuggestedDocument(document: any): Promise<Document>;
+  updateSuggestedDocumentStatus(id: string, status: 'approved' | 'rejected', reviewedBy: string): Promise<Document | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -343,4 +352,5 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Changed to named export so we can override it in index.ts
 export const storage = new MemStorage();
