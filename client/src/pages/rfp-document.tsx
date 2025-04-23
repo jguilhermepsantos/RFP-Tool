@@ -13,8 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, CheckCircle, PlayCircle } from "lucide-react";
 
 interface RfpDocumentProps {
-  projectId: number;
-  documentId: number;
+  projectId: string;
+  documentId: string;
 }
 
 export default function RfpDocument({ projectId, documentId }: RfpDocumentProps) {

@@ -10,16 +10,18 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Pencil, Save } from "lucide-react";
 
 interface Answer {
-  id: number;
-  questionId: number;
+  id: string;
+  rfpQuestionId: string | null;
   complianceAnswer: string | null;
   generatedAnswer: string | null;
   finalAnswer: string | null;
+  lastReviewedBy: string | null;
+  lastReviewedAt: string | null;
 }
 
 interface Question {
-  id: number;
-  documentId: number;
+  id: string;
+  rfpDocumentId: string | null;
   questionNumber: string;
   questionText: string;
   section: string | null;
@@ -29,8 +31,8 @@ interface Question {
 interface RfpAnswerEditorProps {
   question: Question;
   documentStatus: string;
-  projectId: number;
-  documentId: number;
+  projectId: string;
+  documentId: string;
 }
 
 export default function RfpAnswerEditor({ 
