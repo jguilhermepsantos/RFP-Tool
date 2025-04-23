@@ -36,18 +36,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       
       if (session) {
-        // Get user profile data from the users table
+        // Try to get user profile data from the users table
         const { data: userData, error } = await supabase
           .from('users')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle instead of single to handle missing user
           
         if (userData && !error) {
           setUser(userData as AuthUserData);
         } else {
-          console.error('Error loading user data:', error);
-          setUser(null);
+          // If no user profile exists, let's use the auth user data
+          // This allows login to work even without a complete profile
+          console.log('Using auth user data instead of profile:', session.user);
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name,
+            role: 'user'
+          } as AuthUserData);
         }
       }
       
@@ -88,17 +95,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('users')
         .select('*')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle cases where profile doesn't exist
         
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError);
-        return { success: false, error: 'Error fetching user profile' };
+      if (userData && !profileError) {
+        setUser(userData as AuthUserData);
+      } else {
+        console.log('Using auth user data for login:', data.user);
+        // If no user profile exists in the users table, create one from auth data
+        setUser({
+          id: data.user.id,
+          email: data.user.email || '',
+          name: data.user.user_metadata?.name,
+          role: 'user'
+        } as AuthUserData);
+        
+        // Optionally create a user profile record here if needed
+        // This could be done via a server API endpoint
       }
       
-      setUser(userData as AuthUserData);
       setSession(data.session);
       return { success: true };
     } catch (err) {
+      console.error('Login error:', err);
       return { success: false, error: 'An unexpected error occurred' };
     }
   }
