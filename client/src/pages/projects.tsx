@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Project } from "@shared/schema";
@@ -33,7 +34,44 @@ export default function Projects() {
   const { toast } = useToast();
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: [`/api/projects?userId=${user?.id}`],
+    queryKey: [`/api/projects`],
+    queryFn: async () => {
+      if (!user?.id) throw new Error("User ID is required");
+      // Make direct call to Supabase to get projects
+      const { data: projectPermissions, error: permError } = await supabase
+        .from('project_permissions')
+        .select('project_id, role')
+        .eq('user_id', user.id);
+        
+      if (permError) throw new Error(permError.message);
+      
+      // If no permissions found, return empty array
+      if (!projectPermissions || projectPermissions.length === 0) {
+        return { projects: [] };
+      }
+      
+      // Get project IDs
+      const projectIds = projectPermissions.map(p => p.project_id);
+      
+      // Get projects by IDs
+      const { data: projects, error: projError } = await supabase
+        .from('projects')
+        .select('*')
+        .in('id', projectIds);
+        
+      if (projError) throw new Error(projError.message);
+      
+      // Combine projects with their roles
+      const projectsWithRole = projects.map(project => {
+        const permission = projectPermissions.find(p => p.project_id === project.id);
+        return {
+          ...project,
+          role: permission?.role || 'viewer'
+        };
+      });
+      
+      return { projects: projectsWithRole };
+    },
     enabled: !!user,
   });
 
@@ -59,11 +97,31 @@ export default function Projects() {
     if (!user) return;
 
     try {
-      await apiRequest("POST", "/api/projects", {
-        name: values.name,
-        description: values.description || "",
-        createdBy: user.id,
-      });
+      // Create project directly in Supabase
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          name: values.name,
+          description: values.description || null,
+          created_by: user.id,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (projectError) throw new Error(projectError.message);
+      
+      // Add project permission for the creator
+      const { error: permError } = await supabase
+        .from('project_permissions')
+        .insert({
+          project_id: project.id,
+          user_id: user.id,
+          role: 'owner',
+          created_at: new Date().toISOString()
+        });
+        
+      if (permError) throw new Error(permError.message);
 
       toast({
         title: "Success",
@@ -72,7 +130,7 @@ export default function Projects() {
 
       // Reset form and invalidate query to refresh data
       form.reset();
-      queryClient.invalidateQueries({ queryKey: [`/api/projects?userId=${user.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects`] });
     } catch (error) {
       toast({
         variant: "destructive",

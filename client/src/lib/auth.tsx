@@ -103,8 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: authUser.id,
       email: authUser.email || '',
       name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || null,
-      role: 'user',
-      createdAt: new Date().toISOString()
+      role: 'admin', // Using 'admin' since that's what exists in your Supabase schema
+      created_at: new Date().toISOString() // Using snake_case to match Supabase table column
     };
     
     const { data: createdUser, error: insertError } = await supabase
