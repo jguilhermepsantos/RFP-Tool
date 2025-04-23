@@ -36,19 +36,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       
       if (session) {
-        // Try to get user profile data from the users table
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle(); // Use maybeSingle instead of single to handle missing user
-          
-        if (userData && !error) {
-          setUser(userData as AuthUserData);
-        } else {
-          // If no user profile exists, let's use the auth user data
-          // This allows login to work even without a complete profile
-          console.log('Using auth user data instead of profile:', session.user);
+        try {
+          // Create or retrieve user profile - this ensures auth users always have a profile
+          const userData = await ensureUserProfile(session.user);
+          setUser(userData);
+        } catch (error) {
+          console.error("Error ensuring user profile:", error);
+          // Fallback to basic auth data if profile creation fails
           setUser({
             id: session.user.id,
             email: session.user.email || '',
@@ -60,12 +54,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       setLoading(false);
       
-      // Set up auth state change listener
+      // Set up auth state change listener for real-time auth status changes
       const { data: { subscription } } = await supabase.auth.onAuthStateChange(
-        (_event, session) => {
+        async (event, session) => {
+          console.log('Auth state changed:', event);
           setSession(session);
+          
           if (!session) {
             setUser(null);
+          } else if (event === 'SIGNED_IN') {
+            // When user signs in, ensure they have a profile
+            try {
+              const userData = await ensureUserProfile(session.user);
+              setUser(userData);
+            } catch (error) {
+              console.error("Error in auth change handler:", error);
+            }
           }
         }
       );
@@ -79,6 +83,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUser();
   }, []);
 
+  // Helper function to create a user profile if it doesn't exist
+  async function ensureUserProfile(authUser: SupabaseUser): Promise<AuthUserData> {
+    // Check if user profile exists
+    const { data: existingUser, error: fetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle();
+      
+    if (existingUser) {
+      return existingUser as AuthUserData;
+    }
+    
+    // If no profile exists, create one
+    console.log('Creating user profile for:', authUser.email);
+    
+    const newUser = {
+      id: authUser.id,
+      email: authUser.email || '',
+      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || null,
+      role: 'user',
+      createdAt: new Date().toISOString()
+    };
+    
+    const { data: createdUser, error: insertError } = await supabase
+      .from('users')
+      .insert([newUser])
+      .select()
+      .single();
+      
+    if (insertError) {
+      console.error('Error creating user profile:', insertError);
+      // Return the constructed user even if saving failed
+      return newUser as AuthUserData;
+    }
+    
+    return createdUser as AuthUserData;
+  }
+
   async function login(email: string, password: string) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ 
@@ -90,29 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: error.message };
       }
       
-      // Fetch user profile from users table
-      const { data: userData, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle(); // Use maybeSingle to handle cases where profile doesn't exist
-        
-      if (userData && !profileError) {
-        setUser(userData as AuthUserData);
-      } else {
-        console.log('Using auth user data for login:', data.user);
-        // If no user profile exists in the users table, create one from auth data
-        setUser({
-          id: data.user.id,
-          email: data.user.email || '',
-          name: data.user.user_metadata?.name,
-          role: 'user'
-        } as AuthUserData);
-        
-        // Optionally create a user profile record here if needed
-        // This could be done via a server API endpoint
-      }
-      
+      // Create or retrieve user profile
+      const userData = await ensureUserProfile(data.user);
+      setUser(userData);
       setSession(data.session);
       return { success: true };
     } catch (err) {
