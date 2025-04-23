@@ -1,0 +1,346 @@
+import {
+  users, type User, type InsertUser,
+  projects, type Project, type InsertProject,
+  projectMembers, type ProjectMember, type InsertProjectMember,
+  rfpDocuments, type RfpDocument, type InsertRfpDocument,
+  rfpQuestions, type RfpQuestion, type InsertRfpQuestion,
+  rfpAnswers, type RfpAnswer, type InsertRfpAnswer,
+  knowledgeDocuments, type KnowledgeDocument, type InsertKnowledgeDocument,
+  suggestedDocuments, type SuggestedDocument, type InsertSuggestedDocument,
+  documentChunks, type DocumentChunk, type InsertDocumentChunk,
+  UpdateRfpAnswer
+} from "@shared/schema";
+
+// Storage interface for all CRUD operations
+export interface IStorage {
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  
+  // Project operations
+  getProjects(): Promise<Project[]>;
+  getProject(id: number): Promise<Project | undefined>;
+  createProject(project: InsertProject): Promise<Project>;
+  getProjectsByUserId(userId: number): Promise<Project[]>;
+  
+  // Project Members operations
+  getProjectMembers(projectId: number): Promise<ProjectMember[]>;
+  addProjectMember(projectMember: InsertProjectMember): Promise<ProjectMember>;
+  updateProjectMemberRole(id: number, role: 'owner' | 'collaborator' | 'viewer'): Promise<ProjectMember | undefined>;
+  
+  // RFP Document operations
+  getRfpDocuments(projectId: number): Promise<RfpDocument[]>;
+  getRfpDocument(id: number): Promise<RfpDocument | undefined>;
+  createRfpDocument(document: InsertRfpDocument): Promise<RfpDocument>;
+  updateRfpDocumentStatus(id: number, status: 'unprocessed' | 'processed' | 'reviewed' | 'done'): Promise<RfpDocument | undefined>;
+  
+  // RFP Question operations
+  getRfpQuestions(documentId: number): Promise<RfpQuestion[]>;
+  createRfpQuestion(question: InsertRfpQuestion): Promise<RfpQuestion>;
+  
+  // RFP Answer operations
+  getRfpAnswers(questionIds: number[]): Promise<RfpAnswer[]>;
+  createRfpAnswer(answer: InsertRfpAnswer): Promise<RfpAnswer>;
+  updateRfpAnswer(answer: UpdateRfpAnswer): Promise<RfpAnswer | undefined>;
+  
+  // Knowledge Document operations
+  getKnowledgeDocuments(): Promise<KnowledgeDocument[]>;
+  createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument>;
+  
+  // Suggested Document operations
+  getSuggestedDocuments(): Promise<SuggestedDocument[]>;
+  createSuggestedDocument(document: InsertSuggestedDocument): Promise<SuggestedDocument>;
+  updateSuggestedDocumentStatus(id: number, status: 'approved' | 'rejected', reviewedBy: number): Promise<SuggestedDocument | undefined>;
+  
+  // Document Chunk operations
+  createDocumentChunk(chunk: InsertDocumentChunk): Promise<DocumentChunk>;
+  getDocumentChunks(documentId: number, documentType: string): Promise<DocumentChunk[]>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private projects: Map<number, Project>;
+  private projectMembers: Map<number, ProjectMember>;
+  private rfpDocuments: Map<number, RfpDocument>;
+  private rfpQuestions: Map<number, RfpQuestion>;
+  private rfpAnswers: Map<number, RfpAnswer>;
+  private knowledgeDocuments: Map<number, KnowledgeDocument>;
+  private suggestedDocuments: Map<number, SuggestedDocument>;
+  private documentChunks: Map<number, DocumentChunk>;
+  
+  private userId: number = 1;
+  private projectId: number = 1;
+  private projectMemberId: number = 1;
+  private rfpDocumentId: number = 1;
+  private rfpQuestionId: number = 1;
+  private rfpAnswerId: number = 1;
+  private knowledgeDocumentId: number = 1;
+  private suggestedDocumentId: number = 1;
+  private documentChunkId: number = 1;
+
+  constructor() {
+    this.users = new Map();
+    this.projects = new Map();
+    this.projectMembers = new Map();
+    this.rfpDocuments = new Map();
+    this.rfpQuestions = new Map();
+    this.rfpAnswers = new Map();
+    this.knowledgeDocuments = new Map();
+    this.suggestedDocuments = new Map();
+    this.documentChunks = new Map();
+    
+    // Add a demo user
+    const demoUser: User = {
+      id: this.userId++,
+      email: 'demo@example.com',
+      password: 'password123',
+      isAdmin: true,
+      createdAt: new Date()
+    };
+    this.users.set(demoUser.id, demoUser);
+  }
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.userId++;
+    const user: User = { ...insertUser, id, createdAt: new Date() };
+    this.users.set(id, user);
+    return user;
+  }
+
+  // Project operations
+  async getProjects(): Promise<Project[]> {
+    return Array.from(this.projects.values());
+  }
+
+  async getProject(id: number): Promise<Project | undefined> {
+    return this.projects.get(id);
+  }
+
+  async createProject(insertProject: InsertProject): Promise<Project> {
+    const id = this.projectId++;
+    const project: Project = { ...insertProject, id, createdAt: new Date() };
+    this.projects.set(id, project);
+    
+    // Automatically add the creator as an owner
+    await this.addProjectMember({
+      projectId: project.id,
+      userId: project.createdBy,
+      role: 'owner'
+    });
+    
+    return project;
+  }
+
+  async getProjectsByUserId(userId: number): Promise<Project[]> {
+    // Get all project memberships for this user
+    const memberships = Array.from(this.projectMembers.values())
+      .filter(member => member.userId === userId);
+    
+    // Get the corresponding projects
+    return Promise.all(
+      memberships.map(async membership => 
+        (await this.getProject(membership.projectId))!
+      )
+    );
+  }
+
+  // Project Members operations
+  async getProjectMembers(projectId: number): Promise<ProjectMember[]> {
+    return Array.from(this.projectMembers.values())
+      .filter(member => member.projectId === projectId);
+  }
+
+  async addProjectMember(insertProjectMember: InsertProjectMember): Promise<ProjectMember> {
+    const id = this.projectMemberId++;
+    const projectMember: ProjectMember = { 
+      ...insertProjectMember, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.projectMembers.set(id, projectMember);
+    return projectMember;
+  }
+
+  async updateProjectMemberRole(id: number, role: 'owner' | 'collaborator' | 'viewer'): Promise<ProjectMember | undefined> {
+    const projectMember = this.projectMembers.get(id);
+    if (!projectMember) return undefined;
+    
+    const updatedMember = { ...projectMember, role };
+    this.projectMembers.set(id, updatedMember);
+    return updatedMember;
+  }
+
+  // RFP Document operations
+  async getRfpDocuments(projectId: number): Promise<RfpDocument[]> {
+    return Array.from(this.rfpDocuments.values())
+      .filter(doc => doc.projectId === projectId);
+  }
+
+  async getRfpDocument(id: number): Promise<RfpDocument | undefined> {
+    return this.rfpDocuments.get(id);
+  }
+
+  async createRfpDocument(insertDocument: InsertRfpDocument): Promise<RfpDocument> {
+    const id = this.rfpDocumentId++;
+    const rfpDocument: RfpDocument = { 
+      ...insertDocument, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.rfpDocuments.set(id, rfpDocument);
+    return rfpDocument;
+  }
+
+  async updateRfpDocumentStatus(id: number, status: 'unprocessed' | 'processed' | 'reviewed' | 'done'): Promise<RfpDocument | undefined> {
+    const document = this.rfpDocuments.get(id);
+    if (!document) return undefined;
+    
+    const updatedDocument = { ...document, status };
+    this.rfpDocuments.set(id, updatedDocument);
+    return updatedDocument;
+  }
+
+  // RFP Question operations
+  async getRfpQuestions(documentId: number): Promise<RfpQuestion[]> {
+    return Array.from(this.rfpQuestions.values())
+      .filter(question => question.documentId === documentId);
+  }
+
+  async createRfpQuestion(insertQuestion: InsertRfpQuestion): Promise<RfpQuestion> {
+    const id = this.rfpQuestionId++;
+    const rfpQuestion: RfpQuestion = { 
+      ...insertQuestion, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.rfpQuestions.set(id, rfpQuestion);
+    return rfpQuestion;
+  }
+
+  // RFP Answer operations
+  async getRfpAnswers(questionIds: number[]): Promise<RfpAnswer[]> {
+    return Array.from(this.rfpAnswers.values())
+      .filter(answer => questionIds.includes(answer.questionId));
+  }
+
+  async createRfpAnswer(insertAnswer: InsertRfpAnswer): Promise<RfpAnswer> {
+    const id = this.rfpAnswerId++;
+    const now = new Date();
+    const rfpAnswer: RfpAnswer = { 
+      ...insertAnswer, 
+      id, 
+      createdAt: now,
+      updatedAt: now
+    };
+    this.rfpAnswers.set(id, rfpAnswer);
+    return rfpAnswer;
+  }
+
+  async updateRfpAnswer(updateAnswer: UpdateRfpAnswer): Promise<RfpAnswer | undefined> {
+    const answer = this.rfpAnswers.get(updateAnswer.id);
+    if (!answer) return undefined;
+    
+    const updatedAnswer = { 
+      ...answer, 
+      ...updateAnswer,
+      updatedAt: new Date() 
+    };
+    this.rfpAnswers.set(answer.id, updatedAnswer);
+    return updatedAnswer;
+  }
+
+  // Knowledge Document operations
+  async getKnowledgeDocuments(): Promise<KnowledgeDocument[]> {
+    return Array.from(this.knowledgeDocuments.values());
+  }
+
+  async createKnowledgeDocument(insertDocument: InsertKnowledgeDocument): Promise<KnowledgeDocument> {
+    const id = this.knowledgeDocumentId++;
+    const knowledgeDocument: KnowledgeDocument = { 
+      ...insertDocument, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.knowledgeDocuments.set(id, knowledgeDocument);
+    return knowledgeDocument;
+  }
+
+  // Suggested Document operations
+  async getSuggestedDocuments(): Promise<SuggestedDocument[]> {
+    return Array.from(this.suggestedDocuments.values());
+  }
+
+  async createSuggestedDocument(insertDocument: InsertSuggestedDocument): Promise<SuggestedDocument> {
+    const id = this.suggestedDocumentId++;
+    const suggestedDocument: SuggestedDocument = { 
+      ...insertDocument, 
+      id, 
+      createdAt: new Date(),
+      reviewedAt: null,
+      reviewedBy: null
+    };
+    this.suggestedDocuments.set(id, suggestedDocument);
+    return suggestedDocument;
+  }
+
+  async updateSuggestedDocumentStatus(
+    id: number, 
+    status: 'approved' | 'rejected', 
+    reviewedBy: number
+  ): Promise<SuggestedDocument | undefined> {
+    const document = this.suggestedDocuments.get(id);
+    if (!document) return undefined;
+    
+    const updatedDocument = { 
+      ...document, 
+      status, 
+      reviewedBy,
+      reviewedAt: new Date()
+    };
+    this.suggestedDocuments.set(id, updatedDocument);
+    
+    // If approved, add to knowledge documents
+    if (status === 'approved') {
+      await this.createKnowledgeDocument({
+        name: document.name,
+        filePath: document.filePath,
+        contentType: document.contentType,
+        createdBy: reviewedBy
+      });
+    }
+    
+    return updatedDocument;
+  }
+
+  // Document Chunk operations
+  async createDocumentChunk(insertChunk: InsertDocumentChunk): Promise<DocumentChunk> {
+    const id = this.documentChunkId++;
+    const documentChunk: DocumentChunk = { 
+      ...insertChunk, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.documentChunks.set(id, documentChunk);
+    return documentChunk;
+  }
+
+  async getDocumentChunks(documentId: number, documentType: string): Promise<DocumentChunk[]> {
+    return Array.from(this.documentChunks.values())
+      .filter(chunk => 
+        chunk.documentId === documentId && 
+        chunk.documentType === documentType
+      );
+  }
+}
+
+export const storage = new MemStorage();
