@@ -1,15 +1,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from './supabase';
 import { useLocation } from 'wouter';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
-interface User {
-  id: number;
+interface AuthUserData {
+  id: string;
   email: string;
-  isAdmin: boolean;
+  role: string | null;
+  name: string | null;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUserData | null;
+  session: any | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -18,7 +21,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUserData | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [_, setLocation] = useLocation();
 
@@ -26,9 +30,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if the user is already logged in
     async function loadUser() {
       setLoading(true);
-      const { user, error } = await supabase.auth.getUser();
-      setUser(user);
+      
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      
+      if (session) {
+        // Get user profile data from the users table
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (userData && !error) {
+          setUser(userData as AuthUserData);
+        } else {
+          console.error('Error loading user data:', error);
+          setUser(null);
+        }
+      }
+      
       setLoading(false);
+      
+      // Set up auth state change listener
+      const { data: { subscription } } = await supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          setSession(session);
+          if (!session) {
+            setUser(null);
+          }
+        }
+      );
+      
+      // Clean up subscription
+      return () => {
+        subscription.unsubscribe();
+      };
     }
     
     loadUser();
@@ -36,13 +74,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     try {
-      const { user, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
       
       if (error) {
         return { success: false, error: error.message };
       }
       
-      setUser(user);
+      // Fetch user profile from users table
+      const { data: userData, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+        
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        return { success: false, error: 'Error fetching user profile' };
+      }
+      
+      setUser(userData as AuthUserData);
+      setSession(data.session);
       return { success: true };
     } catch (err) {
       return { success: false, error: 'An unexpected error occurred' };
@@ -50,13 +104,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error logging out:', error.message);
+    }
+    
     setUser(null);
+    setSession(null);
     setLocation('/login');
   }
 
   const value = {
     user,
+    session,
     loading,
     login,
     logout
