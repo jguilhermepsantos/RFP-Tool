@@ -1,6 +1,6 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./supabase-storage";
 import {
   insertUserSchema,
   insertProjectSchema,
@@ -74,9 +74,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
   apiRouter.get("/projects", async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.query.userId as string;
       
-      if (isNaN(userId)) {
+      if (!userId) {
         return res.status(400).json({ message: "Valid user ID is required" });
       }
       
@@ -102,9 +102,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/projects/:id", async (req: Request, res: Response) => {
     try {
-      const projectId = parseInt(req.params.id);
+      const projectId = req.params.id;
       
-      if (isNaN(projectId)) {
+      if (!projectId) {
         return res.status(400).json({ message: "Valid project ID is required" });
       }
       
