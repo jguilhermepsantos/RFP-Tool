@@ -11,8 +11,8 @@ import { formatDistanceToNow } from "date-fns";
 import { File, PlayCircle, CheckCircle } from "lucide-react";
 
 interface RfpDocument {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   name: string;
   status: string;
   createdAt: string;
@@ -20,7 +20,7 @@ interface RfpDocument {
 }
 
 interface RfpDocumentTableProps {
-  projectId: number;
+  projectId: string;
   documents: RfpDocument[];
   isEditable: boolean;
 }
@@ -28,9 +28,9 @@ interface RfpDocumentTableProps {
 export default function RfpDocumentTable({ projectId, documents, isEditable }: RfpDocumentTableProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [processingDocId, setProcessingDocId] = useState<number | null>(null);
+  const [processingDocId, setProcessingDocId] = useState<string | null>(null);
 
-  const handleProcessDocument = async (documentId: number) => {
+  const handleProcessDocument = async (documentId: string) => {
     if (!user) return;
     
     setProcessingDocId(documentId);
@@ -56,7 +56,7 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
     }
   };
 
-  const handleUpdateStatus = async (documentId: number, status: string) => {
+  const handleUpdateStatus = async (documentId: string, status: string) => {
     if (!user) return;
     
     setProcessingDocId(documentId);

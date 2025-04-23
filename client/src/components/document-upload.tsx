@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FileUpIcon } from "lucide-react";
 
 interface DocumentUploadProps {
-  projectId: number;
+  projectId: string;
 }
 
 export default function DocumentUpload({ projectId }: DocumentUploadProps) {
