@@ -25,7 +25,7 @@ function Router() {
       <Route path="/projects/:projectId">
         {(params) => (
           <RequireAuth>
-            <ProjectDetails projectId={parseInt(params.projectId)} />
+            <ProjectDetails projectId={params.projectId} />
           </RequireAuth>
         )}
       </Route>
@@ -34,8 +34,8 @@ function Router() {
         {(params) => (
           <RequireAuth>
             <RfpDocument 
-              projectId={parseInt(params.projectId)} 
-              documentId={parseInt(params.documentId)} 
+              projectId={params.projectId} 
+              documentId={params.documentId} 
             />
           </RequireAuth>
         )}

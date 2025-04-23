@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -9,38 +8,117 @@ import DocumentUpload from "@/components/document-upload";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/lib/supabase";
 
 interface ProjectDetailsProps {
-  projectId: number;
+  projectId: string;
+}
+
+interface ProjectData {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  created_by: string | null;
+}
+
+interface MemberData {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+}
+
+interface DocumentData {
+  id: string;
+  project_id: string;
+  name?: string;
+  status: string;
+  created_at: string;
+  file_url?: string;
+  uploaded_by?: string;
+  is_past_rfp?: boolean;
 }
 
 export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: [`/api/projects/${projectId}`],
-    enabled: !!projectId,
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [project, setProject] = useState<ProjectData | null>(null);
+  const [documents, setDocuments] = useState<DocumentData[]>([]);
+  const [members, setMembers] = useState<MemberData[]>([]);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (isError && error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: (error as Error).message || "Failed to load project details",
-      });
-      // Redirect to projects page if project not found
-      setLocation("/projects");
+    async function fetchProjectDetails() {
+      if (!projectId) return;
+      
+      try {
+        setIsLoading(true);
+        
+        // Fetch project
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
+          
+        if (projectError) {
+          throw new Error(projectError.message);
+        }
+        
+        if (!projectData) {
+          throw new Error('Project not found');
+        }
+        
+        // Fetch project members
+        const { data: memberData, error: memberError } = await supabase
+          .from('project_permissions')
+          .select('*')
+          .eq('project_id', projectId);
+          
+        if (memberError) {
+          throw new Error(memberError.message);
+        }
+        
+        // Fetch RFP documents
+        const { data: documentData, error: documentError } = await supabase
+          .from('rfp_documents')
+          .select('*')
+          .eq('project_id', projectId);
+          
+        if (documentError) {
+          throw new Error(documentError.message);
+        }
+        
+        setProject(projectData);
+        setMembers(memberData || []);
+        setDocuments(documentData || []);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching project details:', err);
+        setError(err as Error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: (err as Error).message || "Failed to load project details",
+        });
+        
+        // Redirect to projects page if project not found
+        if ((err as Error).message.includes('not found')) {
+          setLocation("/projects");
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [isError, error, toast, setLocation]);
+    
+    fetchProjectDetails();
+  }, [projectId, toast, setLocation]);
 
-  const project = data?.project;
-  const documents = data?.documents || [];
-  const members = data?.members || [];
-
-  const userRole = members.find(m => m.userId === user?.id)?.role || 'viewer';
+  const userRole = members.find((m) => m.user_id === user?.id)?.role || 'viewer';
   const isOwnerOrCollaborator = userRole === 'owner' || userRole === 'collaborator';
 
   return (
@@ -85,7 +163,14 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                 
                 <RfpDocumentTable 
                   projectId={projectId} 
-                  documents={documents} 
+                  documents={documents.map(doc => ({
+                    id: doc.id,
+                    projectId: doc.project_id,
+                    name: doc.name || 'Untitled Document',
+                    status: doc.status,
+                    createdAt: doc.created_at,
+                    isPastRfp: doc.is_past_rfp || false
+                  }))}
                   isEditable={isOwnerOrCollaborator}
                 />
               </TabsContent>
@@ -107,9 +192,9 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                           {members.map((member) => (
                             <li key={member.id} className="py-3 flex justify-between items-center">
                               <div>
-                                <p className="font-medium">User ID: {member.userId}</p>
+                                <p className="font-medium">User ID: {member.user_id}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  Added on {new Date(member.createdAt).toLocaleDateString()}
+                                  Added on {new Date(member.created_at).toLocaleDateString()}
                                 </p>
                               </div>
                               <div className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
