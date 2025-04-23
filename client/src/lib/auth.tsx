@@ -85,15 +85,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Helper function to create a user profile if it doesn't exist
   async function ensureUserProfile(authUser: SupabaseUser): Promise<AuthUserData> {
-    // Check if user profile exists
-    const { data: existingUser, error: fetchError } = await supabase
+    // First try to get user by ID
+    const { data: existingUserById, error: userByIdError } = await supabase
       .from('users')
       .select('*')
       .eq('id', authUser.id)
       .maybeSingle();
       
-    if (existingUser) {
-      return existingUser as AuthUserData;
+    if (existingUserById) {
+      return existingUserById as AuthUserData;
+    }
+    
+    // Also try by email, in case the ID changed but email is the same
+    const { data: existingUserByEmail, error: userByEmailError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', authUser.email)
+      .maybeSingle();
+      
+    if (existingUserByEmail) {
+      // If found by email but ID is different, we should update the ID
+      if (existingUserByEmail.id !== authUser.id) {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ id: authUser.id })
+          .eq('email', authUser.email);
+          
+        if (updateError) {
+          console.error('Error updating user ID:', updateError);
+        }
+      }
+      return existingUserByEmail as AuthUserData;
     }
     
     // If no profile exists, create one
@@ -115,7 +137,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
     if (insertError) {
       console.error('Error creating user profile:', insertError);
-      // Return the constructed user even if saving failed
+      
+      // If it's a duplicate key error, try to get the existing user
+      if (insertError.code === '23505') {
+        console.log('User already exists, fetching profile...');
+        const { data: existingUser, error: fetchError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', authUser.email)
+          .single();
+          
+        if (existingUser && !fetchError) {
+          return existingUser as AuthUserData;
+        }
+      }
+      
+      // Return the constructed user as a fallback
       return newUser as AuthUserData;
     }
     

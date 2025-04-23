@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { FileText, Users } from "lucide-react";
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
-  createdAt: string;
+  created_at?: string;
+  createdAt?: string;
   role: 'owner' | 'collaborator' | 'viewer';
 }
 
@@ -44,7 +45,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Created {formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}
+          Created {formatDistanceToNow(new Date(project.created_at || project.createdAt || Date.now()), { addSuffix: true })}
         </p>
       </CardHeader>
       
