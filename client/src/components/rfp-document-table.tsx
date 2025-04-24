@@ -220,7 +220,7 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
               </TableCell>
               <TableCell>{getStatusBadge(document.status)}</TableCell>
               <TableCell className="text-muted-foreground text-sm">
-                {formatDistanceToNow(new Date(document.createdAt), { addSuffix: true })}
+                {document.createdAt ? formatDistanceToNow(new Date(document.createdAt), { addSuffix: true }) : 'N/A'}
               </TableCell>
               <TableCell>
                 {document.isPastRfp ? (
