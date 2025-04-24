@@ -51,7 +51,7 @@ export async function initializePineconeIndex(): Promise<boolean> {
         spec: {
           serverless: {
             cloud: "aws",
-            region: "us-west-2"
+            region: "us-east-1" // Changed to us-east-1 which is supported by free tier
           }
         }
       });
@@ -127,9 +127,14 @@ async function searchChunks(query: string, nResults: number = 3): Promise<string
  */
 async function generateAnswer(contextChunks: string[], question: string): Promise<string> {
   try {
-    const context = contextChunks.join("\n\n");
-    const prompt = `You are a VTEX Solution Engineer answering a customer RFP.
-Use only the context below to answer clearly and accurately.
+    const context = contextChunks.length > 0 
+      ? contextChunks.join("\n\n") 
+      : "No specific context available for this question.";
+      
+    const prompt = `You are a Solution Engineer answering a customer RFP.
+${contextChunks.length > 0 
+  ? 'Use only the context below to answer clearly and accurately.' 
+  : 'No specific context is available. Answer based on your general knowledge, but mention that this is a general response.'}
 
 Context:
 ${context}
@@ -167,11 +172,10 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
     // Step 1: Retrieve relevant chunks
     const documents = await searchChunks(question, nResults);
     
+    // Even if no documents are found, we can still generate an answer 
+    // with the updated generateAnswer function that handles empty context
     if (documents.length === 0) {
-      return {
-        compliance: "Unknown",
-        answer: "Unable to find relevant information to answer this question accurately."
-      };
+      console.log("No relevant documents found in knowledge base. Generating answer without specific context.");
     }
     
     // Step 2: Generate the answer
@@ -186,11 +190,46 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
     console.log("\n✅ Final Answer:");
     console.log(answer);
     
-    // TODO: Implement more sophisticated compliance detection
-    // For now, default to "Yes, natively" as in the Python code
+    // Simple compliance detection based on the answer content
+    let compliance = "Unknown";
+    
+    // Check if the answer contains indicators of compliance levels
+    const answerLower = answer.toLowerCase();
+    if (answerLower.includes("full compliance") || 
+        answerLower.includes("fully compliant") || 
+        answerLower.includes("fully supports") ||
+        answerLower.includes("yes, natively")) {
+      compliance = "Yes, natively";
+    } else if (answerLower.includes("partial compliance") || 
+               answerLower.includes("partially compliant") ||
+               answerLower.includes("requires configuration") ||
+               answerLower.includes("with customization")) {
+      compliance = "Yes, with customization";
+    } else if (answerLower.includes("roadmap") ||
+               answerLower.includes("future release") ||
+               answerLower.includes("planned feature")) {
+      compliance = "Future roadmap";
+    } else if (answerLower.includes("does not support") ||
+               answerLower.includes("not supported") ||
+               answerLower.includes("cannot provide") ||
+               answerLower.includes("no support for")) {
+      compliance = "No";
+    } else if (answerLower.includes("third-party") ||
+               answerLower.includes("3rd party") ||
+               answerLower.includes("partner solution")) {
+      compliance = "Yes, with 3rd party";
+    } else if (documents.length === 0 || 
+               answerLower.includes("no specific context") ||
+               answerLower.includes("general response")) {
+      compliance = "Unknown";
+    } else {
+      // Default to assuming support
+      compliance = "Yes, natively";
+    }
+    
     return {
-      compliance: "Yes, natively",
-      answer: answer
+      compliance,
+      answer
     };
   } catch (error) {
     console.error("Error answering question:", error);
