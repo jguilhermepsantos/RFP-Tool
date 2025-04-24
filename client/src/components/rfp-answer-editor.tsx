@@ -90,7 +90,7 @@ export default function RfpAnswerEditor({
     }
   };
 
-  const isEditable = documentStatus === 'processed' || documentStatus === 'reviewed';
+  const isEditable = documentStatus === 'processed';
 
   return (
     <Card>
@@ -98,11 +98,11 @@ export default function RfpAnswerEditor({
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-base font-medium flex items-center gap-2">
-              <span className="text-muted-foreground font-bold">{question.questionNumber}.</span>
-              <span className="font-semibold">{question.questionText}</span>
+              <span className="text-muted-foreground">{question.questionNumber}</span>
+              {question.questionText}
             </CardTitle>
             {question.section && (
-              <CardDescription className="mt-1">
+              <CardDescription>
                 Section: {question.section}
               </CardDescription>
             )}
@@ -120,9 +120,7 @@ export default function RfpAnswerEditor({
                 <DialogHeader>
                   <DialogTitle>Edit Answer</DialogTitle>
                   <DialogDescription>
-                    <div className="mt-1 p-2 border rounded-md bg-slate-50">
-                      <p className="font-medium">{question.questionNumber}. {question.questionText}</p>
-                    </div>
+                    Question: {question.questionText}
                   </DialogDescription>
                 </DialogHeader>
                 
@@ -174,32 +172,37 @@ export default function RfpAnswerEditor({
       </CardHeader>
       <CardContent>
         {question.answer ? (
-          <div className="space-y-6">
-            <div className="p-4 bg-gray-50 rounded-md border">
-              <h3 className="text-sm font-medium mb-2 text-gray-700">Compliance Answer:</h3>
+          <Tabs defaultValue="generated">
+            <TabsList className="mb-4">
+              <TabsTrigger value="compliance">Compliance</TabsTrigger>
+              <TabsTrigger value="generated">AI Generated</TabsTrigger>
+              {question.answer.finalAnswer && (
+                <TabsTrigger value="final">Final Answer</TabsTrigger>
+              )}
+            </TabsList>
+            
+            <TabsContent value="compliance" className="p-4 bg-gray-50 rounded-md">
               {question.answer.complianceAnswer ? (
                 <p className="whitespace-pre-line">{question.answer.complianceAnswer}</p>
               ) : (
                 <p className="italic text-muted-foreground">No compliance answer provided yet.</p>
               )}
-            </div>
+            </TabsContent>
             
-            <div className="p-4 bg-blue-50 rounded-md border border-blue-100">
-              <h3 className="text-sm font-medium mb-2 text-blue-700">AI Generated Answer:</h3>
+            <TabsContent value="generated" className="p-4 bg-gray-50 rounded-md">
               {question.answer.generatedAnswer ? (
                 <p className="whitespace-pre-line">{question.answer.generatedAnswer}</p>
               ) : (
                 <p className="italic text-muted-foreground">No generated answer available yet.</p>
               )}
-            </div>
+            </TabsContent>
             
             {question.answer.finalAnswer && (
-              <div className="p-4 bg-green-50 rounded-md border border-green-100">
-                <h3 className="text-sm font-medium mb-2 text-green-700">Final Answer:</h3>
+              <TabsContent value="final" className="p-4 bg-gray-50 rounded-md">
                 <p className="whitespace-pre-line">{question.answer.finalAnswer}</p>
-              </div>
+              </TabsContent>
             )}
-          </div>
+          </Tabs>
         ) : (
           <p className="italic text-muted-foreground">No answer available yet.</p>
         )}

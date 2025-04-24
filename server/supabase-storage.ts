@@ -216,11 +216,9 @@ export class SupabaseStorage implements IStorage {
     const { data, error } = await supabase
       .from('rfp_answers')
       .select('*')
-      .in('rfp_question_id', questionIds)
-      .not('rfp_document_id', 'is', null);  // Only include answers that have a document ID
+      .in('rfp_question_id', questionIds);
     
     if (error) throw new Error(`Failed to get RFP answers: ${error.message}`);
-    console.log(`Found ${data?.length || 0} valid answers with non-null rfp_document_id`);
     return data as RfpAnswer[];
   }
 
@@ -240,8 +238,7 @@ export class SupabaseStorage implements IStorage {
       .from('rfp_answers')
       .update({ 
         compliance_answer: answer.complianceAnswer,
-        generated_answer: answer.generatedAnswer,
-        final_answer: answer.finalAnswer
+        generated_answer: answer.generatedAnswer
       })
       .eq('id', answer.id)
       .select()

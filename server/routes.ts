@@ -209,11 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Map questions to their answers
       const questionsWithAnswers = questions.map(question => {
-        // Only use answers that have the same rfpDocumentId as the document we're viewing
-        const answer = answers.find(a => 
-          a.rfpQuestionId === question.id && 
-          a.rfpDocumentId === documentId
-        );
+        const answer = answers.find(a => a.rfpQuestionId === question.id);
         console.log(`For question ${question.id}, found answer:`, answer);
         return {
           ...question,
@@ -300,7 +296,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create an answer for each question
           await storage.createRfpAnswer({
             rfpQuestionId: newQuestion.id,
-            rfpDocumentId: documentId,
             complianceAnswer: "Yes, we comply with this requirement.",
             generatedAnswer: "Our company has extensive experience in AI solutions, with over 50 successful implementations..."
           });
