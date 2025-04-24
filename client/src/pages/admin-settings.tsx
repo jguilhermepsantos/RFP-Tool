@@ -82,6 +82,8 @@ export default function AdminSettings() {
   const rfpDocuments: RfpDocument[] = Array.isArray(rfpDocumentsResponse) 
     ? rfpDocumentsResponse.filter(doc => doc.status === 'done')
     : [];
+    
+  console.log("RFP documents:", rfpDocuments);
 
   // Mutation for updating document approval status
   const updateDocumentApproval = useMutation({
@@ -168,7 +170,9 @@ export default function AdminSettings() {
   });
   
   // Create a map of project IDs to project names for easy lookup
-  const projects = Array.isArray(projectsData) ? projectsData : [];
+  const projects = projectsData?.projects || [];
+  
+  console.log("Projects data:", projectsData);
   
   // Function to get project name from project ID
   const getProjectName = (projectId: string | null) => {
