@@ -11,12 +11,21 @@ import { Pencil, Save } from "lucide-react";
 
 interface Answer {
   id: string;
-  rfpQuestionId: string | null;
-  complianceAnswer: string | null;
-  generatedAnswer: string | null;
-  finalAnswer: string | null;
-  lastReviewedBy: string | null;
-  lastReviewedAt: string | null;
+  rfpQuestionId?: string | null;
+  rfp_question_id?: string | null;
+  rfpDocumentId?: string | null;
+  rfp_document_id?: string | null;
+  complianceAnswer?: string | null;
+  compliance_answer?: string | null;
+  generatedAnswer?: string | null;
+  generated_answer?: string | null;
+  finalAnswer?: string | null;
+  final_answer?: string | null;
+  lastReviewedBy?: string | null;
+  last_reviewed_by?: string | null;
+  lastReviewedAt?: string | null;
+  last_reviewed_at?: string | null;
+  question_text?: string;
 }
 
 interface Question {
@@ -44,14 +53,18 @@ export default function RfpAnswerEditor({
   const { user } = useAuth();
   const { toast } = useToast();
   
+  // Add debug logging to see the actual answer object structure
+  console.log(`Question ${question.id} answer:`, question.answer);
+  
+  // Handle both camelCase and snake_case formats from the API
   const [complianceAnswer, setComplianceAnswer] = useState(
-    question.answer?.complianceAnswer || ""
+    question.answer?.complianceAnswer || question.answer?.compliance_answer || ""
   );
   const [generatedAnswer, setGeneratedAnswer] = useState(
-    question.answer?.generatedAnswer || ""
+    question.answer?.generatedAnswer || question.answer?.generated_answer || ""
   );
   const [finalAnswer, setFinalAnswer] = useState(
-    question.answer?.finalAnswer || ""
+    question.answer?.finalAnswer || question.answer?.final_answer || ""
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -176,30 +189,30 @@ export default function RfpAnswerEditor({
             <TabsList className="mb-4">
               <TabsTrigger value="compliance">Compliance</TabsTrigger>
               <TabsTrigger value="generated">AI Generated</TabsTrigger>
-              {question.answer.finalAnswer && (
+              {(question.answer.finalAnswer || question.answer.final_answer) && (
                 <TabsTrigger value="final">Final Answer</TabsTrigger>
               )}
             </TabsList>
             
             <TabsContent value="compliance" className="p-4 bg-gray-50 rounded-md">
-              {question.answer.complianceAnswer ? (
-                <p className="whitespace-pre-line">{question.answer.complianceAnswer}</p>
+              {(question.answer.complianceAnswer || question.answer.compliance_answer) ? (
+                <p className="whitespace-pre-line">{question.answer.complianceAnswer || question.answer.compliance_answer}</p>
               ) : (
                 <p className="italic text-muted-foreground">No compliance answer provided yet.</p>
               )}
             </TabsContent>
             
             <TabsContent value="generated" className="p-4 bg-gray-50 rounded-md">
-              {question.answer.generatedAnswer ? (
-                <p className="whitespace-pre-line">{question.answer.generatedAnswer}</p>
+              {(question.answer.generatedAnswer || question.answer.generated_answer) ? (
+                <p className="whitespace-pre-line">{question.answer.generatedAnswer || question.answer.generated_answer}</p>
               ) : (
                 <p className="italic text-muted-foreground">No generated answer available yet.</p>
               )}
             </TabsContent>
             
-            {question.answer.finalAnswer && (
+            {(question.answer.finalAnswer || question.answer.final_answer) && (
               <TabsContent value="final" className="p-4 bg-gray-50 rounded-md">
-                <p className="whitespace-pre-line">{question.answer.finalAnswer}</p>
+                <p className="whitespace-pre-line">{question.answer.finalAnswer || question.answer.final_answer}</p>
               </TabsContent>
             )}
           </Tabs>
