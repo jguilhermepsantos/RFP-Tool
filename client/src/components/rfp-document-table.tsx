@@ -15,7 +15,7 @@ interface RfpDocument {
   projectId: string;
   name: string;
   status: string;
-  createdAt: string;
+  createdAt?: string;
   isPastRfp: boolean;
 }
 

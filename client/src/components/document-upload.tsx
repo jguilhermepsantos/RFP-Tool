@@ -13,9 +13,10 @@ import Papa from "papaparse";
 
 interface DocumentUploadProps {
   projectId: string;
+  onUploadSuccess?: () => void;
 }
 
-export default function DocumentUpload({ projectId }: DocumentUploadProps) {
+export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentUploadProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -174,6 +175,11 @@ export default function DocumentUpload({ projectId }: DocumentUploadProps) {
       
       // Refresh project data
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
+      
+      // Call the callback to refresh the parent component
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
     } catch (error) {
       toast({
         variant: "destructive",

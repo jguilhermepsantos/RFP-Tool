@@ -52,74 +52,75 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
   const [members, setMembers] = useState<MemberData[]>([]);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    async function fetchProjectDetails() {
-      if (!projectId) return;
-      
-      try {
-        setIsLoading(true);
-        
-        // Fetch project
-        const { data: projectData, error: projectError } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('id', projectId)
-          .single();
-          
-        if (projectError) {
-          throw new Error(projectError.message);
-        }
-        
-        if (!projectData) {
-          throw new Error('Project not found');
-        }
-        
-        // Fetch project members
-        const { data: memberData, error: memberError } = await supabase
-          .from('project_permissions')
-          .select('*')
-          .eq('project_id', projectId);
-          
-        if (memberError) {
-          throw new Error(memberError.message);
-        }
-        
-        // Fetch RFP documents
-        const { data: documentData, error: documentError } = await supabase
-          .from('rfp_documents')
-          .select('*')
-          .eq('project_id', projectId);
-          
-        console.log('RFP Documents from Supabase:', documentData);
-          
-        if (documentError) {
-          throw new Error(documentError.message);
-        }
-        
-        setProject(projectData);
-        setMembers(memberData || []);
-        setDocuments(documentData || []);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching project details:', err);
-        setError(err as Error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: (err as Error).message || "Failed to load project details",
-        });
-        
-        // Redirect to projects page if project not found
-        if ((err as Error).message.includes('not found')) {
-          setLocation("/projects");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  const fetchProjectDetails = async () => {
+    if (!projectId) return;
     
+    try {
+      setIsLoading(true);
+      
+      // Fetch project
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+        
+      if (projectError) {
+        throw new Error(projectError.message);
+      }
+      
+      if (!projectData) {
+        throw new Error('Project not found');
+      }
+      
+      // Fetch project members
+      const { data: memberData, error: memberError } = await supabase
+        .from('project_permissions')
+        .select('*')
+        .eq('project_id', projectId);
+        
+      if (memberError) {
+        throw new Error(memberError.message);
+      }
+      
+      // Fetch RFP documents
+      const { data: documentData, error: documentError } = await supabase
+        .from('rfp_documents')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('uploaded_at', { ascending: false });
+        
+      console.log('RFP Documents from Supabase:', documentData);
+        
+      if (documentError) {
+        throw new Error(documentError.message);
+      }
+      
+      setProject(projectData);
+      setMembers(memberData || []);
+      setDocuments(documentData || []);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching project details:', err);
+      setError(err as Error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (err as Error).message || "Failed to load project details",
+      });
+      
+      // Redirect to projects page if project not found
+      if ((err as Error).message.includes('not found')) {
+        setLocation("/projects");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProjectDetails();
-  }, [projectId, toast, setLocation]);
+  }, [projectId]);
 
   const userRole = members.find((m) => m.user_id === user?.id)?.role || 'viewer';
   const isOwnerOrCollaborator = userRole === 'owner' || userRole === 'collaborator';
@@ -161,7 +162,10 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
               
               <TabsContent value="documents" className="space-y-4">
                 {isOwnerOrCollaborator && (
-                  <DocumentUpload projectId={projectId} />
+                  <DocumentUpload 
+                    projectId={projectId} 
+                    onUploadSuccess={fetchProjectDetails}
+                  />
                 )}
                 
                 <RfpDocumentTable 
