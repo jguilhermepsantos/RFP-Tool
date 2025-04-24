@@ -9,7 +9,8 @@ export const userRoleEnum = pgEnum('user_role', ['owner', 'collaborator', 'viewe
 export const documentStatusEnum = pgEnum('document_status', [
   'unprocessed', 
   'processed', 
-  'reviewed', 
+  'under review',
+  'reviewed', // kept for backward compatibility
   'done'
 ]);
 

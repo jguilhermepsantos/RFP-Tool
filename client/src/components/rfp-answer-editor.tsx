@@ -96,7 +96,7 @@ export default function RfpAnswerEditor({
   const isUnprocessed = documentStatus === 'unprocessed';
 
   return (
-    <Card>
+    <Card className={isUnprocessed ? "border-amber-200" : ""}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -167,7 +167,13 @@ export default function RfpAnswerEditor({
         </div>
       </CardHeader>
       <CardContent>
-        {question.answer ? (
+        {isUnprocessed ? (
+          <div className="p-4 bg-amber-50 rounded-md border border-amber-200">
+            <p className="text-amber-800">
+              This question is waiting to be processed. Click the "Process Questions" button at the top to generate AI-assisted answers.
+            </p>
+          </div>
+        ) : question.answer ? (
           <div className="space-y-4">
             {/* Compliance answer section */}
             <div>

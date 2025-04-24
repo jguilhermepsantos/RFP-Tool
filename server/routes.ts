@@ -209,42 +209,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Document from database:`, documentData);
       
-      // Get all answers for the document directly from the rfp_answers table
-      const { data: answersData, error: answersError } = await supabase
-        .from('rfp_answers')
-        .select('*')
-        .eq('rfp_document_id', documentId);
+      let questionsWithAnswers = [];
       
-      if (answersError) {
-        console.log(`Error fetching answers:`, answersError);
-        return res.status(500).json({ message: `Failed to fetch answers: ${answersError.message}` });
-      }
-      
-      console.log(`Found ${answersData?.length || 0} answers directly from answers table`);
-      if (answersData && answersData.length > 0) {
-        console.log(`First answer from DB:`, answersData[0]);
+      // Handle differently based on document status
+      if (documentData.status === 'unprocessed') {
+        // For unprocessed documents, get questions without answers
+        const { data: questionsData, error: questionsError } = await supabase
+          .from('rfp_questions')
+          .select('*')
+          .eq('rfp_document_id', documentId);
+          
+        if (questionsError) {
+          console.log(`Error fetching questions:`, questionsError);
+          return res.status(500).json({ message: `Failed to fetch questions: ${questionsError.message}` });
+        }
+        
+        console.log(`Found ${questionsData?.length || 0} questions for unprocessed document`);
+        
+        // Transform questions into expected format (without answers)
+        questionsWithAnswers = (questionsData || []).map((question: any) => {
+          return {
+            id: question.id,
+            rfpDocumentId: question.rfp_document_id,
+            questionNumber: question.question_number || '',
+            questionText: question.question_text,
+            section: question.section,
+            answer: null // No answer yet for unprocessed documents
+          };
+        });
       } else {
-        console.log(`No answers found for document ID: ${documentId}`);
+        // For processed/reviewed/done documents, get answers with questions
+        const { data: answersData, error: answersError } = await supabase
+          .from('rfp_answers')
+          .select('*')
+          .eq('rfp_document_id', documentId);
+        
+        if (answersError) {
+          console.log(`Error fetching answers:`, answersError);
+          return res.status(500).json({ message: `Failed to fetch answers: ${answersError.message}` });
+        }
+        
+        console.log(`Found ${answersData?.length || 0} answers directly from answers table`);
+        if (answersData && answersData.length > 0) {
+          console.log(`First answer from DB:`, answersData[0]);
+        } else {
+          console.log(`No answers found for document ID: ${documentId}`);
+        }
+        
+        // Transform the answers into the expected format for the frontend
+        questionsWithAnswers = (answersData || []).map((dbAnswer: any) => {
+          return {
+            id: dbAnswer.rfp_question_id,
+            rfpDocumentId: dbAnswer.rfp_document_id,
+            questionText: dbAnswer.question_text,
+            answer: {
+              id: dbAnswer.id,
+              rfpQuestionId: dbAnswer.rfp_question_id,
+              complianceAnswer: dbAnswer.compliance_answer,
+              generatedAnswer: dbAnswer.generated_answer,
+              lastReviewedBy: dbAnswer.last_reviewed_by,
+              lastReviewedAt: dbAnswer.last_reviewed_at
+            }
+          };
+        });
       }
-      
-      // Transform the answers into the expected format for the frontend
-      const questionsWithAnswers = (answersData || []).map((dbAnswer: any) => {
-        return {
-          id: dbAnswer.rfp_question_id,
-          rfpDocumentId: dbAnswer.rfp_document_id,
-          questionText: dbAnswer.question_text,
-          answer: {
-            id: dbAnswer.id,
-            rfpQuestionId: dbAnswer.rfp_question_id,
-            // rfpDocumentId: dbAnswer.rfp_document_id,
-            complianceAnswer: dbAnswer.compliance_answer,
-            generatedAnswer: dbAnswer.generated_answer,
-            finalAnswer: dbAnswer.final_answer,
-            lastReviewedBy: dbAnswer.last_reviewed_by,
-            lastReviewedAt: dbAnswer.last_reviewed_at
-          }
-        };
-      });
       
       console.log(`Returning ${questionsWithAnswers.length} questions with answers from direct DB call`);
       
@@ -368,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { status } = req.body;
-      const validStatuses = ['unprocessed', 'processed', 'reviewed', 'done'];
+      const validStatuses = ['unprocessed', 'processed', 'under review', 'reviewed', 'done'];
       
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ 

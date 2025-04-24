@@ -260,7 +260,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                   </CardTitle>
                   <CardDescription>
                     {document.status === 'unprocessed' 
-                      ? 'Click "Process Questions" to extract questions and generate AI-assisted answers.' 
+                      ? 'No questions found for this document. Please check the uploaded file.'
                       : document.status === 'done'
                         ? 'This document has been marked as done but no questions were found.'
                         : 'No questions found in this document.'}
@@ -269,15 +269,41 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
               </Card>
             ) : (
               <div className="space-y-6">
-                {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
-                  <RfpAnswerEditor 
-                    key={item.id}
-                    question={item}
-                    documentStatus={document.status}
-                    projectId={projectId}
-                    documentId={documentId}
-                  />
-                ))}
+                {document.status === 'unprocessed' ? (
+                  <>
+                    <Card className="bg-amber-50 border-amber-200 mb-4">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-amber-700 text-base">Ready for Processing</CardTitle>
+                        <CardDescription>
+                          These questions are ready to be processed. Click the "Process Questions" button to generate AI-assisted answers.
+                        </CardDescription>
+                      </CardHeader>
+                    </Card>
+                    <div className="space-y-6">
+                      {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
+                        <RfpAnswerEditor 
+                          key={item.id}
+                          question={item}
+                          documentStatus={document.status}
+                          projectId={projectId}
+                          documentId={documentId}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-6">
+                    {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
+                      <RfpAnswerEditor 
+                        key={item.id}
+                        question={item}
+                        documentStatus={document.status}
+                        projectId={projectId}
+                        documentId={documentId}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>
