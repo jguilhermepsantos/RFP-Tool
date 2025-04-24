@@ -108,6 +108,7 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
           // Then create an rfp_answer entry linked to the question
           const { data: answerData, error: answerError } = await supabase.from('rfp_answers').insert({
             rfp_question_id: questionData.id,
+            question_text: questionText, // Adding question_text here as well
             compliance_answer: complianceAnswer,
             generated_answer: generatedAnswer,
             created_at: new Date().toISOString()
