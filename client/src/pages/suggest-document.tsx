@@ -65,31 +65,43 @@ export default function SuggestDocument() {
     setIsSubmitting(true);
     
     try {
-      // Upload the file to Supabase Storage in the vtex-files bucket
-      const filePath = `${user.id}/${Date.now()}_${file.name}`;
+      // Instead of uploading directly to Supabase, let's create a FormData and send it to our backend
+      // which can then handle the upload with proper server-side permissions
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', documentName);
+      formData.append('description', documentDescription || '');
+      formData.append('userId', user.id);
       
-      // Upload the file to the vtex-files bucket
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('vtex-files')
-        .upload(filePath, file);
+      // Call our API endpoint that will handle the file upload
+      const response = await fetch('/api/upload-document', {
+        method: 'POST',
+        body: formData,
+      });
       
-      if (uploadError) {
-        throw new Error(`File upload failed: ${uploadError.message}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`File upload failed: ${errorData.message || response.statusText}`);
       }
       
-      // Get the public URL for the uploaded file
-      const { data: { publicUrl } } = supabase.storage
-        .from('vtex-files')
-        .getPublicUrl(filePath);
+      const uploadResult = await response.json();
+      const fileUrl = uploadResult.fileUrl;
+      const filePath = uploadResult.filePath;
       
       // Create the document record in the database
-      await apiRequest("POST", "/api/suggested-documents", {
-        name: documentName,
-        filePath,
-        fileUrl: publicUrl,
-        contentType: file.type,
-        description: documentDescription,
-        suggestedBy: user.id,
+      await apiRequest("/api/suggested-documents", {
+        method: "POST",
+        body: JSON.stringify({
+          name: documentName,
+          filePath,
+          fileUrl,
+          contentType: file.type,
+          description: documentDescription,
+          suggestedBy: user.id,
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       toast({
