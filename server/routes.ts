@@ -220,13 +220,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (a.rfp_question_id === question.id)
         );
         console.log(`Mapping question ID ${question.id} to answer:`, answer);
+        
+        // If we have an answer, transform snake_case to camelCase for frontend compatibility
+        let transformedAnswer = null;
+        if (answer) {
+          const answerRecord = answer as Record<string, any>;
+          transformedAnswer = {
+            id: answerRecord.id,
+            rfpQuestionId: answerRecord.rfpQuestionId || answerRecord.rfp_question_id,
+            complianceAnswer: answerRecord.complianceAnswer || answerRecord.compliance_answer,
+            generatedAnswer: answerRecord.generatedAnswer || answerRecord.generated_answer,
+            finalAnswer: answerRecord.finalAnswer || answerRecord.final_answer,
+            lastReviewedBy: answerRecord.lastReviewedBy || answerRecord.last_reviewed_by,
+            lastReviewedAt: answerRecord.lastReviewedAt || answerRecord.last_reviewed_at
+          };
+        }
+        
         return {
           ...question,
-          answer: answer || null
+          answer: transformedAnswer
         };
       });
       
       console.log(`Returning ${questionsWithAnswers.length} questions with answers`);
+      
+      // Add this for debugging
+      if (questionsWithAnswers.length > 0) {
+        console.log('Sample transformed question with answer:', JSON.stringify(questionsWithAnswers[0], null, 2));
+      }
       
       return res.status(200).json({ 
         document,
