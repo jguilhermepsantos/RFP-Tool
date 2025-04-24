@@ -199,8 +199,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const questions = await storage.getRfpQuestions(documentId);
+      console.log(`Found ${questions.length} questions for document ID: ${documentId}`);
+      if (questions.length > 0) {
+        console.log(`First question:`, questions[0]);
+      }
+      
       const questionIds = questions.map(q => q.id);
       const answers = await storage.getRfpAnswers(questionIds);
+      console.log(`Found ${answers.length} answers for the questions`);
+      if (answers.length > 0) {
+        console.log(`First answer:`, answers[0]);
+      }
       
       // Map questions to their answers
       const questionsWithAnswers = questions.map(question => {
@@ -210,6 +219,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           answer: answer || null
         };
       });
+      
+      console.log(`Returning ${questionsWithAnswers.length} questions with answers`);
       
       return res.status(200).json({ 
         document,
@@ -247,11 +258,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const documentId = req.params.documentId;
       
+      console.log(`Processing document with ID: ${documentId}`);
+      
       if (!documentId) {
         return res.status(400).json({ message: "Valid document ID is required" });
       }
       
       const document = await storage.getRfpDocument(documentId);
+      
+      console.log(`Found document:`, document);
       
       if (!document) {
         return res.status(404).json({ message: "Document not found" });
@@ -260,6 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Mock processing questions and generating answers
       // In a real app, this would call the RAG engine
       const questions = await storage.getRfpQuestions(documentId);
+      console.log(`Found ${questions.length} existing questions for document ID: ${documentId}`);
       
       // If no questions yet, create some mock ones
       if (questions.length === 0) {
@@ -342,6 +358,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const answerId = req.params.answerId;
       
+      console.log(`Attempting to update answer with ID: ${answerId}`);
+      console.log(`Request body:`, req.body);
+      
       if (!answerId) {
         return res.status(400).json({ message: "Valid answer ID is required" });
       }
@@ -351,7 +370,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: answerId
       });
       
+      console.log(`Parsed answer data:`, answerData);
+      
       const updatedAnswer = await storage.updateRfpAnswer(answerData);
+      
+      console.log(`Update result:`, updatedAnswer);
       
       if (!updatedAnswer) {
         return res.status(404).json({ message: "Answer not found" });
