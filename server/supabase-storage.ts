@@ -465,4 +465,95 @@ export class SupabaseStorage implements IStorage {
   }
 }
 
+// Special patched method that will get a document with its answers in one query
+async function getRfpDocumentWithAnswers(documentId: string): Promise<{ document: any, questionsWithAnswers: any[] }> {
+  console.log(`[SupabaseStorage] PATCHED: Getting RFP document with ID: ${documentId} WITH ANSWERS`);
+  
+  // Get document
+  const { data: document, error: docError } = await supabase
+    .from('rfp_documents')
+    .select('*')
+    .eq('id', documentId)
+    .single();
+  
+  if (docError || !document) {
+    console.log(`[SupabaseStorage] PATCHED: Error fetching document:`, docError);
+    throw new Error(`Failed to get RFP document: ${docError?.message || 'Document not found'}`);
+  }
+  
+  // Get answers directly from the answers table
+  const { data: answers, error: answersError } = await supabase
+    .from('rfp_answers')
+    .select('*')
+    .eq('rfp_document_id', documentId);
+  
+  if (answersError) {
+    console.log(`[SupabaseStorage] PATCHED: Error fetching answers:`, answersError);
+    throw new Error(`Failed to get RFP answers: ${answersError.message}`);
+  }
+  
+  console.log(`[SupabaseStorage] PATCHED: Found ${answers?.length || 0} answers for document`);
+  
+  // Transform the data for the frontend
+  const questionsWithAnswers = (answers || []).map((answer) => {
+    return {
+      id: answer.rfp_question_id,
+      rfpDocumentId: answer.rfp_document_id,
+      questionText: answer.question_text,
+      answer: {
+        id: answer.id,
+        rfpQuestionId: answer.rfp_question_id,
+        complianceAnswer: answer.compliance_answer,
+        generatedAnswer: answer.generated_answer,
+        finalAnswer: answer.final_answer,
+        lastReviewedBy: answer.last_reviewed_by,
+        lastReviewedAt: answer.last_reviewed_at
+      }
+    };
+  });
+  
+  console.log(`[SupabaseStorage] PATCHED: Returning document with ${questionsWithAnswers.length} answers`);
+  
+  return {
+    document,
+    questionsWithAnswers
+  };
+}
+
+// Patch the routes module directly for the specific endpoint
+import { registerRoutes as originalRegisterRoutes } from './routes';
+import { Express, Request, Response } from 'express';
+import { Server } from 'http';
+
+// Override the registerRoutes function to patch our specific endpoint
+export async function registerRoutes(app: Express): Promise<Server> {
+  const server = await originalRegisterRoutes(app);
+  
+  // Get ready for our new route
+  const apiPrefix = '/api';
+  const targetRoutePath = '/projects/:projectId/rfp-documents/:documentId';
+  
+  console.log(`[PATCH] Attempting to patch routes for ${apiPrefix}${targetRoutePath}`);
+  
+  // Add our patched handler
+  app.get(`${apiPrefix}${targetRoutePath}`, async (req: Request, res: Response) => {
+    try {
+      console.log(`[PATCHED HANDLER] Getting document with ID: ${req.params.documentId}`);
+      
+      const result = await getRfpDocumentWithAnswers(req.params.documentId);
+      console.log(`[PATCHED HANDLER] Successfully got document with answers`);
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      console.log(`[PATCHED HANDLER] Error:`, error);
+      return res.status(500).json({ message: `Internal server error: ${(error as Error).message}` });
+    }
+  });
+  
+  console.log(`[PATCH] Successfully patched routes`);
+  
+  return server;
+}
+
+// Export the original storage instance for other parts of the app
 export const storage = new SupabaseStorage();
