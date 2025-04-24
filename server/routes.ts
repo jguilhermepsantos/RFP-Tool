@@ -250,12 +250,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/projects/:projectId/rfp-documents/:documentId/process", async (req: Request, res: Response) => {
     try {
       const documentId = req.params.documentId;
+      console.log("Processing document with ID:", documentId);
       
       if (!documentId) {
         return res.status(400).json({ message: "Valid document ID is required" });
       }
       
       const document = await storage.getRfpDocument(documentId);
+      console.log("Found document:", document);
       
       if (!document) {
         return res.status(404).json({ message: "Document not found" });
@@ -298,6 +300,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
             complianceAnswer: "Yes, we comply with this requirement.",
             generatedAnswer: "Our company has extensive experience in AI solutions, with over 50 successful implementations..."
           });
+        }
+      } else {
+        // Check if each existing question has an answer
+        const answers = await storage.getRfpAnswersByDocumentId(documentId);
+        console.log(`Found ${answers.length} existing answers for document ${documentId}`);
+        
+        // For questions without answers, create new answers
+        for (const question of questions) {
+          const existingAnswer = answers.find(a => a.rfpQuestionId === question.id);
+          
+          if (!existingAnswer) {
+            console.log(`Creating answer for question ${question.id}`);
+            
+            // Generate a demo answer for this question
+            let demoAnswer = "This is an AI-generated answer based on your knowledge base.";
+            let demoCompliance = "Yes, natively";
+            
+            // Generate more specific answers for common requirements
+            if (question.questionText.toLowerCase().includes("security") || 
+                question.questionText.toLowerCase().includes("encrypt")) {
+              demoAnswer = "Our platform utilizes industry-standard security measures including AES-256 encryption for data at rest and TLS 1.3 for data in transit. All user authentication follows OAuth 2.0 protocols and supports multi-factor authentication.";
+              demoCompliance = "Yes, exceeds requirements";
+            } else if (question.questionText.toLowerCase().includes("scale") || 
+                       question.questionText.toLowerCase().includes("traffic") ||
+                       question.questionText.toLowerCase().includes("increase")) {
+              demoAnswer = "Our cloud-native architecture is designed to scale horizontally and vertically. The platform automatically provisions additional resources during peak demand periods and can handle a 500% increase in traffic without degradation in performance.";
+              demoCompliance = "Yes, natively";
+            } else if (question.questionText.toLowerCase().includes("update") || 
+                       question.questionText.toLowerCase().includes("downtime")) {
+              demoAnswer = "Updates to the platform are performed with zero downtime using a blue-green deployment strategy. All content and product changes are reflected in real-time across all instances and regions.";
+              demoCompliance = "Yes, natively";  
+            }
+            
+            await storage.createRfpAnswer({
+              rfpDocumentId: documentId,
+              rfpQuestionId: question.id,
+              complianceAnswer: demoCompliance,
+              generatedAnswer: demoAnswer
+            });
+          }
         }
       }
       
