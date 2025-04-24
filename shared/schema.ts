@@ -26,6 +26,7 @@ export const users = pgTable("users", {
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey(),
   name: text("name").notNull(),
+  description: text("description"), // Added description column
   createdAt: timestamp("created_at").defaultNow(),
   createdBy: uuid("created_by").references(() => users.id),
 });

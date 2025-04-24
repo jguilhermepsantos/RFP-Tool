@@ -164,16 +164,6 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                   <DocumentUpload projectId={projectId} />
                 )}
                 
-                {/* Add more detailed logging */}
-                <div className="mb-4">
-                  <p>Documents count: {documents.length}</p>
-                  {documents.length > 0 && (
-                    <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
-                      {JSON.stringify(documents[0], null, 2)}
-                    </pre>
-                  )}
-                </div>
-                
                 <RfpDocumentTable 
                   projectId={projectId} 
                   documents={documents.map(doc => ({
