@@ -148,6 +148,52 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     }
   };
 
+  const handleDownloadCsv = async () => {
+    if (!documentId) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Get the CSV data from the API
+      const response = await fetch(`/api/projects/${projectId}/rfp-documents/${documentId}/export-csv`);
+      
+      if (!response.ok) {
+        throw new Error(`Error downloading CSV: ${response.statusText}`);
+      }
+      
+      // Get the CSV content as text
+      const csvContent = await response.text();
+      
+      // Create a blob and download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary link to trigger the download
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${document?.name || 'rfp_export'}_answers.csv`);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Success",
+        description: "CSV file downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to download CSV file",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getActionButton = (status: string) => {
     switch (status) {
       case "unprocessed":
@@ -170,6 +216,17 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
           <Button onClick={() => updateDocumentStatus("done")}>
             <CheckCircle className="mr-2 h-4 w-4" />
             Mark as Done
+          </Button>
+        );
+      case "done":
+        return (
+          <Button variant="outline" onClick={handleDownloadCsv}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download CSV
           </Button>
         );
       default:
