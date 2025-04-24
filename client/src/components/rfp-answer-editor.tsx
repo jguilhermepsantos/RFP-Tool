@@ -5,7 +5,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Pencil, Save } from "lucide-react";
 
@@ -54,9 +53,7 @@ export default function RfpAnswerEditor({
   const [generatedAnswer, setGeneratedAnswer] = useState(
     question.answer?.generatedAnswer || ""
   );
-  const [finalAnswer, setFinalAnswer] = useState(
-    question.answer?.finalAnswer || ""
-  );
+  // Remove the final answer state since we no longer need it
   const [isSaving, setIsSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -68,8 +65,7 @@ export default function RfpAnswerEditor({
     try {
       await apiRequest("PATCH", `/api/rfp-answers/${question.answer.id}`, {
         complianceAnswer,
-        generatedAnswer,
-        finalAnswer
+        generatedAnswer
       });
       
       toast({
@@ -149,15 +145,7 @@ export default function RfpAnswerEditor({
                     />
                   </div>
                   
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Final Answer</h4>
-                    <Textarea
-                      value={finalAnswer}
-                      onChange={(e) => setFinalAnswer(e.target.value)}
-                      placeholder="Enter final answer"
-                      rows={6}
-                    />
-                  </div>
+                  {/* Final Answer field removed */}
                 </div>
                 
                 <DialogFooter>
@@ -176,37 +164,31 @@ export default function RfpAnswerEditor({
       </CardHeader>
       <CardContent>
         {question.answer ? (
-          <Tabs defaultValue="generated">
-            <TabsList className="mb-4">
-              <TabsTrigger value="compliance">Compliance</TabsTrigger>
-              <TabsTrigger value="generated">AI Generated</TabsTrigger>
-              {question.answer.finalAnswer && (
-                <TabsTrigger value="final">Final Answer</TabsTrigger>
-              )}
-            </TabsList>
+          <div className="space-y-4">
+            {/* Compliance answer section */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-blue-700">Compliance Answer</h4>
+              <div className="p-4 bg-gray-50 rounded-md">
+                {question.answer.complianceAnswer ? (
+                  <p className="whitespace-pre-line">{question.answer.complianceAnswer}</p>
+                ) : (
+                  <p className="italic text-muted-foreground">No compliance answer provided yet.</p>
+                )}
+              </div>
+            </div>
             
-            <TabsContent value="compliance" className="p-4 bg-gray-50 rounded-md">
-              {question.answer.complianceAnswer ? (
-                <p className="whitespace-pre-line">{question.answer.complianceAnswer}</p>
-              ) : (
-                <p className="italic text-muted-foreground">No compliance answer provided yet.</p>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="generated" className="p-4 bg-gray-50 rounded-md">
-              {question.answer.generatedAnswer ? (
-                <p className="whitespace-pre-line">{question.answer.generatedAnswer}</p>
-              ) : (
-                <p className="italic text-muted-foreground">No generated answer available yet.</p>
-              )}
-            </TabsContent>
-            
-            {question.answer.finalAnswer && (
-              <TabsContent value="final" className="p-4 bg-gray-50 rounded-md">
-                <p className="whitespace-pre-line">{question.answer.finalAnswer}</p>
-              </TabsContent>
-            )}
-          </Tabs>
+            {/* AI Generated answer section */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-purple-700">AI Generated Answer</h4>
+              <div className="p-4 bg-gray-50 rounded-md">
+                {question.answer.generatedAnswer ? (
+                  <p className="whitespace-pre-line">{question.answer.generatedAnswer}</p>
+                ) : (
+                  <p className="italic text-muted-foreground">No generated answer available yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
         ) : (
           <p className="italic text-muted-foreground">No answer available yet.</p>
         )}

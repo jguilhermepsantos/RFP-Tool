@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import NavHeader from "@/components/nav-header";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle, PlayCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, PlayCircle, ChevronRight } from "lucide-react";
 
 interface RfpDocumentProps {
   projectId: string;
@@ -22,6 +22,13 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
+  // Get project details
+  const { data: projectData, isLoading: projectLoading } = useQuery({
+    queryKey: [`/api/projects/${projectId}`],
+    enabled: !!projectId,
+  });
+
+  // Get document details
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [`/api/projects/${projectId}/rfp-documents/${documentId}`],
     enabled: !!projectId && !!documentId,
@@ -39,6 +46,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     }
   }, [isError, error, toast, setLocation, projectId]);
 
+  const project = projectData?.project;
   const document = data?.document;
   const questionsWithAnswers = data?.questionsWithAnswers || [];
 
@@ -136,6 +144,38 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
       <NavHeader />
       
       <main className="container mx-auto py-6 px-4">
+        {/* Breadcrumb navigation */}
+        <div className="mb-4">
+          <nav className="flex" aria-label="Breadcrumb">
+            <ol className="inline-flex items-center space-x-1 md:space-x-3">
+              <li className="inline-flex items-center">
+                <Link href="/projects" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                  Projects
+                </Link>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <Link 
+                    href={`/projects/${projectId}`} 
+                    className="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2"
+                  >
+                    {projectLoading ? '...' : project?.name || 'Project'}
+                  </Link>
+                </div>
+              </li>
+              <li aria-current="page">
+                <div className="flex items-center">
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">
+                    {isLoading ? '...' : document?.name || 'RFP Document'}
+                  </span>
+                </div>
+              </li>
+            </ol>
+          </nav>
+        </div>
+
         {isLoading ? (
           <>
             <div className="mb-6 flex justify-between items-center">
