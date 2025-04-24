@@ -221,16 +221,6 @@ export class SupabaseStorage implements IStorage {
     if (error) throw new Error(`Failed to get RFP answers: ${error.message}`);
     return data as RfpAnswer[];
   }
-  
-  async getRfpAnswersByDocumentId(documentId: string): Promise<RfpAnswer[]> {
-    const { data, error } = await supabase
-      .from('rfp_answers')
-      .select('*')
-      .eq('rfp_document_id', documentId);
-    
-    if (error) throw new Error(`Failed to get RFP answers for document: ${error.message}`);
-    return data as RfpAnswer[];
-  }
 
   async createRfpAnswer(answer: InsertRfpAnswer): Promise<RfpAnswer> {
     const { data, error } = await supabase
@@ -248,8 +238,7 @@ export class SupabaseStorage implements IStorage {
       .from('rfp_answers')
       .update({ 
         compliance_answer: answer.complianceAnswer,
-        generated_answer: answer.generatedAnswer,
-        final_answer: answer.finalAnswer
+        generated_answer: answer.generatedAnswer
       })
       .eq('id', answer.id)
       .select()
