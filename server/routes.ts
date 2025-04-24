@@ -306,6 +306,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create an answer for each question
           await storage.createRfpAnswer({
             rfpQuestionId: newQuestion.id,
+            // We need to include questionText as it's required by the schema
+            questionText: newQuestion.questionText,
             complianceAnswer: "Yes, we comply with this requirement.",
             generatedAnswer: "Our company has extensive experience in AI solutions, with over 50 successful implementations..."
           });

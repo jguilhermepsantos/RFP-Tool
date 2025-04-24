@@ -191,12 +191,23 @@ export class SupabaseStorage implements IStorage {
   
   // RFP Question operations
   async getRfpQuestions(documentId: string): Promise<RfpQuestion[]> {
+    console.log(`[SupabaseStorage] Getting RFP questions for document ID: ${documentId}`);
+    
     const { data, error } = await supabase
       .from('rfp_questions')
       .select('*')
       .eq('rfp_document_id', documentId);
     
-    if (error) throw new Error(`Failed to get RFP questions: ${error.message}`);
+    if (error) {
+      console.log(`[SupabaseStorage] Error getting RFP questions: ${error.message}`);
+      throw new Error(`Failed to get RFP questions: ${error.message}`);
+    }
+    
+    console.log(`[SupabaseStorage] Found ${data ? data.length : 0} RFP questions`);
+    if (data && data.length > 0) {
+      console.log(`[SupabaseStorage] First question:`, data[0]);
+    }
+    
     return data as RfpQuestion[];
   }
 
@@ -213,12 +224,28 @@ export class SupabaseStorage implements IStorage {
   
   // RFP Answer operations
   async getRfpAnswers(questionIds: string[]): Promise<RfpAnswer[]> {
+    console.log(`[SupabaseStorage] Getting RFP answers for question IDs:`, questionIds);
+    
+    if (questionIds.length === 0) {
+      console.log(`[SupabaseStorage] No question IDs provided, returning empty array`);
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('rfp_answers')
       .select('*')
       .in('rfp_question_id', questionIds);
     
-    if (error) throw new Error(`Failed to get RFP answers: ${error.message}`);
+    if (error) {
+      console.log(`[SupabaseStorage] Error getting RFP answers: ${error.message}`);
+      throw new Error(`Failed to get RFP answers: ${error.message}`);
+    }
+    
+    console.log(`[SupabaseStorage] Found ${data ? data.length : 0} RFP answers`);
+    if (data && data.length > 0) {
+      console.log(`[SupabaseStorage] First answer:`, data[0]);
+    }
+    
     return data as RfpAnswer[];
   }
 

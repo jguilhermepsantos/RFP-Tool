@@ -183,6 +183,7 @@ export const updateRfpAnswerSchema = z.object({
   id: z.string().uuid(),
   complianceAnswer: z.string().optional(),
   generatedAnswer: z.string().optional(),
+  finalAnswer: z.string().optional(),
 });
 
 export type LoginCredentials = z.infer<typeof loginSchema>;
