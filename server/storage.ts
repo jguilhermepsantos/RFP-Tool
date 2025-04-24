@@ -41,6 +41,7 @@ export interface IStorage {
   
   // RFP Answer operations
   getRfpAnswers(questionIds: string[]): Promise<RfpAnswer[]>;
+  getRfpAnswersByDocumentId(documentId: string): Promise<RfpAnswer[]>;
   createRfpAnswer(answer: InsertRfpAnswer): Promise<RfpAnswer>;
   updateRfpAnswer(answer: UpdateRfpAnswer): Promise<RfpAnswer | undefined>;
   
@@ -240,6 +241,11 @@ export class MemStorage implements IStorage {
   async getRfpAnswers(questionIds: number[]): Promise<RfpAnswer[]> {
     return Array.from(this.rfpAnswers.values())
       .filter(answer => questionIds.includes(answer.questionId));
+  }
+  
+  async getRfpAnswersByDocumentId(documentId: number): Promise<RfpAnswer[]> {
+    return Array.from(this.rfpAnswers.values())
+      .filter(answer => answer.rfpDocumentId === documentId);
   }
 
   async createRfpAnswer(insertAnswer: InsertRfpAnswer): Promise<RfpAnswer> {

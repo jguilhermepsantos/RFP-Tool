@@ -201,11 +201,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const questions = await storage.getRfpQuestions(documentId);
       console.log(`Found ${questions.length} questions for document:`, questions);
       
-      const questionIds = questions.map(q => q.id);
-      console.log(`Question IDs:`, questionIds);
-      
-      const answers = await storage.getRfpAnswers(questionIds);
-      console.log(`Found ${answers.length} answers:`, answers);
+      // Get answers directly by document ID
+      const answers = await storage.getRfpAnswersByDocumentId(documentId);
+      console.log(`Found ${answers.length} answers for document ${documentId}:`, answers);
       
       // Map questions to their answers
       const questionsWithAnswers = questions.map(question => {
@@ -295,6 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Create an answer for each question
           await storage.createRfpAnswer({
+            rfpDocumentId: documentId,
             rfpQuestionId: newQuestion.id,
             complianceAnswer: "Yes, we comply with this requirement.",
             generatedAnswer: "Our company has extensive experience in AI solutions, with over 50 successful implementations..."
