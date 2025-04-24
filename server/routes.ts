@@ -182,9 +182,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/projects/:projectId/rfp-documents/:documentId", async (req: Request, res: Response) => {
     try {
-      const documentId = parseInt(req.params.documentId);
+      const documentId = req.params.documentId;
       
-      if (isNaN(documentId)) {
+      if (!documentId) {
         return res.status(400).json({ message: "Valid document ID is required" });
       }
       
@@ -241,9 +241,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post("/projects/:projectId/rfp-documents/:documentId/process", async (req: Request, res: Response) => {
     try {
-      const documentId = parseInt(req.params.documentId);
+      const documentId = req.params.documentId;
       
-      if (isNaN(documentId)) {
+      if (!documentId) {
         return res.status(400).json({ message: "Valid document ID is required" });
       }
       
@@ -306,9 +306,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.patch("/projects/:projectId/rfp-documents/:documentId/status", async (req: Request, res: Response) => {
     try {
-      const documentId = parseInt(req.params.documentId);
+      const documentId = req.params.documentId;
       
-      if (isNaN(documentId)) {
+      if (!documentId) {
         return res.status(400).json({ message: "Valid document ID is required" });
       }
       
@@ -336,9 +336,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // RFP Answer routes
   apiRouter.patch("/rfp-answers/:answerId", async (req: Request, res: Response) => {
     try {
-      const answerId = parseInt(req.params.answerId);
+      const answerId = req.params.answerId;
       
-      if (isNaN(answerId)) {
+      if (!answerId) {
         return res.status(400).json({ message: "Valid answer ID is required" });
       }
       
@@ -387,9 +387,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.patch("/suggested-documents/:documentId/review", async (req: Request, res: Response) => {
     try {
-      const documentId = parseInt(req.params.documentId);
+      const documentId = req.params.documentId;
       
-      if (isNaN(documentId)) {
+      if (!documentId) {
         return res.status(400).json({ message: "Valid document ID is required" });
       }
       
@@ -401,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      if (typeof reviewedBy !== 'number') {
+      if (!reviewedBy) {
         return res.status(400).json({ message: "Valid reviewer ID is required" });
       }
       
