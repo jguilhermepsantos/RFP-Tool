@@ -725,33 +725,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // File upload handling for document suggestions
   apiRouter.post("/upload-document", async (req: Request, res: Response) => {
     try {
-      // We need multer for file upload handling, but since we want to keep this 
-      // simple for now, let's respond with a placeholder URL
-      // In a production app, we'd use multer middleware to handle file uploads
-      
-      // Use the Supabase client to upload the file to the vtex-files bucket
+      // For the MVP, we'll generate a placeholder URL rather than actually uploading the file
+      // This simplifies our implementation while we solve the RLS issue
       const userId = req.body.userId || 'unknown-user';
       const fileName = req.body.name || 'unnamed-document';
       const timestamp = Date.now();
       const filePath = `${userId}/${timestamp}_${fileName}`;
       
-      // Get the Supabase URL for this file
-      // In production, this would be after actually uploading the file
-      const { data: { publicUrl } } = supabase.storage
-        .from('vtex-files')
-        .getPublicUrl(filePath);
+      // Generate a placeholder URL that would be the path if we were uploading
+      // In a production version, we'd implement proper file upload with service role credentials
+      // or by using Supabase signed URLs to bypass RLS policies
+      const fileUrl = `https://app.supabase.com/project/_/storage/buckets/vtex-files/objects/${filePath}`;
       
       return res.status(200).json({
         success: true,
-        fileUrl: publicUrl,
+        fileUrl,
         filePath,
-        message: "File uploaded successfully"
+        message: "File upload simulation succeeded"
       });
     } catch (error) {
-      console.error("Error uploading document:", error);
+      console.error("Error in document upload simulation:", error);
       return res.status(500).json({ 
         success: false,
-        message: "Error uploading document",
+        message: "Error processing document upload",
         error: error instanceof Error ? error.message : String(error)
       });
     }
