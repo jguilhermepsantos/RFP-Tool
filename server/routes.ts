@@ -1,6 +1,7 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./supabase-storage";
+import { supabase } from "./db";
 import {
   insertUserSchema,
   insertProjectSchema,
@@ -198,47 +199,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Document not found" });
       }
       
-      const questions = await storage.getRfpQuestions(documentId);
-      console.log(`Found ${questions.length} questions for document ID: ${documentId}`);
-      if (questions.length > 0) {
-        console.log(`First question:`, questions[0]);
+      // Get all answers for the document directly from the rfp_answers table
+      // This is the key change - we're no longer using rfp_questions as the main source
+      const { data: allAnswers, error } = await supabase
+        .from('rfp_answers')
+        .select('*')
+        .eq('rfp_document_id', documentId);
+      
+      if (error) {
+        console.log(`Error fetching answers:`, error);
+        return res.status(500).json({ message: `Failed to fetch answers: ${error.message}` });
       }
       
-      const questionIds = questions.map(q => q.id);
-      const answers = await storage.getRfpAnswers(questionIds);
-      console.log(`Found ${answers.length} answers for the questions`);
-      if (answers.length > 0) {
-        console.log(`First answer:`, answers[0]);
+      console.log(`Found ${allAnswers?.length || 0} answers directly from answers table`);
+      if (allAnswers && allAnswers.length > 0) {
+        console.log(`First answer from DB:`, allAnswers[0]);
+      } else {
+        console.log(`No answers found for document ID: ${documentId}`);
       }
       
-      // Map questions to their answers
-      const questionsWithAnswers = questions.map(question => {
-        // Find the matching answer - try both property names since db and schema might differ
-        const answer = answers.find(a => 
-          (a.rfpQuestionId === question.id) || 
-          // @ts-ignore - handle database field naming
-          (a.rfp_question_id === question.id)
-        );
-        console.log(`Mapping question ID ${question.id} to answer:`, answer);
-        
-        // If we have an answer, transform snake_case to camelCase for frontend compatibility
-        let transformedAnswer = null;
-        if (answer) {
-          const answerRecord = answer as Record<string, any>;
-          transformedAnswer = {
-            id: answerRecord.id,
-            rfpQuestionId: answerRecord.rfpQuestionId || answerRecord.rfp_question_id,
-            complianceAnswer: answerRecord.complianceAnswer || answerRecord.compliance_answer,
-            generatedAnswer: answerRecord.generatedAnswer || answerRecord.generated_answer,
-            finalAnswer: answerRecord.finalAnswer || answerRecord.final_answer,
-            lastReviewedBy: answerRecord.lastReviewedBy || answerRecord.last_reviewed_by,
-            lastReviewedAt: answerRecord.lastReviewedAt || answerRecord.last_reviewed_at
-          };
-        }
-        
+      // Transform the answers into the expected format for the frontend
+      const questionsWithAnswers = (allAnswers || []).map((dbAnswer: any) => {
+        // Transform snake_case to camelCase
         return {
-          ...question,
-          answer: transformedAnswer
+          // Create a question object based on the answer's data
+          id: dbAnswer.rfp_question_id, 
+          rfpDocumentId: dbAnswer.rfp_document_id,
+          questionText: dbAnswer.question_text,
+          // Add the answer directly in the format the frontend expects
+          answer: {
+            id: dbAnswer.id,
+            rfpQuestionId: dbAnswer.rfp_question_id,
+            complianceAnswer: dbAnswer.compliance_answer,
+            generatedAnswer: dbAnswer.generated_answer,
+            finalAnswer: dbAnswer.final_answer,
+            lastReviewedBy: dbAnswer.last_reviewed_by,
+            lastReviewedAt: dbAnswer.last_reviewed_at
+          }
         };
       });
       
@@ -254,6 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         questionsWithAnswers
       });
     } catch (error) {
+      console.log(`Error in GET rfp-documents route:`, error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
