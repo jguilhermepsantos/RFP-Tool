@@ -76,8 +76,10 @@ export default function AdminSettings() {
     queryFn: () => apiRequest('/api/admin/rfp-documents', { headers: adminHeaders })
   });
   
-  // Convert API response to array of RFP documents
-  const rfpDocuments: RfpDocument[] = Array.isArray(rfpDocumentsResponse) ? rfpDocumentsResponse : [];
+  // Convert API response to array of RFP documents, filtering for "done" status only
+  const rfpDocuments: RfpDocument[] = Array.isArray(rfpDocumentsResponse) 
+    ? rfpDocumentsResponse.filter(doc => doc.status === 'done')
+    : [];
 
   // Mutation for updating document approval status
   const updateDocumentApproval = useMutation({
@@ -259,7 +261,7 @@ export default function AdminSettings() {
               <CardHeader>
                 <CardTitle>RFP Document Approval</CardTitle>
                 <CardDescription>
-                  Manage approval status for RFP documents
+                  Manage approval status for completed RFP documents (status: "done")
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -273,7 +275,7 @@ export default function AdminSettings() {
                   </div>
                 ) : !rfpDocuments || rfpDocuments.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    No RFP documents pending approval
+                    No completed RFP documents pending approval
                   </div>
                 ) : (
                   <Table>
