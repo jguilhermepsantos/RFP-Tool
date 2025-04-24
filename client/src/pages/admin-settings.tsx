@@ -190,6 +190,9 @@ export default function AdminSettings() {
       return "Past RFP Project";
     }
     
+    // If this is the first time we're seeing this project ID, log it
+    console.log(`Project ID not found in projects list: ${projectId}`);
+    
     // Format the project ID to make it more readable if we can't find the name
     const shortId = projectId.substring(0, 8) + '...';
     return shortId;
