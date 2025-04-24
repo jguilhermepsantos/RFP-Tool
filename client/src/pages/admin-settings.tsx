@@ -107,7 +107,7 @@ export default function AdminSettings() {
   });
   
   // Create a map of project IDs to project names for easy lookup
-  const projects = projectsData?.projects || [];
+  const projects = projectsData ? (projectsData as any).projects || [] : [];
   
   // Convert API response to array of RFP documents, filtering for "done" status only
   const allRfpDocuments: RfpDocument[] = Array.isArray(rfpDocumentsResponse) 
@@ -349,6 +349,24 @@ export default function AdminSettings() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium">Filter by status:</span>
+                  <Select
+                    value={rfpFilterStatus}
+                    onValueChange={setRfpFilterStatus}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select a status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 {isRfpDocumentsLoading ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
