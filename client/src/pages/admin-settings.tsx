@@ -16,8 +16,15 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue 
+} from "@/components/ui/select";
 import NavHeader from '@/components/nav-header';
-import { Check, X, FileText } from 'lucide-react';
+import { Check, X, FileText, Filter } from 'lucide-react';
 
 // Interfaces for the approval data
 // Adjusted to match actual API response (using snake_case for keys)
@@ -50,6 +57,8 @@ export default function AdminSettings() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('documents');
+  const [documentFilterStatus, setDocumentFilterStatus] = useState<string>('all');
+  const [rfpFilterStatus, setRfpFilterStatus] = useState<string>('all');
   
   // Headers for admin API requests
   const adminHeaders = {
@@ -67,7 +76,13 @@ export default function AdminSettings() {
   });
   
   // Convert API response to array of documents
-  const documents: Document[] = Array.isArray(documentsResponse) ? documentsResponse : [];
+  const allDocuments: Document[] = Array.isArray(documentsResponse) ? documentsResponse : [];
+  
+  // Filter documents based on selected status
+  const documents = allDocuments.filter(doc => {
+    if (documentFilterStatus === 'all') return true;
+    return doc.approval_status === documentFilterStatus;
+  });
 
   // Fetch RFP documents that need approval
   const {
@@ -95,9 +110,15 @@ export default function AdminSettings() {
   const projects = projectsData?.projects || [];
   
   // Convert API response to array of RFP documents, filtering for "done" status only
-  const rfpDocuments: RfpDocument[] = Array.isArray(rfpDocumentsResponse) 
+  const allRfpDocuments: RfpDocument[] = Array.isArray(rfpDocumentsResponse) 
     ? rfpDocumentsResponse.filter(doc => doc.status === 'done')
     : [];
+    
+  // Filter RFP documents based on selected status
+  const rfpDocuments = allRfpDocuments.filter(doc => {
+    if (rfpFilterStatus === 'all') return true;
+    return doc.approval_status === rfpFilterStatus;
+  });
     
   console.log("RFP documents:", rfpDocuments);
   console.log("Projects:", projects);
@@ -235,6 +256,24 @@ export default function AdminSettings() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium">Filter by status:</span>
+                  <Select
+                    value={documentFilterStatus}
+                    onValueChange={setDocumentFilterStatus}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select a status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 {isDocumentsLoading ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
