@@ -1,0 +1,94 @@
+import os
+from dotenv import load_dotenv
+from pinecone import Pinecone
+import openai
+from supabase import create_client, Client
+
+# Load environment variables
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+pinecone_api_key = os.getenv("PINECONE_API_KEY")
+pinecone_env = os.getenv("PINECONE_ENV")
+pinecone_index_name = os.getenv("PINECONE_INDEX_NAME")
+
+# Initialize Supabase and Pinecone clients
+supabase: Client = create_client(supabase_url, supabase_key)
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+index = pc.Index(os.getenv("PINECONE_INDEX_NAME"))
+
+print(f"📦 Connected to Pinecone index '{pinecone_index_name}'")
+
+# --- Search and retrieve from Pinecone ---
+def search_chunks(query, n_results=3):
+    # Step 1: Embed the query using OpenAI
+    embedding_response = openai.embeddings.create(
+        model="text-embedding-3-small",
+        input=[query]
+    )
+    query_embedding = embedding_response.data[0].embedding
+
+    # Step 2: Query Pinecone
+    search_response = index.query(
+        vector=query_embedding,
+        top_k=n_results,
+        include=["metadata"]
+    )
+
+    # Step 3: Fetch chunk contents from Supabase using the chunk IDs from Pinecone
+    chunk_ids = [match['id'] for match in search_response['matches']]
+    chunk_response = supabase.table("chunks").select("*").in_("id", chunk_ids).execute()
+    chunk_data = chunk_response.data
+
+    # Return the actual chunk contents
+    documents = [row["content"] for row in chunk_data]
+    return documents
+
+# --- Generate answer from LLM ---
+def generate_answer(context_chunks, question):
+    context = "\n\n".join(context_chunks)
+    prompt = f"""You are a VTEX Solution Engineer answering a customer RFP.
+Use only the context below to answer clearly and accurately.
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:"""
+
+    print(f"🔎 Prompt: {prompt}")
+
+    response = openai.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2
+    )
+
+    return response.choices[0].message.content
+
+# --- Main function to answer a question ---
+def answer_question(question: str, n_results: int = 3):
+    print(f"💬 Asking: {question}")
+
+    # Step 1: Retrieve relevant chunks
+    documents = search_chunks(question, n_results=n_results)
+
+    # Step 2: Generate the answer
+    final_answer = generate_answer(documents, question)
+
+    print("\n🧠 Top Matches:")
+    for i in range(len(documents)):
+        print(f"🔹 {documents[i][:100]}...")
+
+    print("\n✅ Final Answer:")
+    print(final_answer)
+    return {
+        "compliance": "Yes, natively",  # Replace with your actual compliance logic if needed
+        "answer": final_answer
+    }
+
+if __name__ == "__main__":
+    answer_question("Are business continuity plans subject to testing at planned intervals or upon significant organizational or environmental changes to ensure continuing effectiveness?")

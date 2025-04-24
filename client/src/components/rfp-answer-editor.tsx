@@ -168,9 +168,9 @@ export default function RfpAnswerEditor({
       </CardHeader>
       <CardContent>
         {isUnprocessed ? (
-          <div className="p-4 bg-amber-50 rounded-md border border-amber-200">
-            <p className="text-amber-800">
-              This question is waiting to be processed. Click the "Process Questions" button at the top to generate AI-assisted answers.
+          <div className="p-0">
+            <p className="text-amber-100">
+              {/* This question is waiting to be processed. Click the "Process Questions" button at the top to generate AI-assisted answers. */}
             </p>
           </div>
         ) : question.answer ? (
