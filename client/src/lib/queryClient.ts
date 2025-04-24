@@ -7,11 +7,31 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+interface ApiRequestOptions extends RequestInit {
+  params?: Record<string, any>;
+}
+
 export async function apiRequest(
   url: string,
-  options?: RequestInit,
+  options?: ApiRequestOptions,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  // Add URL parameters if provided
+  let finalUrl = url;
+  if (options?.params) {
+    const queryParams = new URLSearchParams();
+    Object.entries(options.params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value));
+      }
+    });
+    
+    const queryString = queryParams.toString();
+    if (queryString) {
+      finalUrl = `${url}${url.includes('?') ? '&' : '?'}${queryString}`;
+    }
+  }
+
+  const res = await fetch(finalUrl, {
     method: options?.method || 'GET',
     headers: options?.headers || {},
     body: options?.body,
