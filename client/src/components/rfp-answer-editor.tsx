@@ -13,7 +13,7 @@ interface Answer {
   rfpQuestionId: string | null;
   complianceAnswer: string | null;
   generatedAnswer: string | null;
-  finalAnswer: string | null;
+  // finalAnswer removed as it doesn't exist in the database
   lastReviewedBy: string | null;
   lastReviewedAt: string | null;
 }

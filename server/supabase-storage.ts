@@ -274,9 +274,7 @@ export class SupabaseStorage implements IStorage {
       updateObj.generated_answer = answer.generatedAnswer;
     }
     
-    if (answer.finalAnswer !== undefined) {
-      updateObj.final_answer = answer.finalAnswer;
-    }
+    // final_answer field removed as it doesn't exist in the database
     
     // Only update if we have fields to update
     if (Object.keys(updateObj).length === 0) {
@@ -505,7 +503,7 @@ async function getRfpDocumentWithAnswers(documentId: string): Promise<{ document
         rfpQuestionId: answer.rfp_question_id,
         complianceAnswer: answer.compliance_answer,
         generatedAnswer: answer.generated_answer,
-        finalAnswer: answer.final_answer,
+        // finalAnswer removed as it doesn't exist in the database
         lastReviewedBy: answer.last_reviewed_by,
         lastReviewedAt: answer.last_reviewed_at
       }
