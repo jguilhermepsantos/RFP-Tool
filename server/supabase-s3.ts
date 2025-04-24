@@ -22,7 +22,7 @@ const s3Client = new S3Client({
     accessKeyId: awsAccessKeyId || '',
     secretAccessKey: awsSecretAccessKey || '',
   },
-  forcePathStyle: true, // Required for Supabase compatibility
+  forcePathStyle: true, // Required for Supabase compatibility based on URL structure
 });
 
 /**
@@ -48,6 +48,7 @@ export async function uploadBuffer(
   contentType: string
 ): Promise<{ fileUrl: string; filePath: string }> {
   try {
+    // Simple direct upload for smaller files
     const params = {
       Bucket: SUPABASE_BUCKET_NAME,
       Key: filePath,
@@ -55,13 +56,11 @@ export async function uploadBuffer(
       ContentType: contentType,
     };
 
-    // Use the multipart upload for better reliability with larger files
-    const upload = new Upload({
-      client: s3Client,
-      params,
-    });
-
-    await upload.done();
+    // Use direct PutObjectCommand for simpler uploads
+    const command = new PutObjectCommand(params);
+    const response = await s3Client.send(command);
+    
+    console.log('S3 Upload Response:', response);
 
     // Generate the public URL
     const fileUrl = getPublicUrl(filePath);
