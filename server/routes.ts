@@ -214,6 +214,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle differently based on document status
       if (documentData.status === 'unprocessed') {
         // For unprocessed documents, get questions without answers
+        console.log(`Fetching questions for unprocessed document ID: ${documentId}`);
+        
         const { data: questionsData, error: questionsError } = await supabase
           .from('rfp_questions')
           .select('*')
@@ -225,6 +227,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         console.log(`Found ${questionsData?.length || 0} questions for unprocessed document`);
+        
+        // Debug: output all questions found for this document
+        if (questionsData && questionsData.length > 0) {
+          console.log('Questions found for this document:');
+          questionsData.forEach((q: any) => {
+            console.log(` - ${q.id}: ${q.question_text}`);
+          });
+        } else {
+          console.log('No questions found in rfp_questions table for this document');
+        }
         
         // Transform questions into expected format (without answers)
         questionsWithAnswers = (questionsData || []).map((question: any) => {
@@ -333,46 +345,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Document not found" });
       }
       
-      // Mock processing questions and generating answers
-      // In a real app, this would call the RAG engine
-      const questions = await storage.getRfpQuestions(documentId);
-      console.log(`Found ${questions.length} existing questions for document ID: ${documentId}`);
-      
-      // If no questions yet, create some mock ones
-      if (questions.length === 0) {
-        const mockQuestions = [
-          {
-            rfpDocumentId: documentId,
-            questionNumber: "1.1",
-            questionText: "Describe your company's experience with AI solutions.",
-            section: "Company Background"
-          },
-          {
-            rfpDocumentId: documentId,
-            questionNumber: "2.3",
-            questionText: "What security measures do you implement for data protection?",
-            section: "Security & Compliance"
-          },
-          {
-            rfpDocumentId: documentId,
-            questionNumber: "3.5",
-            questionText: "Outline your support and maintenance procedures.",
-            section: "Support"
-          }
-        ];
+      // Get existing questions for this document
+      // In a real app, we would pass these to the RAG engine
+      const { data: questions, error: questionsError } = await supabase
+        .from('rfp_questions')
+        .select('*')
+        .eq('rfp_document_id', documentId);
         
-        for (const q of mockQuestions) {
-          const newQuestion = await storage.createRfpQuestion(q);
+      if (questionsError) {
+        console.log(`Error fetching questions for processing:`, questionsError);
+        return res.status(500).json({ message: `Failed to fetch questions: ${questionsError.message}` });
+      }
+      
+      console.log(`Found ${questions?.length || 0} existing questions for document ID: ${documentId}`);
+      
+      // Process each question and create answers
+      if (questions && questions.length > 0) {
+        for (const question of questions) {
+          console.log(`Processing question: ${question.id} - ${question.question_text}`);
+          
+          // Check if answer already exists
+          const { data: existingAnswer } = await supabase
+            .from('rfp_answers')
+            .select('*')
+            .eq('rfp_question_id', question.id)
+            .single();
+            
+          if (existingAnswer) {
+            console.log(`Answer already exists for question ${question.id}, skipping`);
+            continue;
+          }
           
           // Create an answer for each question
-          await storage.createRfpAnswer({
-            rfpQuestionId: newQuestion.id,
-            // We need to include questionText as it's required by the schema
-            questionText: newQuestion.questionText,
-            complianceAnswer: "Yes, we comply with this requirement.",
-            generatedAnswer: "Our company has extensive experience in AI solutions, with over 50 successful implementations..."
-          });
+          // In a real app, we would generate this with AI
+          const { data: newAnswer, error: answerError } = await supabase
+            .from('rfp_answers')
+            .insert({
+              rfp_document_id: documentId,
+              rfp_question_id: question.id,
+              question_text: question.question_text,
+              compliance_answer: "Yes, we comply with this requirement.",
+              generated_answer: "Our solution fully supports this requirement with our enterprise-grade architecture..."
+            })
+            .select()
+            .single();
+            
+          if (answerError) {
+            console.log(`Error creating answer for question ${question.id}:`, answerError);
+          } else {
+            console.log(`Created answer ${newAnswer.id} for question ${question.id}`);
+          }
         }
+      } else {
+        console.log(`No questions found for document ID: ${documentId}, nothing to process`);
       }
       
       // Update document status to processed
