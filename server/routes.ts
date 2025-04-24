@@ -519,6 +519,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // AI and Vector Database routes
+  apiRouter.post("/vector-db/initialize", async (req: Request, res: Response) => {
+    try {
+      // Import the AI service
+      const { initializePineconeIndex } = await import('./ai-service');
+      
+      // Initialize Pinecone index
+      const success = await initializePineconeIndex();
+      
+      return res.status(200).json({ 
+        success,
+        message: success ? "Vector database initialized successfully" : "Failed to initialize vector database"
+      });
+    } catch (error) {
+      console.error("Error initializing vector database:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Error initializing vector database",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  apiRouter.post("/vector-db/index-document/:documentId", async (req: Request, res: Response) => {
+    try {
+      const documentId = req.params.documentId;
+      
+      if (!documentId) {
+        return res.status(400).json({ message: "Valid document ID is required" });
+      }
+      
+      // Import the AI service
+      const { indexDocumentChunks } = await import('./ai-service');
+      
+      // Index document chunks
+      const result = await indexDocumentChunks(documentId);
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error("Error indexing document:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Error indexing document",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  apiRouter.post("/vector-db/index-knowledge-base", async (req: Request, res: Response) => {
+    try {
+      // Import the AI service
+      const { indexKnowledgeBase } = await import('./ai-service');
+      
+      // Index all knowledge base documents
+      const result = await indexKnowledgeBase();
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error("Error indexing knowledge base:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Error indexing knowledge base",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Suggested Document routes
   apiRouter.get("/suggested-documents", async (req: Request, res: Response) => {
     try {

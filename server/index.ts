@@ -38,6 +38,17 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  try {
+    // Initialize Pinecone for RAG
+    log("Initializing vector database...");
+    const { initializePineconeIndex } = await import('./ai-service');
+    const pineconeInitialized = await initializePineconeIndex();
+    log(`Vector database initialization ${pineconeInitialized ? 'succeeded' : 'failed'}`);
+  } catch (error) {
+    log(`Vector database initialization error: ${error instanceof Error ? error.message : String(error)}`);
+    // Continue even if Pinecone fails, as the app can still work without RAG functionality
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

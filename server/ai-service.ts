@@ -12,8 +12,67 @@ const pc = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY as string
 });
 
-// Pinecone index for our knowledge base
-const index = pc.index("rfp-assistant"); // Make sure this matches your Pinecone index name
+// Configuration for Pinecone
+const PINECONE_INDEX_NAME = "rfp-assistant";
+const EMBEDDING_DIMENSION = 1536; // Dimension for text-embedding-3-small
+const EMBEDDING_MODEL = "text-embedding-3-small";
+
+// Initialize Pinecone index
+let index: any;
+
+try {
+  // Try to get the index
+  index = pc.index(PINECONE_INDEX_NAME);
+  console.log(`Connected to Pinecone index: ${PINECONE_INDEX_NAME}`);
+} catch (error) {
+  console.error(`Error connecting to Pinecone index: ${error}`);
+  throw error;
+}
+
+/**
+ * Initialize Pinecone index if it doesn't exist
+ */
+export async function initializePineconeIndex(): Promise<boolean> {
+  try {
+    // List all indexes
+    const indexes = await pc.listIndexes();
+    
+    // Check if our index exists
+    const indexExists = indexes.indexes?.some(idx => idx.name === PINECONE_INDEX_NAME);
+    
+    if (!indexExists) {
+      console.log(`Creating Pinecone index: ${PINECONE_INDEX_NAME}`);
+      
+      // Create the index using Pinecone API spec format
+      await pc.createIndex({
+        name: PINECONE_INDEX_NAME,
+        dimension: EMBEDDING_DIMENSION,
+        metric: 'cosine',
+        spec: {
+          serverless: {
+            cloud: "aws",
+            region: "us-west-2"
+          }
+        }
+      });
+      
+      // Wait for index to be ready (can take a minute)
+      await new Promise(resolve => setTimeout(resolve, 60000));
+      
+      // Get the newly created index
+      index = pc.index(PINECONE_INDEX_NAME);
+      
+      console.log(`Successfully created Pinecone index: ${PINECONE_INDEX_NAME}`);
+    } else {
+      console.log(`Pinecone index ${PINECONE_INDEX_NAME} already exists`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error initializing Pinecone:", error);
+    return false;
+  }
+}
 
 /**
  * Search for relevant chunks in Pinecone based on a question
@@ -43,7 +102,7 @@ async function searchChunks(query: string, nResults: number = 3): Promise<string
       return [];
     }
     
-    const chunkIds = searchResponse.matches.map(match => match.id);
+    const chunkIds = searchResponse.matches.map((match: any) => match.id);
     
     const { data: chunkData, error } = await supabase
       .from("chunks")
@@ -143,8 +202,205 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
 }
 
 /**
- * Process all questions for a document
+ * Create an embedding for a text using OpenAI
  */
+async function createEmbedding(text: string): Promise<number[]> {
+  try {
+    const embeddingResponse = await openai.embeddings.create({
+      model: EMBEDDING_MODEL,
+      input: [text]
+    });
+    
+    return embeddingResponse.data[0].embedding;
+  } catch (error) {
+    console.error("Error creating embedding:", error);
+    throw error;
+  }
+}
+
+/**
+ * Index a document chunk in Pinecone
+ */
+async function indexChunk(chunkId: string, content: string, metadata: any): Promise<boolean> {
+  try {
+    console.log(`Indexing chunk: ${chunkId.substring(0, 8)}...`);
+    
+    // Create embedding for the chunk content
+    const embedding = await createEmbedding(content);
+    
+    // Upsert to Pinecone
+    await index.upsert([{
+      id: chunkId,
+      values: embedding,
+      metadata: { ...metadata, content: content.substring(0, 100) + '...' } // Add a preview of content to metadata
+    }]);
+    
+    return true;
+  } catch (error) {
+    console.error(`Error indexing chunk ${chunkId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Index all document chunks from a specific document
+ */
+export async function indexDocumentChunks(documentId: string): Promise<{
+  success: boolean;
+  indexedCount: number;
+  errors: any[];
+}> {
+  try {
+    console.log(`Indexing chunks for document: ${documentId}`);
+    
+    // Ensure Pinecone index exists
+    await initializePineconeIndex();
+    
+    // Get document details
+    const { data: document, error: documentError } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('id', documentId)
+      .single();
+      
+    if (documentError) {
+      console.error(`Error fetching document:`, documentError);
+      throw new Error(`Failed to fetch document: ${documentError.message}`);
+    }
+    
+    // Get chunks for this document
+    const { data: chunks, error: chunksError } = await supabase
+      .from('chunks')
+      .select('*')
+      .eq('document_id', documentId);
+      
+    if (chunksError) {
+      console.error(`Error fetching chunks:`, chunksError);
+      throw new Error(`Failed to fetch chunks: ${chunksError.message}`);
+    }
+    
+    console.log(`Found ${chunks?.length || 0} chunks to index for document ${documentId}`);
+    
+    const errors: any[] = [];
+    let indexedCount = 0;
+    
+    // Index each chunk
+    if (chunks && chunks.length > 0) {
+      for (const chunk of chunks) {
+        try {
+          const metadata = {
+            documentId: document.id,
+            documentName: document.name,
+            documentType: document.type,
+            chunkIndex: chunk.chunk_index
+          };
+          
+          const success = await indexChunk(chunk.id, chunk.content, metadata);
+          if (success) {
+            indexedCount++;
+          } else {
+            errors.push({
+              chunkId: chunk.id,
+              error: "Failed to index chunk"
+            });
+          }
+        } catch (chunkError) {
+          console.error(`Error processing chunk ${chunk.id}:`, chunkError);
+          errors.push({
+            chunkId: chunk.id,
+            error: chunkError instanceof Error ? chunkError.message : String(chunkError)
+          });
+        }
+      }
+    }
+    
+    console.log(`Successfully indexed ${indexedCount} chunks with ${errors.length} errors`);
+    
+    return {
+      success: errors.length === 0,
+      indexedCount,
+      errors
+    };
+  } catch (error) {
+    console.error("Error indexing document chunks:", error);
+    return {
+      success: false,
+      indexedCount: 0,
+      errors: [error instanceof Error ? error.message : String(error)]
+    };
+  }
+}
+
+/**
+ * Index all knowledge base documents
+ */
+export async function indexKnowledgeBase(): Promise<{
+  success: boolean;
+  indexedDocuments: number;
+  errors: any[];
+}> {
+  try {
+    console.log("Indexing all knowledge base documents");
+    
+    // Ensure Pinecone index exists
+    await initializePineconeIndex();
+    
+    // Get all knowledge documents
+    const { data: documents, error: documentsError } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('type', 'knowledge');
+      
+    if (documentsError) {
+      console.error(`Error fetching knowledge documents:`, documentsError);
+      throw new Error(`Failed to fetch documents: ${documentsError.message}`);
+    }
+    
+    console.log(`Found ${documents?.length || 0} knowledge documents to index`);
+    
+    const errors: any[] = [];
+    let indexedDocuments = 0;
+    
+    // Index chunks for each document
+    if (documents && documents.length > 0) {
+      for (const document of documents) {
+        try {
+          const result = await indexDocumentChunks(document.id);
+          if (result.success) {
+            indexedDocuments++;
+          } else {
+            errors.push({
+              documentId: document.id,
+              documentName: document.name,
+              error: `Indexed ${result.indexedCount} chunks with ${result.errors.length} errors`
+            });
+          }
+        } catch (documentError) {
+          console.error(`Error indexing document ${document.id}:`, documentError);
+          errors.push({
+            documentId: document.id,
+            documentName: document.name,
+            error: documentError instanceof Error ? documentError.message : String(documentError)
+          });
+        }
+      }
+    }
+    
+    return {
+      success: errors.length === 0,
+      indexedDocuments,
+      errors
+    };
+  } catch (error) {
+    console.error("Error indexing knowledge base:", error);
+    return {
+      success: false,
+      indexedDocuments: 0,
+      errors: [error instanceof Error ? error.message : String(error)]
+    };
+  }
+}
+
 export async function processDocumentQuestions(documentId: string): Promise<{
   success: boolean;
   processedCount: number;
