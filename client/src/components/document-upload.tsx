@@ -77,6 +77,7 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
         // For past RFPs: insert directly into rfp_answers table
         // Expected columns: question_text, compliance_answer, generated_answer
         console.log('Processing as past RFP (inserting into rfp_answers)');
+        console.log('isPastRfp =', isPastRfp);
         
         let insertedRows = 0;
         for (const row of data) {
@@ -90,25 +91,38 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
           const complianceAnswer = row.compliance_answer || row['compliance answer'] || null;
           const generatedAnswer = row.generated_answer || row['generated answer'] || null;
           
-          console.log(`Inserting answer row: Question=${questionText.substring(0, 20)}...`);
+          console.log(`Inserting answer row into rfp_answers: Question="${questionText.substring(0, 20)}...", Compliance=${!!complianceAnswer}, Generated=${!!generatedAnswer}`);
           
-          const { data: insertData, error: insertError } = await supabase.from('rfp_answers').insert({
+          // First create an rfp_question entry
+          const { data: questionData, error: questionError } = await supabase.from('rfp_questions').insert({
             rfp_document_id: rfpDocumentId,
             question_text: questionText,
+            created_at: new Date().toISOString()
+          }).select('id').single();
+          
+          if (questionError) {
+            console.error('Error inserting question for past RFP:', questionError);
+            throw questionError;
+          }
+          
+          // Then create an rfp_answer entry linked to the question
+          const { data: answerData, error: answerError } = await supabase.from('rfp_answers').insert({
+            rfp_question_id: questionData.id,
             compliance_answer: complianceAnswer,
             generated_answer: generatedAnswer,
             created_at: new Date().toISOString()
           });
           
-          if (insertError) {
-            console.error('Error inserting answer:', insertError);
-            throw insertError;
+          if (answerError) {
+            console.error('Error inserting answer for past RFP:', answerError);
+            throw answerError;
           }
           
+          console.log('Created question and answer for past RFP:', questionData.id);
           insertedRows++;
         }
         
-        console.log(`Successfully inserted ${insertedRows} answers`);
+        console.log(`Successfully inserted ${insertedRows} answers for past RFP`);
         
         // Update document status to 'done'
         const { error: updateError } = await supabase.from('rfp_documents')
