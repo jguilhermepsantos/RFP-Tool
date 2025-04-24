@@ -3,6 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/lib/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -44,7 +45,13 @@ interface RfpDocument {
 
 export default function AdminSettings() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('documents');
+  
+  // Headers for admin API requests
+  const adminHeaders = {
+    'Authorization': user?.email || '' 
+  };
   
   // Fetch the documents that need approval
   const {
@@ -53,7 +60,7 @@ export default function AdminSettings() {
     error: documentsError
   } = useQuery({
     queryKey: ['/api/admin/documents'],
-    queryFn: () => apiRequest('/api/admin/documents')
+    queryFn: () => apiRequest('/api/admin/documents', { headers: adminHeaders })
   });
   
   // Convert API response to array of documents
@@ -66,7 +73,7 @@ export default function AdminSettings() {
     error: rfpDocumentsError
   } = useQuery({
     queryKey: ['/api/admin/rfp-documents'],
-    queryFn: () => apiRequest('/api/admin/rfp-documents')
+    queryFn: () => apiRequest('/api/admin/rfp-documents', { headers: adminHeaders })
   });
   
   // Convert API response to array of RFP documents
@@ -78,7 +85,8 @@ export default function AdminSettings() {
       return await apiRequest(`/api/admin/documents/${id}/approve`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': user?.email || ''
         },
         body: JSON.stringify({ status })
       });
@@ -105,7 +113,8 @@ export default function AdminSettings() {
       return await apiRequest(`/api/admin/rfp-documents/${id}/approve`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': user?.email || ''
         },
         body: JSON.stringify({ status })
       });
