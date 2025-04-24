@@ -41,16 +41,21 @@ export const projectPermissions = pgTable("project_permissions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Define approval status enum
+export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
+
 // Documents table
 export const documents = pgTable("documents", {
   id: uuid("id").primaryKey(),
   name: text("name").notNull(),
   fileUrl: text("file_url"),
   uploadedBy: uuid("uploaded_by").references(() => users.id),
-  approved: boolean("approved"),
   createdAt: timestamp("created_at").defaultNow(),
   chunked: boolean("chunked").notNull().default(false),
   chunkedAt: timestamp("chunked_at"),
+  approvalStatus: text("approval_status").default('pending'),
+  approvalStatusModifiedBy: uuid("approval_status_modified_by").references(() => users.id),
+  approvalStatusModifiedAt: timestamp("approval_status_modified_at"),
 });
 
 // RFP Documents table
@@ -63,6 +68,9 @@ export const rfpDocuments = pgTable("rfp_documents", {
   uploadedAt: timestamp("uploaded_at").defaultNow(),
   status: text("status").default('unprocessed'),
   isPastRfp: boolean("is_past_rfp").default(false),
+  approvalStatus: text("approval_status").default('pending'),
+  approvalStatusModifiedBy: uuid("approval_status_modified_by").references(() => users.id),
+  approvalStatusModifiedAt: timestamp("approval_status_modified_at"),
 });
 
 // RFP Questions table
@@ -125,12 +133,18 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
   id: true, 
   createdAt: true,
   chunked: true,
-  chunkedAt: true
+  chunkedAt: true,
+  approvalStatus: true,
+  approvalStatusModifiedBy: true,
+  approvalStatusModifiedAt: true
 });
 
 export const insertRfpDocumentSchema = createInsertSchema(rfpDocuments).omit({
   id: true, 
-  uploadedAt: true
+  uploadedAt: true,
+  approvalStatus: true,
+  approvalStatusModifiedBy: true,
+  approvalStatusModifiedAt: true
 });
 
 export const insertRfpQuestionSchema = createInsertSchema(rfpQuestions).omit({
@@ -189,5 +203,21 @@ export const updateRfpAnswerSchema = z.object({
   // Remove finalAnswer as it doesn't exist in the database
 });
 
+// Schema for updating document approval status
+export const updateDocumentApprovalSchema = z.object({
+  id: z.string().uuid(),
+  approvalStatus: z.enum(['pending', 'approved', 'rejected']),
+  approvalStatusModifiedBy: z.string().uuid(),
+});
+
+// Schema for updating RFP document approval status
+export const updateRfpDocumentApprovalSchema = z.object({
+  id: z.string().uuid(),
+  approvalStatus: z.enum(['pending', 'approved', 'rejected']),
+  approvalStatusModifiedBy: z.string().uuid(),
+});
+
 export type LoginCredentials = z.infer<typeof loginSchema>;
 export type UpdateRfpAnswer = z.infer<typeof updateRfpAnswerSchema>;
+export type UpdateDocumentApproval = z.infer<typeof updateDocumentApprovalSchema>;
+export type UpdateRfpDocumentApproval = z.infer<typeof updateRfpDocumentApprovalSchema>;
