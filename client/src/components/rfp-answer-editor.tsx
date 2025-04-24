@@ -98,11 +98,11 @@ export default function RfpAnswerEditor({
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-base font-medium flex items-center gap-2">
-              <span className="text-muted-foreground">{question.questionNumber}</span>
-              {question.questionText}
+              <span className="text-muted-foreground font-bold">{question.questionNumber}.</span>
+              <span className="font-semibold">{question.questionText}</span>
             </CardTitle>
             {question.section && (
-              <CardDescription>
+              <CardDescription className="mt-1">
                 Section: {question.section}
               </CardDescription>
             )}
@@ -120,7 +120,9 @@ export default function RfpAnswerEditor({
                 <DialogHeader>
                   <DialogTitle>Edit Answer</DialogTitle>
                   <DialogDescription>
-                    Question: {question.questionText}
+                    <div className="mt-1 p-2 border rounded-md bg-slate-50">
+                      <p className="font-medium">{question.questionNumber}. {question.questionText}</p>
+                    </div>
                   </DialogDescription>
                 </DialogHeader>
                 
@@ -172,37 +174,32 @@ export default function RfpAnswerEditor({
       </CardHeader>
       <CardContent>
         {question.answer ? (
-          <Tabs defaultValue="generated">
-            <TabsList className="mb-4">
-              <TabsTrigger value="compliance">Compliance</TabsTrigger>
-              <TabsTrigger value="generated">AI Generated</TabsTrigger>
-              {question.answer.finalAnswer && (
-                <TabsTrigger value="final">Final Answer</TabsTrigger>
-              )}
-            </TabsList>
-            
-            <TabsContent value="compliance" className="p-4 bg-gray-50 rounded-md">
+          <div className="space-y-6">
+            <div className="p-4 bg-gray-50 rounded-md border">
+              <h3 className="text-sm font-medium mb-2 text-gray-700">Compliance Answer:</h3>
               {question.answer.complianceAnswer ? (
                 <p className="whitespace-pre-line">{question.answer.complianceAnswer}</p>
               ) : (
                 <p className="italic text-muted-foreground">No compliance answer provided yet.</p>
               )}
-            </TabsContent>
+            </div>
             
-            <TabsContent value="generated" className="p-4 bg-gray-50 rounded-md">
+            <div className="p-4 bg-blue-50 rounded-md border border-blue-100">
+              <h3 className="text-sm font-medium mb-2 text-blue-700">AI Generated Answer:</h3>
               {question.answer.generatedAnswer ? (
                 <p className="whitespace-pre-line">{question.answer.generatedAnswer}</p>
               ) : (
                 <p className="italic text-muted-foreground">No generated answer available yet.</p>
               )}
-            </TabsContent>
+            </div>
             
             {question.answer.finalAnswer && (
-              <TabsContent value="final" className="p-4 bg-gray-50 rounded-md">
+              <div className="p-4 bg-green-50 rounded-md border border-green-100">
+                <h3 className="text-sm font-medium mb-2 text-green-700">Final Answer:</h3>
                 <p className="whitespace-pre-line">{question.answer.finalAnswer}</p>
-              </TabsContent>
+              </div>
             )}
-          </Tabs>
+          </div>
         ) : (
           <p className="italic text-muted-foreground">No answer available yet.</p>
         )}
