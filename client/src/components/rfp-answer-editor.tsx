@@ -90,7 +90,7 @@ export default function RfpAnswerEditor({
     }
   };
 
-  const isEditable = documentStatus === 'processed';
+  const isEditable = documentStatus === 'processed' || documentStatus === 'reviewed';
 
   return (
     <Card>

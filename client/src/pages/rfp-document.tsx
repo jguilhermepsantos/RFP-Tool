@@ -95,7 +95,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
       case "processed":
         return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">Processed</Badge>;
       case "reviewed":
-        return <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200">Reviewed</Badge>;
+        return <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200">Under Review</Badge>;
       case "done":
         return <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200">Done</Badge>;
       default:
@@ -116,7 +116,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         return (
           <Button onClick={() => updateDocumentStatus("reviewed")}>
             <CheckCircle className="mr-2 h-4 w-4" />
-            Mark as Reviewed
+            Mark as Under Review
           </Button>
         );
       case "reviewed":

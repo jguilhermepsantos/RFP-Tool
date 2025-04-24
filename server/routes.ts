@@ -296,6 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create an answer for each question
           await storage.createRfpAnswer({
             rfpQuestionId: newQuestion.id,
+            rfpDocumentId: documentId,
             complianceAnswer: "Yes, we comply with this requirement.",
             generatedAnswer: "Our company has extensive experience in AI solutions, with over 50 successful implementations..."
           });

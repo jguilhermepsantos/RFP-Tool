@@ -238,7 +238,8 @@ export class SupabaseStorage implements IStorage {
       .from('rfp_answers')
       .update({ 
         compliance_answer: answer.complianceAnswer,
-        generated_answer: answer.generatedAnswer
+        generated_answer: answer.generatedAnswer,
+        final_answer: answer.finalAnswer
       })
       .eq('id', answer.id)
       .select()
