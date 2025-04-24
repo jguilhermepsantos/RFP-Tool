@@ -26,7 +26,7 @@ interface Document {
   name: string;
   uploaded_by: string;
   uploaded_at: string;
-  fileUrl: string | null;
+  file_url: string | null;
   approval_status: 'pending' | 'approved' | 'rejected';
   approval_status_modified_at: string | null;
   approval_status_modified_by: string | null;
@@ -36,10 +36,11 @@ interface RfpDocument {
   id: string;
   name: string | null;
   project_id: string | null;
-  uploadedBy: string | null;
-  uploadedAt: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string | null;
   status: string | null;
-  fileUrl: string | null;
+  file_url: string | null;
+  is_past_rfp: boolean | null;
   approval_status: 'pending' | 'approved' | 'rejected';
   approval_status_modified_at: string | null;
   approval_status_modified_by: string | null;
@@ -160,7 +161,7 @@ export default function AdminSettings() {
   // Get project details from the API
   const {
     data: projectsData,
-  } = useQuery({
+  } = useQuery<{projects: any[]}>({
     queryKey: ['/api/projects'],
     queryFn: () => apiRequest('/api/projects', { 
       headers: adminHeaders,
@@ -172,12 +173,10 @@ export default function AdminSettings() {
   // Create a map of project IDs to project names for easy lookup
   const projects = projectsData?.projects || [];
   
-  console.log("Projects data:", projectsData);
-  
   // Function to get project name from project ID
   const getProjectName = (projectId: string | null) => {
     if (!projectId) return 'N/A';
-    const project = projects.find(p => p.id === projectId);
+    const project = projects.find((p: any) => p.id === projectId);
     return project ? project.name : projectId;
   };
 
@@ -246,7 +245,7 @@ export default function AdminSettings() {
                         <TableRow key={doc.id}>
                           <TableCell className="font-medium flex items-center">
                             <FileText className="mr-2 h-4 w-4 text-gray-500" />
-                            {doc.name || doc.fileUrl || 'Unnamed document'}
+                            {doc.name || doc.file_url || 'Unnamed document'}
                           </TableCell>
                           <TableCell>{doc.uploaded_by}</TableCell>
                           <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
@@ -321,7 +320,7 @@ export default function AdminSettings() {
                         <TableRow key={doc.id}>
                           <TableCell className="font-medium flex items-center">
                             <FileText className="mr-2 h-4 w-4 text-gray-500" />
-                            {doc.name || doc.fileUrl || 'Unnamed document'}
+                            {doc.name || doc.file_url || 'Unnamed document'}
                           </TableCell>
                           <TableCell>{getProjectName(doc.project_id)}</TableCell>
                           <TableCell>{doc.status}</TableCell>
