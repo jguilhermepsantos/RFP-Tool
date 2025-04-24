@@ -193,6 +193,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Export RFP document to CSV
+  apiRouter.get(
+    "/projects/:projectId/rfp-documents/:documentId/export-csv",
+    async (req: Request, res: Response) => {
+      try {
+        const documentId = req.params.documentId;
+        
+        if (!documentId) {
+          return res.status(400).json({ message: "Valid document ID is required" });
+        }
+        
+        // Get document details first to check if it's in 'done' status
+        const { data: document, error: documentError } = await supabase
+          .from('rfp_documents')
+          .select('*')
+          .eq('id', documentId)
+          .single();
+          
+        if (documentError || !document) {
+          console.error('Error fetching document:', documentError);
+          return res.status(404).json({ message: "Document not found" });
+        }
+        
+        // Ensure document is in 'done' status
+        if (document.status !== 'done') {
+          return res.status(400).json({ 
+            message: "Only documents with 'done' status can be exported to CSV" 
+          });
+        }
+        
+        // Get all answers for this document
+        const { data: answers, error: answersError } = await supabase
+          .from('rfp_answers')
+          .select('*')
+          .eq('rfp_document_id', documentId);
+          
+        if (answersError) {
+          console.error('Error fetching answers:', answersError);
+          return res.status(500).json({ message: "Error fetching document answers" });
+        }
+        
+        if (!answers || answers.length === 0) {
+          return res.status(404).json({ message: "No answers found for this document" });
+        }
+        
+        // Generate CSV content
+        const csvHeader = "Question,Compliance,Answer\n";
+        
+        const csvRows = answers.map(answer => {
+          // Escape double quotes in fields by replacing with two double quotes
+          const question = answer.question_text?.replace(/"/g, '""') || '';
+          const compliance = answer.compliance_answer?.replace(/"/g, '""') || '';
+          const answerText = answer.generated_answer?.replace(/"/g, '""') || '';
+          
+          // Wrap fields in double quotes and separate with commas
+          return `"${question}","${compliance}","${answerText}"`;
+        });
+        
+        const csvContent = csvHeader + csvRows.join('\n');
+        
+        // Set response headers for CSV download
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="rfp_export_${documentId}.csv"`);
+        
+        // Send CSV content
+        return res.status(200).send(csvContent);
+      } catch (error) {
+        console.error('Error exporting to CSV:', error);
+        return res.status(500).json({ 
+          message: "Internal server error",
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+  );
+  
   apiRouter.get(
     "/projects/:projectId/rfp-documents/:documentId",
     async (req: Request, res: Response) => {
