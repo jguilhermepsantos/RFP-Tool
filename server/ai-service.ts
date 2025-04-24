@@ -13,9 +13,11 @@ const pc = new Pinecone({
 });
 
 // Configuration for Pinecone
-const PINECONE_INDEX_NAME = "rfp-assistant";
+const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME || "rfp-assistant";
 const EMBEDDING_DIMENSION = 1536; // Dimension for text-embedding-3-small
 const EMBEDDING_MODEL = "text-embedding-3-small";
+
+console.log(`Using Pinecone index: ${PINECONE_INDEX_NAME}`);
 
 // Initialize Pinecone index
 let index: any;
