@@ -135,6 +135,9 @@ export default function Projects() {
       form.reset();
       queryClient.invalidateQueries({ queryKey: [`/api/projects`] });
       
+      // Close the dialog
+      setDialogOpen(false);
+      
       // Redirect to the project details page
       setLocation(`/projects/${project.id}`);
     } catch (error) {
@@ -156,7 +159,7 @@ export default function Projects() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Projects</h1>
           
-          <Dialog>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
