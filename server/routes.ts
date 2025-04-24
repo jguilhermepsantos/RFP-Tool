@@ -184,11 +184,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const documentId = req.params.documentId;
       
+      console.log(`Attempting to load document with ID: ${documentId}`);
+      
       if (!documentId) {
         return res.status(400).json({ message: "Valid document ID is required" });
       }
       
       const document = await storage.getRfpDocument(documentId);
+      
+      console.log(`Document result:`, document);
       
       if (!document) {
         return res.status(404).json({ message: "Document not found" });
@@ -200,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Map questions to their answers
       const questionsWithAnswers = questions.map(question => {
-        const answer = answers.find(a => a.questionId === question.id);
+        const answer = answers.find(a => a.rfpQuestionId === question.id);
         return {
           ...question,
           answer: answer || null
@@ -261,19 +265,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (questions.length === 0) {
         const mockQuestions = [
           {
-            documentId,
+            rfpDocumentId: documentId,
             questionNumber: "1.1",
             questionText: "Describe your company's experience with AI solutions.",
             section: "Company Background"
           },
           {
-            documentId,
+            rfpDocumentId: documentId,
             questionNumber: "2.3",
             questionText: "What security measures do you implement for data protection?",
             section: "Security & Compliance"
           },
           {
-            documentId,
+            rfpDocumentId: documentId,
             questionNumber: "3.5",
             questionText: "Outline your support and maintenance procedures.",
             section: "Support"
@@ -285,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Create an answer for each question
           await storage.createRfpAnswer({
-            questionId: newQuestion.id,
+            rfpQuestionId: newQuestion.id,
             complianceAnswer: "Yes, we comply with this requirement.",
             generatedAnswer: "Our company has extensive experience in AI solutions, with over 50 successful implementations..."
           });
