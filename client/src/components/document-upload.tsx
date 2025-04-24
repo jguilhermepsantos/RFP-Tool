@@ -37,13 +37,29 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
     }
   };
 
-  const parseCSV = (file: File): Promise<any[]> => {
+  const parseCSV = (file: File): Promise<Record<string, any>[]> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          resolve(results.data);
+          console.log('CSV parsing complete, headers:', results.meta.fields);
+          console.log('First row sample:', results.data[0]);
+          
+          // Normalize column names to lowercase for easier comparison
+          const normalizedData = results.data.map((row: any) => {
+            const normalizedRow: Record<string, any> = {};
+            
+            // Convert all keys to lowercase
+            Object.keys(row).forEach((key: string) => {
+              const lowerKey = key.toLowerCase().trim();
+              normalizedRow[lowerKey] = row[key];
+            });
+            
+            return normalizedRow;
+          });
+          
+          resolve(normalizedData);
         },
         error: (error) => {
           reject(error);
@@ -54,38 +70,87 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
   
   const processCSVData = async (data: any[], rfpDocumentId: string, isPastRfp: boolean) => {
     try {
+      console.log(`Processing CSV data for document: ${rfpDocumentId}, isPastRfp: ${isPastRfp}`);
+      console.log(`Data rows count: ${data.length}`);
+      
       if (isPastRfp) {
         // For past RFPs: insert directly into rfp_answers table
         // Expected columns: question_text, compliance_answer, generated_answer
+        console.log('Processing as past RFP (inserting into rfp_answers)');
+        
+        let insertedRows = 0;
         for (const row of data) {
-          if (!row.question_text) continue; // Skip rows without question text
+          // Using lowercase column names for compatibility with different CSV formats
+          const questionText = row.question_text || row['question text'] || '';
+          if (!questionText) {
+            console.log('Skipping row without question text:', row);
+            continue;
+          }
           
-          await supabase.from('rfp_answers').insert({
+          const complianceAnswer = row.compliance_answer || row['compliance answer'] || null;
+          const generatedAnswer = row.generated_answer || row['generated answer'] || null;
+          
+          console.log(`Inserting answer row: Question=${questionText.substring(0, 20)}...`);
+          
+          const { data: insertData, error: insertError } = await supabase.from('rfp_answers').insert({
             rfp_document_id: rfpDocumentId,
-            question_text: row.question_text,
-            compliance_answer: row.compliance_answer || null,
-            generated_answer: row.generated_answer || null,
+            question_text: questionText,
+            compliance_answer: complianceAnswer,
+            generated_answer: generatedAnswer,
             created_at: new Date().toISOString()
           });
+          
+          if (insertError) {
+            console.error('Error inserting answer:', insertError);
+            throw insertError;
+          }
+          
+          insertedRows++;
         }
         
+        console.log(`Successfully inserted ${insertedRows} answers`);
+        
         // Update document status to 'done'
-        await supabase.from('rfp_documents')
+        const { error: updateError } = await supabase.from('rfp_documents')
           .update({ status: 'done' })
           .eq('id', rfpDocumentId);
+          
+        if (updateError) {
+          console.error('Error updating document status:', updateError);
+          throw updateError;
+        }
           
       } else {
         // For new RFPs: insert into rfp_questions table
         // Expected column: question_text
+        console.log('Processing as new RFP (inserting into rfp_questions)');
+        
+        let insertedRows = 0;
         for (const row of data) {
-          if (!row.question_text) continue; // Skip rows without question text
+          // Using lowercase column names for compatibility with different CSV formats
+          const questionText = row.question_text || row['question text'] || '';
+          if (!questionText) {
+            console.log('Skipping row without question text:', row);
+            continue;
+          }
           
-          await supabase.from('rfp_questions').insert({
+          console.log(`Inserting question row: Question=${questionText.substring(0, 20)}...`);
+          
+          const { data: insertData, error: insertError } = await supabase.from('rfp_questions').insert({
             rfp_document_id: rfpDocumentId,
-            question_text: row.question_text,
+            question_text: questionText,
             created_at: new Date().toISOString()
           });
+          
+          if (insertError) {
+            console.error('Error inserting question:', insertError);
+            throw insertError;
+          }
+          
+          insertedRows++;
         }
+        
+        console.log(`Successfully inserted ${insertedRows} questions`);
         
         // Document status stays as 'unprocessed'
       }
@@ -132,14 +197,20 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
       if (isPastRfp) {
         // Past RFP should have question_text, compliance_answer, and generated_answer columns
         const firstRow = csvData[0];
-        if (!firstRow.question_text || (!firstRow.compliance_answer && !firstRow.generated_answer)) {
+        const hasQuestionText = firstRow.question_text || firstRow['question text'];
+        const hasComplianceAnswer = firstRow.compliance_answer || firstRow['compliance answer'];
+        const hasGeneratedAnswer = firstRow.generated_answer || firstRow['generated answer'];
+        
+        if (!hasQuestionText || (!hasComplianceAnswer && !hasGeneratedAnswer)) {
           throw new Error("CSV file for past RFPs should contain 'question_text' and either 'compliance_answer' or 'generated_answer' columns");
         }
       } else {
         // New RFP should have question_text column
         const firstRow = csvData[0];
-        if (!firstRow.question_text) {
-          throw new Error("CSV file should contain a 'question_text' column");
+        const hasQuestionText = firstRow.question_text || firstRow['question text'];
+        
+        if (!hasQuestionText) {
+          throw new Error("CSV file should contain a 'question_text' or 'Question Text' column");
         }
       }
       
@@ -199,11 +270,13 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
           Upload a CSV file containing RFP questions and requirements.
           {isPastRfp ? (
             <span className="block mt-1 text-xs text-blue-600">
-              Past RFP files should have columns: question_text, compliance_answer, generated_answer
+              Past RFP files should have columns: "Question Text", "Compliance Answer", "Generated Answer"
+              (Column names are case-insensitive)
             </span>
           ) : (
             <span className="block mt-1 text-xs text-blue-600">
-              New RFP files should have at least a question_text column
+              New RFP files should have at least a "Question Text" column
+              (Column names are case-insensitive)
             </span>
           )}
         </CardDescription>
