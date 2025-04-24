@@ -791,15 +791,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contentType
         } = req.body;
         
-        // Create a mock document with a UUID
+        // Don't attempt to access the database - create a pure mock response
         const mockDocument = {
           id: crypto.randomUUID(),
           name,
           fileUrl,
           uploadedBy: uploadedBy || suggestedBy,
-          contentType,
+          description, // Include description in our mock
+          contentType: contentType || 'application/pdf',
           createdAt: new Date(),
-          approvalStatus: 'pending'
+          approvalStatus: 'pending',
+          embedded: false,
+          chunked: false
         };
         
         // Store in our in-memory array for MVP
