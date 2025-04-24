@@ -79,14 +79,14 @@ export default function AdminSettings() {
     queryFn: () => apiRequest('/api/admin/rfp-documents', { headers: adminHeaders })
   });
   
-  // Get project details from the API
+  // Get ALL project details from the API (as admin, we need access to all projects)
   const {
     data: projectsData,
   } = useQuery({
-    queryKey: ['/api/projects'],
-    queryFn: () => apiRequest('/api/projects', { 
+    queryKey: ['/api/projects/all'],
+    queryFn: () => apiRequest('/api/projects/all', { 
       headers: adminHeaders,
-      params: { userId: user?.id }
+      // No userId param to get all projects
     }),
     enabled: !!user?.id
   });

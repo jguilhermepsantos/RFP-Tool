@@ -19,6 +19,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
   const apiRouter = express.Router();
   app.use("/api", apiRouter);
+  
+  // Middleware for requiring admin access
+  const requireAdmin = async (req: Request, res: Response, next: express.NextFunction) => {
+    try {
+      // In a real app, get this from session or JWT token
+      const userEmail = req.headers.authorization;
+      
+      if (!userEmail) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Check if the user is an admin
+      const user = await storage.getUserByEmail(userEmail);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      // User is admin, proceed
+      next();
+    } catch (error) {
+      console.error("Error in admin middleware:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  };
 
   // Auth routes
   apiRouter.post("/auth/login", async (req: Request, res: Response) => {
@@ -101,6 +126,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint to get ALL projects (for admin users)
+  apiRouter.get("/projects/all", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const projects = await storage.getProjects();
+      return res.status(200).json({ projects });
+    } catch (error) {
+      console.error("Error getting all projects:", error);
+      return res.status(500).json({ error: "Failed to retrieve all projects" });
+    }
+  });
+  
   apiRouter.get("/projects/:id", async (req: Request, res: Response) => {
     try {
       const projectId = req.params.id;
@@ -756,33 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Admin middleware to check if user is an admin
-  const requireAdmin = async (req: Request, res: Response, next: express.NextFunction) => {
-    try {
-      // In a real app, get this from session or JWT token
-      const { authorization } = req.headers;
-      
-      if (!authorization) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-      
-      // For demo, we'll just check if the user exists and is an admin
-      // Normally, you'd validate a token here
-      const user = await storage.getUserByEmail(authorization);
-      
-      if (!user) {
-        return res.status(401).json({ error: 'User not found' });
-      }
-      
-      if (user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-      }
-      
-      next();
-    } catch (error) {
-      console.error('Admin middleware error:', error);
-      res.status(500).json({ error: 'Server error checking admin access' });
-    }
-  };
+  // Admin middleware already defined at the top of the file
 
   // Admin routes
   apiRouter.get("/admin/documents", requireAdmin, async (req: Request, res: Response) => {
