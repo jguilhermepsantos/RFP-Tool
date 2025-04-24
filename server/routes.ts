@@ -729,23 +729,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.body.userId || 'unknown-user';
       const fileName = req.body.name || 'unnamed-document';
       const timestamp = Date.now();
+      
+      // For MVP, we'll create a mock file path and URL
+      // In a production version, we'd implement the TUS protocol upload
+      // using the service role token from the API request example
       const filePath = `${userId}/${timestamp}_${fileName}`;
       
-      // For the MVP, we'll simulate a successful upload
-      // In production, we would use the service role token to perform the actual upload
-      // This would require setting up multer for file handling and then using the
-      // Supabase TUS upload protocol as shown in the example
+      // Create a more realistic Supabase-style URL for the MVP
+      const fileUrl = `https://txgrhpmthibqetiephzp.supabase.co/storage/v1/object/public/vtex-files/${filePath}`;
       
-      // Generate a public URL using the bucket and path
-      const { data: { publicUrl } } = supabase.storage
-        .from('vtex-files')
-        .getPublicUrl(filePath);
+      console.log(`Creating mock file upload for MVP: ${filePath}`);
       
       return res.status(200).json({
         success: true,
-        fileUrl: publicUrl,
+        fileUrl,
         filePath,
-        message: "File metadata processed successfully"
+        message: "File metadata received successfully"
       });
     } catch (error) {
       console.error("Error processing upload request:", error);
@@ -760,36 +759,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Suggested Document routes
   apiRouter.get("/suggested-documents", async (req: Request, res: Response) => {
     try {
-      const documents = await storage.getSuggestedDocuments();
-      return res.status(200).json({ documents });
+      // For the MVP, use the in-memory mock documents instead of fetching from the database
+      console.log("Returning mock documents:", mockDocuments.length);
+      return res.status(200).json({ documents: mockDocuments });
     } catch (error) {
-      return res.status(500).json({ message: "Internal server error" });
+      console.error("Error fetching suggested documents:", error);
+      return res.status(500).json({ 
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
+
+  // In-memory storage for mock documents for MVP
+  const mockDocuments: any[] = [];
 
   apiRouter.post(
     "/suggested-documents",
     async (req: Request, res: Response) => {
       try {
-        // Since we're using the Document schema for suggested documents, we need to map
-        // the fields correctly. The client is sending fields with camelCase that need to be
-        // mapped to the document schema fields.
+        // For MVP, create a simple mock document response and store in memory
+        // Instead of actually storing in the database
         
-        const documentData = {
-          name: req.body.name,
-          fileUrl: req.body.fileUrl,
-          uploadedBy: req.body.uploadedBy || req.body.suggestedBy, // Handle both field names
-          description: req.body.description
+        // Extract the data from the request
+        const {
+          name,
+          fileUrl,
+          uploadedBy,
+          suggestedBy,
+          description,
+          contentType
+        } = req.body;
+        
+        // Create a mock document with a UUID
+        const mockDocument = {
+          id: crypto.randomUUID(),
+          name,
+          fileUrl,
+          uploadedBy: uploadedBy || suggestedBy,
+          contentType,
+          createdAt: new Date(),
+          approvalStatus: 'pending'
         };
         
-        // Log the document data to help with debugging
-        console.log("Creating suggested document with data:", documentData);
+        // Store in our in-memory array for MVP
+        mockDocuments.push(mockDocument);
         
-        // Create the document directly instead of using schema validation for now
-        const newDocument = await storage.createDocument(documentData);
-        return res.status(201).json({ document: newDocument });
+        console.log("Created mock document:", mockDocument);
+        console.log("Total mock documents:", mockDocuments.length);
+        
+        return res.status(201).json({ document: mockDocument });
       } catch (error) {
-        console.error("Error creating suggested document:", error);
+        console.error("Error creating mock document:", error);
         if (error instanceof z.ZodError) {
           return res.status(400).json({ message: error.errors[0].message });
         }
@@ -829,19 +850,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "Valid reviewer ID is required" });
         }
 
-        const updatedDocument = await storage.updateSuggestedDocumentStatus(
-          documentId,
-          status as "approved" | "rejected",
-          reviewedBy,
-        );
-
-        if (!updatedDocument) {
+        // For MVP, update the in-memory document
+        const documentIndex = mockDocuments.findIndex(doc => doc.id === documentId);
+        
+        if (documentIndex === -1) {
           return res.status(404).json({ message: "Document not found" });
         }
+        
+        // Create an updated copy of the document
+        const updatedDocument = {
+          ...mockDocuments[documentIndex],
+          approvalStatus: status,
+          reviewedBy: reviewedBy,
+          reviewedAt: new Date()
+        };
+        
+        // Update the document in the array
+        mockDocuments[documentIndex] = updatedDocument;
+        
+        console.log(`Document ${documentId} status updated to ${status}`);
 
         return res.status(200).json({ document: updatedDocument });
       } catch (error) {
-        return res.status(500).json({ message: "Internal server error" });
+        console.error("Error updating suggested document:", error);
+        return res.status(500).json({ 
+          message: "Internal server error",
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     },
   );
