@@ -31,30 +31,30 @@ export default function NavHeader() {
       <div className="container mx-auto px-4 flex justify-between items-center h-16">
         <div className="flex items-center">
           <Link href="/projects">
-            <a className="flex items-center text-xl font-bold">
+            <div className="flex items-center text-xl font-bold cursor-pointer">
               <FileText className="mr-2 h-6 w-6 text-primary" />
               <span>RFP Assistant</span>
-            </a>
+            </div>
           </Link>
           
           <nav className="hidden md:flex ml-8 space-x-4">
             <Link href="/projects">
-              <a className={`px-3 py-2 rounded-md text-sm font-medium ${
+              <div className={`px-3 py-2 rounded-md text-sm font-medium cursor-pointer ${
                 location === '/projects' 
                   ? 'bg-primary/10 text-primary' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}>
                 Projects
-              </a>
+              </div>
             </Link>
             <Link href="/suggest-document">
-              <a className={`px-3 py-2 rounded-md text-sm font-medium ${
+              <div className={`px-3 py-2 rounded-md text-sm font-medium cursor-pointer ${
                 location === '/suggest-document' 
                   ? 'bg-primary/10 text-primary' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}>
                 Suggest Document
-              </a>
+              </div>
             </Link>
           </nav>
         </div>
