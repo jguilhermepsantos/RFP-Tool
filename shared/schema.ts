@@ -79,6 +79,7 @@ export const rfpAnswers = pgTable("rfp_answers", {
   questionText: text("question_text").notNull(),
   generatedAnswer: text("generated_answer"),
   complianceAnswer: text("compliance_answer"),
+  finalAnswer: text("final_answer"),
   createdAt: timestamp("created_at").defaultNow(),
   lastReviewedBy: uuid("last_reviewed_by").references(() => users.id),
   lastReviewedAt: timestamp("last_reviewed_at"),

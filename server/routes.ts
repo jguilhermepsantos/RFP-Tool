@@ -167,9 +167,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // RFP Document routes
   apiRouter.get("/projects/:projectId/rfp-documents", async (req: Request, res: Response) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       
-      if (isNaN(projectId)) {
+      if (!projectId) {
         return res.status(400).json({ message: "Valid project ID is required" });
       }
       
@@ -213,7 +213,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Map questions to their answers
       const questionsWithAnswers = questions.map(question => {
-        const answer = answers.find(a => a.rfpQuestionId === question.id);
+        // Find the matching answer - try both property names since db and schema might differ
+        const answer = answers.find(a => 
+          (a.rfpQuestionId === question.id) || 
+          // @ts-ignore - handle database field naming
+          (a.rfp_question_id === question.id)
+        );
+        console.log(`Mapping question ID ${question.id} to answer:`, answer);
         return {
           ...question,
           answer: answer || null
@@ -233,9 +239,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post("/projects/:projectId/rfp-documents", async (req: Request, res: Response) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       
-      if (isNaN(projectId)) {
+      if (!projectId) {
         return res.status(400).json({ message: "Valid project ID is required" });
       }
       
@@ -403,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post("/suggested-documents", async (req: Request, res: Response) => {
     try {
-      const documentData = insertSuggestedDocumentSchema.parse(req.body);
+      const documentData = insertDocumentSchema.parse(req.body);
       const newDocument = await storage.createSuggestedDocument(documentData);
       return res.status(201).json({ document: newDocument });
     } catch (error) {
