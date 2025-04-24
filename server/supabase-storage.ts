@@ -261,17 +261,49 @@ export class SupabaseStorage implements IStorage {
   }
 
   async updateRfpAnswer(answer: UpdateRfpAnswer): Promise<RfpAnswer | undefined> {
+    console.log("[SupabaseStorage] Updating RFP answer:", answer);
+    
+    // Build the update object based on what fields are provided
+    const updateObj: Record<string, any> = {};
+    
+    if (answer.complianceAnswer !== undefined) {
+      updateObj.compliance_answer = answer.complianceAnswer;
+    }
+    
+    if (answer.generatedAnswer !== undefined) {
+      updateObj.generated_answer = answer.generatedAnswer;
+    }
+    
+    if (answer.finalAnswer !== undefined) {
+      updateObj.final_answer = answer.finalAnswer;
+    }
+    
+    // Only update if we have fields to update
+    if (Object.keys(updateObj).length === 0) {
+      console.log("[SupabaseStorage] No fields to update for answer");
+      return undefined;
+    }
+    
+    console.log("[SupabaseStorage] Update object:", updateObj);
+    
     const { data, error } = await supabase
       .from('rfp_answers')
-      .update({ 
-        compliance_answer: answer.complianceAnswer,
-        generated_answer: answer.generatedAnswer
-      })
+      .update(updateObj)
       .eq('id', answer.id)
       .select()
       .single();
     
-    if (error || !data) return undefined;
+    if (error) {
+      console.log("[SupabaseStorage] Error updating RFP answer:", error);
+      return undefined;
+    }
+    
+    if (!data) {
+      console.log("[SupabaseStorage] No data returned from update");
+      return undefined;
+    }
+    
+    console.log("[SupabaseStorage] Updated answer:", data);
     return data as RfpAnswer;
   }
 

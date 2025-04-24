@@ -44,6 +44,10 @@ export default function RfpAnswerEditor({
   const { user } = useAuth();
   const { toast } = useToast();
   
+  console.log("RfpAnswerEditor - Question:", question);
+  console.log("RfpAnswerEditor - Answer:", question.answer);
+  console.log("RfpAnswerEditor - Document Status:", documentStatus);
+  
   const [complianceAnswer, setComplianceAnswer] = useState(
     question.answer?.complianceAnswer || ""
   );
