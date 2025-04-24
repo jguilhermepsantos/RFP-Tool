@@ -55,10 +55,12 @@ export const documents = pgTable("documents", {
 export const rfpDocuments = pgTable("rfp_documents", {
   id: uuid("id").primaryKey(),
   projectId: uuid("project_id").references(() => projects.id),
+  name: text("name"),
   fileUrl: text("file_url"),
   uploadedBy: uuid("uploaded_by").references(() => users.id),
   uploadedAt: timestamp("uploaded_at").defaultNow(),
   status: text("status").default('unprocessed'),
+  isPastRfp: boolean("is_past_rfp").default(false),
 });
 
 // RFP Questions table

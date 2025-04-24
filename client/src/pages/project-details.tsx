@@ -36,6 +36,7 @@ interface DocumentData {
   name?: string;
   status: string;
   created_at: string;
+  uploaded_at?: string;
   file_url?: string;
   uploaded_by?: string;
   is_past_rfp?: boolean;
@@ -88,6 +89,8 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
           .from('rfp_documents')
           .select('*')
           .eq('project_id', projectId);
+          
+        console.log('RFP Documents from Supabase:', documentData);
           
         if (documentError) {
           throw new Error(documentError.message);
@@ -161,14 +164,25 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                   <DocumentUpload projectId={projectId} />
                 )}
                 
+                {/* Add more detailed logging */}
+                <div className="mb-4">
+                  <p>Documents count: {documents.length}</p>
+                  {documents.length > 0 && (
+                    <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
+                      {JSON.stringify(documents[0], null, 2)}
+                    </pre>
+                  )}
+                </div>
+                
                 <RfpDocumentTable 
                   projectId={projectId} 
                   documents={documents.map(doc => ({
                     id: doc.id,
                     projectId: doc.project_id,
-                    name: doc.name || 'Untitled Document',
-                    status: doc.status,
-                    createdAt: doc.created_at,
+                    // Use file_url path as name if no name field exists
+                    name: doc.name || (doc.file_url ? doc.file_url.split('/').pop() || 'Untitled Document' : 'Untitled Document'),
+                    status: doc.status || 'unprocessed',
+                    createdAt: doc.created_at || doc.uploaded_at,
                     isPastRfp: doc.is_past_rfp || false
                   }))}
                   isEditable={isOwnerOrCollaborator}
