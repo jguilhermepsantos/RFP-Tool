@@ -755,6 +755,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Admin middleware to check if user is an admin
+  const requireAdmin = async (req: Request, res: Response, next: express.NextFunction) => {
+    try {
+      // In a real app, get this from session or JWT token
+      const { authorization } = req.headers;
+      
+      if (!authorization) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      // For demo, we'll just check if the user exists and is an admin
+      // Normally, you'd validate a token here
+      const user = await storage.getUserByEmail(authorization);
+      
+      if (!user) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+      
+      next();
+    } catch (error) {
+      console.error('Admin middleware error:', error);
+      res.status(500).json({ error: 'Server error checking admin access' });
+    }
+  };
+
+  // Admin routes
+  apiRouter.get("/admin/documents", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const documents = await storage.getDocuments();
+      return res.status(200).json(documents);
+    } catch (error) {
+      console.error('Error fetching documents for admin:', error);
+      return res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+  });
+
+  apiRouter.get("/admin/rfp-documents", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // Get all RFP documents across all projects
+      const documents = await storage.getAllRfpDocuments();
+      return res.status(200).json(documents);
+    } catch (error) {
+      console.error('Error fetching RFP documents for admin:', error);
+      return res.status(500).json({ error: 'Failed to fetch RFP documents' });
+    }
+  });
+
+  apiRouter.post("/admin/documents/:id/approve", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ error: 'Document ID is required' });
+      }
+      
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Status must be either "approved" or "rejected"' });
+      }
+      
+      const document = await storage.updateDocumentApprovalStatus(id, status === 'approved');
+      
+      if (!document) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      return res.status(200).json(document);
+    } catch (error) {
+      console.error('Error updating document approval status:', error);
+      return res.status(500).json({ error: 'Failed to update document approval status' });
+    }
+  });
+
+  apiRouter.post("/admin/rfp-documents/:id/approve", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ error: 'RFP Document ID is required' });
+      }
+      
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Status must be either "approved" or "rejected"' });
+      }
+      
+      const rfpDocument = await storage.updateRfpDocumentApprovalStatus(id, status);
+      
+      if (!rfpDocument) {
+        return res.status(404).json({ error: 'RFP Document not found' });
+      }
+      
+      return res.status(200).json(rfpDocument);
+    } catch (error) {
+      console.error('Error updating RFP document approval status:', error);
+      return res.status(500).json({ error: 'Failed to update RFP document approval status' });
+    }
+  });
+
   // Create the HTTP server
   const httpServer = createServer(app);
   return httpServer;

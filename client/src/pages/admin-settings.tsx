@@ -47,28 +47,22 @@ export default function AdminSettings() {
   
   // Fetch the documents that need approval
   const {
-    data: documents,
+    data: documents = [],
     isLoading: isDocumentsLoading,
     error: documentsError
   } = useQuery({
     queryKey: ['/api/admin/documents'],
-    queryFn: async () => {
-      const response = await apiRequest('/api/admin/documents');
-      return response;
-    }
+    queryFn: () => apiRequest('/api/admin/documents')
   });
 
   // Fetch RFP documents that need approval
   const {
-    data: rfpDocuments,
+    data: rfpDocuments = [],
     isLoading: isRfpDocumentsLoading,
     error: rfpDocumentsError
   } = useQuery({
     queryKey: ['/api/admin/rfp-documents'],
-    queryFn: async () => {
-      const response = await apiRequest('/api/admin/rfp-documents');
-      return response;
-    }
+    queryFn: () => apiRequest('/api/admin/rfp-documents')
   });
 
   // Mutation for updating document approval status
