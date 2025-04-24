@@ -22,14 +22,49 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
+  interface ProjectResponse {
+    project: {
+      id: string;
+      name: string;
+      description: string | null;
+      createdAt: string;
+    };
+  }
+
+  interface DocumentResponse {
+    document: {
+      id: string;
+      name: string;
+      status: string;
+      isPastRfp: boolean;
+      createdAt: string;
+      projectId: string;
+    };
+    questionsWithAnswers: Array<{
+      id: string;
+      rfpDocumentId: string | null;
+      questionNumber: string;
+      questionText: string;
+      section: string | null;
+      answer: {
+        id: string;
+        rfpQuestionId: string | null;
+        complianceAnswer: string | null;
+        generatedAnswer: string | null;
+        lastReviewedBy: string | null;
+        lastReviewedAt: string | null;
+      } | null;
+    }>;
+  }
+
   // Get project details
-  const { data: projectData, isLoading: projectLoading } = useQuery({
+  const { data: projectData, isLoading: projectLoading } = useQuery<ProjectResponse>({
     queryKey: [`/api/projects/${projectId}`],
     enabled: !!projectId,
   });
 
   // Get document details
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error } = useQuery<DocumentResponse>({
     queryKey: [`/api/projects/${projectId}/rfp-documents/${documentId}`],
     enabled: !!projectId && !!documentId,
   });
@@ -102,8 +137,10 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">Unprocessed</Badge>;
       case "processed":
         return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">Processed</Badge>;
-      case "reviewed":
-        return <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200">Reviewed</Badge>;
+      case "under review":
+        return <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200">Under Review</Badge>;
+      case "reviewed": // Kept for backward compatibility
+        return <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200">Under Review</Badge>;
       case "done":
         return <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200">Done</Badge>;
       default:
@@ -122,12 +159,13 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         );
       case "processed":
         return (
-          <Button onClick={() => updateDocumentStatus("reviewed")}>
+          <Button onClick={() => updateDocumentStatus("under review")}>
             <CheckCircle className="mr-2 h-4 w-4" />
-            Mark as Reviewed
+            Mark as Under Review
           </Button>
         );
-      case "reviewed":
+      case "under review":
+      case "reviewed": // Kept for backward compatibility
         return (
           <Button onClick={() => updateDocumentStatus("done")}>
             <CheckCircle className="mr-2 h-4 w-4" />
@@ -223,13 +261,15 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                   <CardDescription>
                     {document.status === 'unprocessed' 
                       ? 'Click "Process Questions" to extract questions and generate AI-assisted answers.' 
-                      : 'No questions found in this document.'}
+                      : document.status === 'done'
+                        ? 'This document has been marked as done but no questions were found.'
+                        : 'No questions found in this document.'}
                   </CardDescription>
                 </CardHeader>
               </Card>
             ) : (
               <div className="space-y-6">
-                {questionsWithAnswers.map((item) => (
+                {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
                   <RfpAnswerEditor 
                     key={item.id}
                     question={item}

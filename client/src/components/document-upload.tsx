@@ -2,7 +2,13 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,10 +22,13 @@ interface DocumentUploadProps {
   onUploadSuccess?: () => void;
 }
 
-export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentUploadProps) {
+export default function DocumentUpload({
+  projectId,
+  onUploadSuccess,
+}: DocumentUploadProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [file, setFile] = useState<File | null>(null);
   const [documentName, setDocumentName] = useState("");
   const [isPastRfp, setIsPastRfp] = useState(false);
@@ -29,7 +38,7 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      
+
       // Set default name from file if not set
       if (!documentName) {
         setDocumentName(selectedFile.name);
@@ -43,143 +52,172 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          console.log('CSV parsing complete, headers:', results.meta.fields);
-          console.log('First row sample:', results.data[0]);
-          
+          console.log("CSV parsing complete, headers:", results.meta.fields);
+          console.log("First row sample:", results.data[0]);
+
           // Normalize column names to lowercase for easier comparison
           const normalizedData = results.data.map((row: any) => {
             const normalizedRow: Record<string, any> = {};
-            
+
             // Convert all keys to lowercase
             Object.keys(row).forEach((key: string) => {
               const lowerKey = key.toLowerCase().trim();
               normalizedRow[lowerKey] = row[key];
             });
-            
+
             return normalizedRow;
           });
-          
+
           resolve(normalizedData);
         },
         error: (error) => {
           reject(error);
-        }
+        },
       });
     });
   };
-  
-  const processCSVData = async (data: any[], rfpDocumentId: string, isPastRfp: boolean) => {
+
+  const processCSVData = async (
+    data: any[],
+    rfpDocumentId: string,
+    isPastRfp: boolean,
+  ) => {
     try {
-      console.log(`Processing CSV data for document: ${rfpDocumentId}, isPastRfp: ${isPastRfp}`);
+      console.log(
+        `Processing CSV data for document: ${rfpDocumentId}, isPastRfp: ${isPastRfp}`,
+      );
       console.log(`Data rows count: ${data.length}`);
-      
+
       if (isPastRfp) {
         // For past RFPs: insert directly into rfp_answers table
         // Expected columns: question_text, compliance_answer, generated_answer
-        console.log('Processing as past RFP (inserting into rfp_answers)');
-        console.log('isPastRfp =', isPastRfp);
-        
+        console.log("Processing as past RFP (inserting into rfp_answers)");
+        console.log("isPastRfp =", isPastRfp);
+
         let insertedRows = 0;
         for (const row of data) {
           // Using lowercase column names for compatibility with different CSV formats
-          const questionText = row.question_text || row['question text'] || '';
+          const questionText = row.question_text || row["question text"] || "";
           if (!questionText) {
-            console.log('Skipping row without question text:', row);
+            console.log("Skipping row without question text:", row);
             continue;
           }
-          
-          const complianceAnswer = row.compliance_answer || row['compliance answer'] || null;
-          const generatedAnswer = row.generated_answer || row['generated answer'] || null;
-          
-          console.log(`Inserting answer row into rfp_answers: Question="${questionText.substring(0, 20)}...", Compliance=${!!complianceAnswer}, Generated=${!!generatedAnswer}`);
-          
+
+          const complianceAnswer =
+            row.compliance_answer || row["compliance answer"] || null;
+          const generatedAnswer =
+            row.generated_answer || row["generated answer"] || null;
+
+          console.log(
+            `Inserting answer row into rfp_answers: Question="${questionText.substring(0, 20)}...", Compliance=${!!complianceAnswer}, Generated=${!!generatedAnswer}`,
+          );
+
           // First create an rfp_question entry
-          const { data: questionData, error: questionError } = await supabase.from('rfp_questions').insert({
-            rfp_document_id: rfpDocumentId,
-            question_text: questionText,
-            created_at: new Date().toISOString()
-          }).select('id').single();
-          
+          const { data: questionData, error: questionError } = await supabase
+            .from("rfp_questions")
+            .insert({
+              rfp_document_id: rfpDocumentId,
+              question_text: questionText,
+              created_at: new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+
           if (questionError) {
-            console.error('Error inserting question for past RFP:', questionError);
+            console.error(
+              "Error inserting question for past RFP:",
+              questionError,
+            );
             throw questionError;
           }
-          
+
           // Then create an rfp_answer entry linked to the question
-          const { data: answerData, error: answerError } = await supabase.from('rfp_answers').insert({
-            rfp_question_id: questionData.id,
-            question_text: questionText, // Adding question_text here as well
-            compliance_answer: complianceAnswer,
-            generated_answer: generatedAnswer,
-            created_at: new Date().toISOString()
-          });
-          
+          const { data: answerData, error: answerError } = await supabase
+            .from("rfp_answers")
+            .insert({
+              rfp_question_id: questionData.id,
+              rfp_document_id: rfpDocumentId,
+              question_text: questionText, // Adding question_text here as well
+              compliance_answer: complianceAnswer,
+              generated_answer: generatedAnswer,
+              created_at: new Date().toISOString(),
+            });
+
           if (answerError) {
-            console.error('Error inserting answer for past RFP:', answerError);
+            console.error("Error inserting answer for past RFP:", answerError);
             throw answerError;
           }
-          
-          console.log('Created question and answer for past RFP:', questionData.id);
+
+          console.log(
+            "Created question and answer for past RFP:",
+            questionData.id,
+          );
           insertedRows++;
         }
-        
-        console.log(`Successfully inserted ${insertedRows} answers for past RFP`);
-        
+
+        console.log(
+          `Successfully inserted ${insertedRows} answers for past RFP`,
+        );
+
         // Update document status to 'done'
-        const { error: updateError } = await supabase.from('rfp_documents')
-          .update({ status: 'done' })
-          .eq('id', rfpDocumentId);
-          
+        const { error: updateError } = await supabase
+          .from("rfp_documents")
+          .update({ status: "done" })
+          .eq("id", rfpDocumentId);
+
         if (updateError) {
-          console.error('Error updating document status:', updateError);
+          console.error("Error updating document status:", updateError);
           throw updateError;
         }
-          
       } else {
         // For new RFPs: insert into rfp_questions table
         // Expected column: question_text
-        console.log('Processing as new RFP (inserting into rfp_questions)');
-        
+        console.log("Processing as new RFP (inserting into rfp_questions)");
+
         let insertedRows = 0;
         for (const row of data) {
           // Using lowercase column names for compatibility with different CSV formats
-          const questionText = row.question_text || row['question text'] || '';
+          const questionText = row.question_text || row["question text"] || "";
           if (!questionText) {
-            console.log('Skipping row without question text:', row);
+            console.log("Skipping row without question text:", row);
             continue;
           }
-          
-          console.log(`Inserting question row: Question=${questionText.substring(0, 20)}...`);
-          
-          const { data: insertData, error: insertError } = await supabase.from('rfp_questions').insert({
-            rfp_document_id: rfpDocumentId,
-            question_text: questionText,
-            created_at: new Date().toISOString()
-          });
-          
+
+          console.log(
+            `Inserting question row: Question=${questionText.substring(0, 20)}...`,
+          );
+
+          const { data: insertData, error: insertError } = await supabase
+            .from("rfp_questions")
+            .insert({
+              rfp_document_id: rfpDocumentId,
+              question_text: questionText,
+              created_at: new Date().toISOString(),
+            });
+
           if (insertError) {
-            console.error('Error inserting question:', insertError);
+            console.error("Error inserting question:", insertError);
             throw insertError;
           }
-          
+
           insertedRows++;
         }
-        
+
         console.log(`Successfully inserted ${insertedRows} questions`);
-        
+
         // Document status stays as 'unprocessed'
       }
-      
+
       return true;
     } catch (error) {
-      console.error('Error processing CSV data:', error);
+      console.error("Error processing CSV data:", error);
       throw error;
     }
   };
 
   const handleUpload = async () => {
     if (!user) return;
-    
+
     if (!file) {
       toast({
         variant: "destructive",
@@ -188,7 +226,7 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
       });
       return;
     }
-    
+
     if (!documentName) {
       toast({
         variant: "destructive",
@@ -197,71 +235,81 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
       });
       return;
     }
-    
+
     setIsUploading(true);
-    
+
     try {
       // Parse CSV data
       const csvData = await parseCSV(file);
-      
+
       if (csvData.length === 0) {
         throw new Error("CSV file appears to be empty");
       }
-      
+
       // Validate CSV structure based on isPastRfp flag
       if (isPastRfp) {
         // Past RFP should have question_text, compliance_answer, and generated_answer columns
         const firstRow = csvData[0];
-        const hasQuestionText = firstRow.question_text || firstRow['question text'];
-        const hasComplianceAnswer = firstRow.compliance_answer || firstRow['compliance answer'];
-        const hasGeneratedAnswer = firstRow.generated_answer || firstRow['generated answer'];
-        
+        const hasQuestionText =
+          firstRow.question_text || firstRow["question text"];
+        const hasComplianceAnswer =
+          firstRow.compliance_answer || firstRow["compliance answer"];
+        const hasGeneratedAnswer =
+          firstRow.generated_answer || firstRow["generated answer"];
+
         if (!hasQuestionText || (!hasComplianceAnswer && !hasGeneratedAnswer)) {
-          throw new Error("CSV file for past RFPs should contain 'question_text' and either 'compliance_answer' or 'generated_answer' columns");
+          throw new Error(
+            "CSV file for past RFPs should contain 'question_text' and either 'compliance_answer' or 'generated_answer' columns",
+          );
         }
       } else {
         // New RFP should have question_text column
         const firstRow = csvData[0];
-        const hasQuestionText = firstRow.question_text || firstRow['question text'];
-        
+        const hasQuestionText =
+          firstRow.question_text || firstRow["question text"];
+
         if (!hasQuestionText) {
-          throw new Error("CSV file should contain a 'question_text' or 'Question Text' column");
+          throw new Error(
+            "CSV file should contain a 'question_text' or 'Question Text' column",
+          );
         }
       }
-      
+
       // File is valid, create the document in Supabase
       const { data: document, error: docError } = await supabase
-        .from('rfp_documents')
+        .from("rfp_documents")
         .insert({
           project_id: projectId,
           name: documentName,
           file_url: file.name,
           uploaded_by: user.id,
-          status: isPastRfp ? 'done' : 'unprocessed',
+          status: isPastRfp ? "done" : "unprocessed",
           is_past_rfp: isPastRfp,
-          uploaded_at: new Date().toISOString()
+          uploaded_at: new Date().toISOString(),
         })
         .select()
         .single();
-      
+
       if (docError) throw new Error(docError.message);
-      
+
       // Process the CSV data and insert questions/answers
       await processCSVData(csvData, document.id, isPastRfp);
-      
+
       toast({
         title: "Success",
         description: "Document uploaded and processed successfully",
       });
-      
+
       // Reset form
       setFile(null);
       setDocumentName("");
       setIsPastRfp(false);
-      
+
       // Refresh project data
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
-      
+      queryClient.invalidateQueries({
+        queryKey: [`/api/projects/${projectId}`],
+      });
+
       // Call the callback to refresh the parent component
       if (onUploadSuccess) {
         onUploadSuccess();
@@ -285,8 +333,8 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
           Upload a CSV file containing RFP questions and requirements.
           {isPastRfp ? (
             <span className="block mt-1 text-xs text-blue-600">
-              Past RFP files should have columns: "Question Text", "Compliance Answer", "Generated Answer"
-              (Column names are case-insensitive)
+              Past RFP files should have columns: "Question Text", "Compliance
+              Answer", "Generated Answer" (Column names are case-insensitive)
             </span>
           ) : (
             <span className="block mt-1 text-xs text-blue-600">
@@ -308,7 +356,7 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
                 placeholder="Enter document name"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="document-file">Upload File</Label>
               <div className="border rounded-md p-2">
@@ -320,11 +368,11 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
                 />
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="is-past-rfp" 
-                checked={isPastRfp} 
+              <Checkbox
+                id="is-past-rfp"
+                checked={isPastRfp}
                 onCheckedChange={(checked) => setIsPastRfp(checked === true)}
               />
               <Label htmlFor="is-past-rfp">
@@ -332,11 +380,11 @@ export default function DocumentUpload({ projectId, onUploadSuccess }: DocumentU
               </Label>
             </div>
           </div>
-          
+
           <div className="md:w-1/3 flex items-center justify-center">
-            <Button 
-              onClick={handleUpload} 
-              className="w-full" 
+            <Button
+              onClick={handleUpload}
+              className="w-full"
               disabled={isUploading || !file}
             >
               <FileUpIcon className="mr-2 h-4 w-4" />

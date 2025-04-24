@@ -236,6 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           answer: {
             id: dbAnswer.id,
             rfpQuestionId: dbAnswer.rfp_question_id,
+            // rfpDocumentId: dbAnswer.rfp_document_id,
             complianceAnswer: dbAnswer.compliance_answer,
             generatedAnswer: dbAnswer.generated_answer,
             finalAnswer: dbAnswer.final_answer,

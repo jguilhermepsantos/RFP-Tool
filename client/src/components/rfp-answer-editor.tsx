@@ -90,7 +90,10 @@ export default function RfpAnswerEditor({
     }
   };
 
-  const isEditable = documentStatus === 'processed';
+  // Allow editing when document is either 'processed' or 'under review'
+  const isEditable = documentStatus === 'processed' || documentStatus === 'under review';
+  const isReadOnly = documentStatus === 'done';
+  const isUnprocessed = documentStatus === 'unprocessed';
 
   return (
     <Card>
@@ -108,7 +111,8 @@ export default function RfpAnswerEditor({
             )}
           </div>
           
-          {isEditable && (
+          {/* Only show edit button for processed or under review documents */}
+          {isEditable && !isReadOnly && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
