@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
@@ -17,7 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import NavHeader from '@/components/nav-header';
-import { Check, X, FileText, ArrowUpDown } from 'lucide-react';
+import { Check, X, FileText } from 'lucide-react';
 
 // Interfaces for the approval data
 // Adjusted to match actual API response (using snake_case for keys)
@@ -79,12 +79,28 @@ export default function AdminSettings() {
     queryFn: () => apiRequest('/api/admin/rfp-documents', { headers: adminHeaders })
   });
   
+  // Get project details from the API
+  const {
+    data: projectsData,
+  } = useQuery({
+    queryKey: ['/api/projects'],
+    queryFn: () => apiRequest('/api/projects', { 
+      headers: adminHeaders,
+      params: { userId: user?.id }
+    }),
+    enabled: !!user?.id
+  });
+  
+  // Create a map of project IDs to project names for easy lookup
+  const projects = projectsData?.projects || [];
+  
   // Convert API response to array of RFP documents, filtering for "done" status only
   const rfpDocuments: RfpDocument[] = Array.isArray(rfpDocumentsResponse) 
     ? rfpDocumentsResponse.filter(doc => doc.status === 'done')
     : [];
     
   console.log("RFP documents:", rfpDocuments);
+  console.log("Projects:", projects);
 
   // Mutation for updating document approval status
   const updateDocumentApproval = useMutation({
@@ -158,26 +174,25 @@ export default function AdminSettings() {
     return new Date(dateString).toLocaleString();
   };
   
-  // Get project details from the API
-  const {
-    data: projectsData,
-  } = useQuery<{projects: any[]}>({
-    queryKey: ['/api/projects'],
-    queryFn: () => apiRequest('/api/projects', { 
-      headers: adminHeaders,
-      params: { userId: user?.id }
-    }),
-    enabled: !!user?.id
-  });
-  
-  // Create a map of project IDs to project names for easy lookup
-  const projects = projectsData?.projects || [];
-  
   // Function to get project name from project ID
   const getProjectName = (projectId: string | null) => {
     if (!projectId) return 'N/A';
+    
+    // Try to find the project by ID
     const project = projects.find((p: any) => p.id === projectId);
-    return project ? project.name : projectId;
+    
+    if (project) {
+      return project.name;
+    }
+    
+    // If it's the special case for "past rfp project 1"
+    if (projectId === "past rfp project 1") {
+      return "Past RFP Project";
+    }
+    
+    // Format the project ID to make it more readable if we can't find the name
+    const shortId = projectId.substring(0, 8) + '...';
+    return shortId;
   };
 
   // Status badge component
