@@ -14,6 +14,7 @@ interface AuthContextType {
   user: AuthUserData | null;
   session: any | null;
   loading: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
@@ -192,10 +193,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLocation('/login');
   }
 
+  // Check if the user is an admin
+  const isAdmin = user?.role === 'admin';
+
   const value = {
     user,
     session,
     loading,
+    isAdmin,
     login,
     logout
   };
@@ -227,6 +232,38 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!user && location !== '/login') {
     return null;
+  }
+
+  return <>{children}</>;
+}
+
+export function RequireAdmin({ children }: { children: ReactNode }) {
+  const { user, loading, isAdmin } = useAuth();
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!loading && (!user || !isAdmin)) {
+      setLocation('/projects');
+    }
+  }, [user, isAdmin, loading, location, setLocation]);
+
+  if (loading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (!user || !isAdmin) {
+    return <div className="flex h-screen items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+        <p className="text-gray-600 mb-4">You don't have permission to access this page.</p>
+        <button 
+          onClick={() => setLocation('/projects')}
+          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+        >
+          Return to Projects
+        </button>
+      </div>
+    </div>;
   }
 
   return <>{children}</>;

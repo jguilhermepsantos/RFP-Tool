@@ -11,10 +11,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, LogOut, User, FileUp } from "lucide-react";
+import { FileText, LogOut, User, FileUp, Settings } from "lucide-react";
 
 export default function NavHeader() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { toast } = useToast();
   const [location] = useLocation();
 
@@ -60,7 +60,7 @@ export default function NavHeader() {
         </div>
         
         <div className="flex items-center">
-          {user?.isAdmin && (
+          {isAdmin && (
             <span className="mr-3 px-2 py-1 rounded text-xs font-semibold bg-amber-100 text-amber-800">
               Admin
             </span>
@@ -89,6 +89,14 @@ export default function NavHeader() {
                   <span>Suggest Document</span>
                 </DropdownMenuItem>
               </Link>
+              {isAdmin && (
+                <Link href="/admin-settings">
+                  <DropdownMenuItem className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Admin Settings</span>
+                  </DropdownMenuItem>
+                </Link>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
