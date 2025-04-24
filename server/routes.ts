@@ -185,48 +185,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const documentId = req.params.documentId;
       
-      console.log(`Attempting to load document with ID: ${documentId}`);
+      console.log(`*** DIRECT DB IMPLEMENTATION: Attempting to load document with ID: ${documentId}`);
       
       if (!documentId) {
         return res.status(400).json({ message: "Valid document ID is required" });
       }
       
-      const document = await storage.getRfpDocument(documentId);
+      // Get the document details
+      const { data: documentData, error: documentError } = await supabase
+        .from('rfp_documents')
+        .select('*')
+        .eq('id', documentId)
+        .single();
       
-      console.log(`Document result:`, document);
+      if (documentError) {
+        console.log(`Error fetching document:`, documentError);
+        return res.status(500).json({ message: `Failed to fetch document: ${documentError.message}` });
+      }
       
-      if (!document) {
+      if (!documentData) {
         return res.status(404).json({ message: "Document not found" });
       }
       
+      console.log(`Document from database:`, documentData);
+      
       // Get all answers for the document directly from the rfp_answers table
-      // This is the key change - we're no longer using rfp_questions as the main source
-      const { data: allAnswers, error } = await supabase
+      const { data: answersData, error: answersError } = await supabase
         .from('rfp_answers')
         .select('*')
         .eq('rfp_document_id', documentId);
       
-      if (error) {
-        console.log(`Error fetching answers:`, error);
-        return res.status(500).json({ message: `Failed to fetch answers: ${error.message}` });
+      if (answersError) {
+        console.log(`Error fetching answers:`, answersError);
+        return res.status(500).json({ message: `Failed to fetch answers: ${answersError.message}` });
       }
       
-      console.log(`Found ${allAnswers?.length || 0} answers directly from answers table`);
-      if (allAnswers && allAnswers.length > 0) {
-        console.log(`First answer from DB:`, allAnswers[0]);
+      console.log(`Found ${answersData?.length || 0} answers directly from answers table`);
+      if (answersData && answersData.length > 0) {
+        console.log(`First answer from DB:`, answersData[0]);
       } else {
         console.log(`No answers found for document ID: ${documentId}`);
       }
       
       // Transform the answers into the expected format for the frontend
-      const questionsWithAnswers = (allAnswers || []).map((dbAnswer: any) => {
-        // Transform snake_case to camelCase
+      const questionsWithAnswers = (answersData || []).map((dbAnswer: any) => {
         return {
-          // Create a question object based on the answer's data
-          id: dbAnswer.rfp_question_id, 
+          id: dbAnswer.rfp_question_id,
           rfpDocumentId: dbAnswer.rfp_document_id,
           questionText: dbAnswer.question_text,
-          // Add the answer directly in the format the frontend expects
           answer: {
             id: dbAnswer.id,
             rfpQuestionId: dbAnswer.rfp_question_id,
@@ -239,15 +245,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      console.log(`Returning ${questionsWithAnswers.length} questions with answers`);
+      console.log(`Returning ${questionsWithAnswers.length} questions with answers from direct DB call`);
       
       // Add this for debugging
       if (questionsWithAnswers.length > 0) {
         console.log('Sample transformed question with answer:', JSON.stringify(questionsWithAnswers[0], null, 2));
       }
       
+      // Return the results
       return res.status(200).json({ 
-        document,
+        document: documentData,
         questionsWithAnswers
       });
     } catch (error) {
