@@ -115,7 +115,7 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
             disabled={isProcessing}
           >
             <PlayCircle className="mr-2 h-4 w-4" />
-            {isProcessing ? "Processing..." : "Process Questions"}
+            {isProcessing ? "Processing Questions..." : "Process Questions"}
           </Button>
         );
       case "processed":
