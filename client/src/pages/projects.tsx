@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocation } from "wouter";
 
 interface ProjectWithRole extends Project {
   role: 'owner' | 'collaborator' | 'viewer';
@@ -32,6 +33,8 @@ const formSchema = z.object({
 export default function Projects() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [_, setLocation] = useLocation();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [`/api/projects`],
@@ -131,6 +134,9 @@ export default function Projects() {
       // Reset form and invalidate query to refresh data
       form.reset();
       queryClient.invalidateQueries({ queryKey: [`/api/projects`] });
+      
+      // Redirect to the project details page
+      setLocation(`/projects/${project.id}`);
     } catch (error) {
       toast({
         variant: "destructive",
