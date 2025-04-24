@@ -1,7 +1,6 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./supabase-storage";
-import { supabase } from "./db";
 import {
   insertUserSchema,
   insertProjectSchema,
@@ -202,52 +201,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const questions = await storage.getRfpQuestions(documentId);
       console.log(`Found ${questions.length} questions for document:`, questions);
       
-      // Get answers that specifically have the rfp_document_id field set to this document's ID
-      // This is a direct query from Supabase
-      const { data: directAnswers, error: answersError } = await supabase
-        .from('rfp_answers')
-        .select('*')
-        .eq('rfp_document_id', documentId);
-      
-      if (answersError) {
-        console.error("Error fetching direct answers:", answersError);
-        return res.status(500).json({ message: "Error fetching answers" });
-      }
-      
-      console.log(`Found ${directAnswers?.length || 0} direct answers by document ID`);
-      
-      // Also get answers by question IDs as backup
       const questionIds = questions.map(q => q.id);
       console.log(`Question IDs:`, questionIds);
       
-      let answers = [];
-      if (questionIds.length > 0) {
-        const { data: questionAnswers, error: qaError } = await supabase
-          .from('rfp_answers')
-          .select('*')
-          .in('rfp_question_id', questionIds);
-        
-        if (qaError) {
-          console.error("Error fetching question answers:", qaError);
-        } else {
-          console.log(`Found ${questionAnswers?.length || 0} answers via question IDs`);
-          answers = questionAnswers || [];
-        }
-      }
-      
-      // Combine both sets of answers, ensuring no duplicates by ID
-      const combinedAnswers = [...(directAnswers || [])];
-      for (const answer of answers) {
-        if (!combinedAnswers.some(a => a.id === answer.id)) {
-          combinedAnswers.push(answer);
-        }
-      }
-      
-      console.log(`Combined to ${combinedAnswers.length} total unique answers`);
+      const answers = await storage.getRfpAnswers(questionIds);
+      console.log(`Found ${answers.length} answers:`, answers);
       
       // Map questions to their answers
       const questionsWithAnswers = questions.map(question => {
-        const answer = combinedAnswers.find(a => a.rfp_question_id === question.id);
+        const answer = answers.find(a => a.rfpQuestionId === question.id);
         console.log(`For question ${question.id}, found answer:`, answer);
         return {
           ...question,
