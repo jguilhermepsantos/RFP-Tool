@@ -188,6 +188,36 @@ export class SupabaseStorage implements IStorage {
     if (error || !data) return undefined;
     return data as RfpDocument;
   }
+
+  async getAllRfpDocuments(): Promise<RfpDocument[]> {
+    const { data, error } = await supabase
+      .from('rfp_documents')
+      .select('*');
+    
+    if (error) throw new Error(`Failed to get all RFP documents: ${error.message}`);
+    return data as RfpDocument[];
+  }
+
+  async updateRfpDocumentApprovalStatus(id: string, status: string): Promise<RfpDocument | undefined> {
+    const now = new Date().toISOString();
+    // In a real app, you would get the current user's ID for modified_by
+    // For now, we'll use a placeholder
+    const modifiedBy = 'admin-user'; 
+    
+    const { data, error } = await supabase
+      .from('rfp_documents')
+      .update({
+        approval_status: status,
+        approval_status_modified_at: now,
+        approval_status_modified_by: modifiedBy
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error || !data) return undefined;
+    return data as RfpDocument;
+  }
   
   // RFP Question operations
   async getRfpQuestions(documentId: string): Promise<RfpQuestion[]> {

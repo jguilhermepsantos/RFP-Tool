@@ -19,6 +19,7 @@ import NavHeader from '@/components/nav-header';
 import { Check, X, FileText, ArrowUpDown } from 'lucide-react';
 
 // Interfaces for the approval data
+// Adjusted to match actual API response (using snake_case for keys)
 interface Document {
   id: string;
   name: string;
@@ -47,23 +48,29 @@ export default function AdminSettings() {
   
   // Fetch the documents that need approval
   const {
-    data: documents = [],
+    data: documentsResponse,
     isLoading: isDocumentsLoading,
     error: documentsError
   } = useQuery({
     queryKey: ['/api/admin/documents'],
     queryFn: () => apiRequest('/api/admin/documents')
   });
+  
+  // Convert API response to array of documents
+  const documents: Document[] = Array.isArray(documentsResponse) ? documentsResponse : [];
 
   // Fetch RFP documents that need approval
   const {
-    data: rfpDocuments = [],
+    data: rfpDocumentsResponse,
     isLoading: isRfpDocumentsLoading,
     error: rfpDocumentsError
   } = useQuery({
     queryKey: ['/api/admin/rfp-documents'],
     queryFn: () => apiRequest('/api/admin/rfp-documents')
   });
+  
+  // Convert API response to array of RFP documents
+  const rfpDocuments: RfpDocument[] = Array.isArray(rfpDocumentsResponse) ? rfpDocumentsResponse : [];
 
   // Mutation for updating document approval status
   const updateDocumentApproval = useMutation({
