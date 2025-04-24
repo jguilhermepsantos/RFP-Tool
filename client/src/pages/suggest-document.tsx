@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { supabase } from "@/lib/supabase";
 import NavHeader from "@/components/nav-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,14 +65,30 @@ export default function SuggestDocument() {
     setIsSubmitting(true);
     
     try {
-      // In a real application, you would upload the file to a storage service
-      // Here we're just mocking the file path
-      const mockFilePath = `uploads/${Date.now()}_${file.name}`;
+      // Upload the file to Supabase Storage in the vtex-files bucket
+      const filePath = `${user.id}/${Date.now()}_${file.name}`;
       
+      // Upload the file to the vtex-files bucket
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('vtex-files')
+        .upload(filePath, file);
+      
+      if (uploadError) {
+        throw new Error(`File upload failed: ${uploadError.message}`);
+      }
+      
+      // Get the public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('vtex-files')
+        .getPublicUrl(filePath);
+      
+      // Create the document record in the database
       await apiRequest("POST", "/api/suggested-documents", {
         name: documentName,
-        filePath: mockFilePath,
+        filePath,
+        fileUrl: publicUrl,
         contentType: file.type,
+        description: documentDescription,
         suggestedBy: user.id,
       });
       
@@ -82,6 +99,7 @@ export default function SuggestDocument() {
       
       setIsSuccess(true);
     } catch (error) {
+      console.error("Error uploading document:", error);
       toast({
         variant: "destructive",
         title: "Error",
