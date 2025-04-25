@@ -368,14 +368,29 @@ export class SupabaseStorage implements IStorage {
   }
 
   async updateDocumentApprovalStatus(id: string, approved: boolean): Promise<Document | undefined> {
+    // Convert boolean to string status for approval_status column
+    const approval_status = approved ? 'approved' : 'rejected';
+    
+    console.log(`[SupabaseStorage] Updating document ${id} approval_status to: ${approval_status}`);
+    
     const { data, error } = await supabase
       .from('documents')
-      .update({ approved })
+      .update({ approval_status })
       .eq('id', id)
       .select()
       .single();
     
-    if (error || !data) return undefined;
+    if (error) {
+      console.error(`[SupabaseStorage] Error updating document approval status:`, error);
+      return undefined;
+    }
+    
+    if (!data) {
+      console.error(`[SupabaseStorage] Document not found with ID: ${id}`);
+      return undefined;
+    }
+    
+    console.log(`[SupabaseStorage] Successfully updated document approval status:`, data);
     return data as Document;
   }
 
@@ -442,7 +457,7 @@ export class SupabaseStorage implements IStorage {
     const { data, error } = await supabase
       .from('documents')
       .select('*')
-      .eq('approved', true);
+      .eq('approval_status', 'approved');
     
     if (error) throw new Error(`Failed to get knowledge documents: ${error.message}`);
     return data as Document[];
@@ -461,7 +476,7 @@ export class SupabaseStorage implements IStorage {
     const { data, error } = await supabase
       .from('documents')
       .select('*')
-      .is('approved', null);
+      .is('approval_status', null);
     
     if (error) throw new Error(`Failed to get suggested documents: ${error.message}`);
     return data as Document[];
@@ -472,17 +487,15 @@ export class SupabaseStorage implements IStorage {
       name: document.name,
       fileUrl: document.filePath,
       uploadedBy: document.suggestedBy,
-      approved: null,
+      // approval_status will be null by default
     });
   }
 
   async updateSuggestedDocumentStatus(id: string, status: 'approved' | 'rejected', reviewedBy: string): Promise<Document | undefined> {
-    const approved = status === 'approved';
-    
     const { data, error } = await supabase
       .from('documents')
       .update({ 
-        approved,
+        approval_status: status
       })
       .eq('id', id)
       .select()
