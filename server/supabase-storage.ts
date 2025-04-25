@@ -374,16 +374,26 @@ export class SupabaseStorage implements IStorage {
     
     console.log(`[SupabaseStorage] Updating document ${id} approval_status to: ${approval_status}`);
     
-    // Only update the approval_status field, as approval_status_modified_by is expecting a UUID
-    // which we don't have reliably in the current context
+    // Get the current authenticated user
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData?.user?.id;
+    
+    console.log(`[SupabaseStorage] Current authenticated user ID: ${userId || 'none'}`);
+    
+    // Build the update payload
+    const updatePayload: any = { 
+      approval_status,
+      approval_status_modified_at: now,
+    };
+    
+    // Only add the modified_by field if we have a valid user ID
+    if (userId) {
+      updatePayload.approval_status_modified_by = userId;
+    }
+    
     const { data, error } = await supabase
       .from('documents')
-      .update({ 
-        approval_status,
-        approval_status_modified_at: now,
-        // Remove this field for now as it expects a UUID
-        // approval_status_modified_by: modifiedBy
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();

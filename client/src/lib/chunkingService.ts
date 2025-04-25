@@ -37,12 +37,21 @@ export const ChunkingService = {
    */
   async chunkDocument(documentId: string, options: ChunkingOptions = {}): Promise<ChunkingResult> {
     try {
+      console.log(`Calling chunking API for document ${documentId} with options:`, options);
+      
       const response = await apiRequest(`/documents/chunk/${documentId}`, {
         method: 'POST',
         body: JSON.stringify(options),
       });
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error ${response.status}: ${errorText}`);
+        throw new Error(`API returned ${response.status}: ${errorText}`);
+      }
+      
       const result = await response.json();
+      console.log(`Chunking result:`, result);
       return result as ChunkingResult;
     } catch (error) {
       console.error('Error chunking document:', error);
@@ -66,12 +75,21 @@ export const ChunkingService = {
     results: ChunkingResult[];
   }> {
     try {
+      console.log(`Calling process all unchunked API with options:`, options);
+      
       const response = await apiRequest('/documents/process-all-unchunked', {
         method: 'POST',
         body: JSON.stringify(options),
       });
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error ${response.status}: ${errorText}`);
+        throw new Error(`API returned ${response.status}: ${errorText}`);
+      }
+      
       const result = await response.json();
+      console.log(`Process all unchunked result:`, result);
       return result as {
         success: boolean;
         message: string;
