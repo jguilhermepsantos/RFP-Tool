@@ -1,6 +1,6 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./supabase-storage";
+import { storage } from "./storage";
 import { supabase } from "./db";
 import { handleMockUpload, isS3Configured } from './supabase-s3';
 import { chunkingRouter } from './routes-chunking';
@@ -33,6 +33,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!userEmail) {
         return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      console.log(`Admin authorization attempted with email: ${userEmail}`);
+      
+      // For development purposes, bypass admin check
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Development mode: bypassing admin check');
+        return next();
       }
       
       // Check if the user is an admin
