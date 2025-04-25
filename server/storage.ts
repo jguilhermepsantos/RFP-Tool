@@ -51,6 +51,7 @@ export interface IStorage {
   getDocument(id: string): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocumentApprovalStatus(id: string, approved: boolean): Promise<Document | undefined>;
+  updateDocumentChunkStatus(id: string, chunked: boolean): Promise<Document | undefined>;
   
   // Chunk operations
   getChunks(documentId: string): Promise<Chunk[]>;
@@ -333,24 +334,112 @@ export class MemStorage implements IStorage {
     return updatedDocument;
   }
 
-  // Document Chunk operations
-  async createDocumentChunk(insertChunk: InsertDocumentChunk): Promise<DocumentChunk> {
-    const id = this.documentChunkId++;
-    const documentChunk: DocumentChunk = { 
-      ...insertChunk, 
-      id, 
-      createdAt: new Date() 
+  // Document operations
+  async getDocuments(): Promise<Document[]> {
+    // For simplicity in this demo implementation, we'll just return all documents from both collections
+    return [
+      ...Array.from(this.knowledgeDocuments.values()),
+      ...Array.from(this.suggestedDocuments.values()).filter(doc => doc.status === 'approved')
+    ];
+  }
+  
+  async getDocument(id: string): Promise<Document | undefined> {
+    // Try to find in knowledge documents first
+    let doc = Array.from(this.knowledgeDocuments.values()).find(d => d.id.toString() === id);
+    if (doc) return doc;
+    
+    // If not found, try suggested documents
+    doc = Array.from(this.suggestedDocuments.values()).find(d => d.id.toString() === id);
+    return doc;
+  }
+  
+  async createDocument(document: InsertDocument): Promise<Document> {
+    // In this simplified implementation, we'll create a suggested document
+    return this.createSuggestedDocument(document);
+  }
+  
+  async updateDocumentApprovalStatus(id: string, approved: boolean): Promise<Document | undefined> {
+    const status = approved ? 'approved' : 'rejected';
+    // In this simplified implementation, we'll just use the suggested document update method
+    // In a real implementation, this would be more specific
+    return this.updateSuggestedDocumentStatus(id, status, '1'); // Using demo user ID
+  }
+  
+  async updateDocumentChunkStatus(id: string, chunked: boolean): Promise<Document | undefined> {
+    const doc = await this.getDocument(id);
+    if (!doc) return undefined;
+    
+    const updatedDoc = { 
+      ...doc, 
+      chunked,
+      chunkedAt: chunked ? new Date() : null
     };
-    this.documentChunks.set(id, documentChunk);
-    return documentChunk;
+    
+    // Update in the appropriate collection
+    if ('source' in doc && doc.source === 'knowledge_base') {
+      this.knowledgeDocuments.set(parseInt(id), updatedDoc as any);
+    } else {
+      this.suggestedDocuments.set(parseInt(id), updatedDoc as any);
+    }
+    
+    return updatedDoc;
   }
 
-  async getDocumentChunks(documentId: number, documentType: string): Promise<DocumentChunk[]> {
+  // Chunk operations
+  async getChunks(documentId: string): Promise<Chunk[]> {
+    return Array.from(this.documentChunks.values())
+      .filter(chunk => chunk.documentId.toString() === documentId)
+      .map(chunk => ({
+        id: chunk.id.toString(),
+        documentId: chunk.documentId.toString(),
+        content: chunk.content,
+        createdAt: chunk.createdAt,
+        scope: chunk.scope || 'global',
+        embedded: false,
+        embeddedAt: null
+      }));
+  }
+  
+  async createChunk(chunk: InsertChunk): Promise<Chunk> {
+    const id = this.documentChunkId++;
+    const documentChunk = { 
+      ...chunk, 
+      id, 
+      createdAt: new Date(),
+      documentType: 'document', // Default document type
+      scope: chunk.scope || 'global',
+      embedded: false,
+      embeddedAt: null
+    };
+    
+    this.documentChunks.set(id, documentChunk as any);
+    
+    return {
+      id: id.toString(),
+      documentId: chunk.documentId,
+      content: chunk.content,
+      createdAt: documentChunk.createdAt,
+      scope: documentChunk.scope,
+      embedded: documentChunk.embedded,
+      embeddedAt: documentChunk.embeddedAt
+    };
+  }
+  
+  async getDocumentChunks(documentId: string, documentType: string): Promise<Chunk[]> {
     return Array.from(this.documentChunks.values())
       .filter(chunk => 
-        chunk.documentId === documentId && 
-        chunk.documentType === documentType
-      );
+        chunk.documentId.toString() === documentId && 
+        (chunk.documentType === documentType || !documentType)
+      )
+      .map(chunk => ({
+        id: chunk.id.toString(),
+        documentId: chunk.documentId.toString(),
+        content: chunk.content,
+        createdAt: chunk.createdAt,
+        scope: chunk.scope || 'global',
+        embedded: false,
+        embeddedAt: null
+      }));
   }
 }
 

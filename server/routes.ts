@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./supabase-storage";
 import { supabase } from "./db";
 import { handleMockUpload, isS3Configured } from './supabase-s3';
+import { chunkingRouter } from './routes-chunking';
 import {
   insertUserSchema,
   insertProjectSchema,
@@ -20,6 +21,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
   const apiRouter = express.Router();
   app.use("/api", apiRouter);
+  
+  // Register chunking routes
+  apiRouter.use(chunkingRouter);
   
   // Middleware for requiring admin access
   const requireAdmin = async (req: Request, res: Response, next: express.NextFunction) => {

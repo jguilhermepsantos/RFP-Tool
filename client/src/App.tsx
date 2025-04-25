@@ -11,6 +11,7 @@ import ProjectDetails from "@/pages/project-details";
 import RfpDocument from "@/pages/rfp-document";
 import SuggestDocument from "@/pages/suggest-document";
 import AdminSettings from "@/pages/admin-settings";
+import ChunkDocuments from "@/pages/chunk-documents";
 import UploadTestPage from "@/pages/upload-test";
 
 function Router() {
@@ -59,6 +60,12 @@ function Router() {
         <RequireAuth>
           <UploadTestPage />
         </RequireAuth>
+      </Route>
+      
+      <Route path="/chunk-documents">
+        <RequireAdmin>
+          <ChunkDocuments />
+        </RequireAdmin>
       </Route>
       
       {/* Redirect from root to projects */}

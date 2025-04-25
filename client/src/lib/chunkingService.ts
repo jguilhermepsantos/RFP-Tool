@@ -1,15 +1,14 @@
-/**
- * Document chunking service for processing documents
- * and storing chunks in Supabase
- */
+import { apiRequest } from "./queryClient";
 
-import { v4 as uuidv4 } from 'uuid';
-import { supabase } from './supabase';
-import { extractText } from './textExtractor';
-import { createDocumentChunks } from './textSplitter';
+// This is needed for TypeScript to understand the Response type from fetch
+declare global {
+  interface Response {
+    json(): Promise<any>;
+  }
+}
 
 /**
- * Interface for document chunking options
+ * Options for document chunking
  */
 export interface ChunkingOptions {
   chunkSize?: number;
@@ -17,181 +16,74 @@ export interface ChunkingOptions {
 }
 
 /**
- * Chunk processing result
+ * Result of document chunking operation
  */
 export interface ChunkingResult {
   success: boolean;
   documentId: string;
   chunksCreated: number;
-  error?: any;
+  error?: string;
 }
 
 /**
- * Download a document from its URL
- * @param fileUrl URL of the file to download
- * @returns ArrayBuffer of the file content
+ * Service for document chunking operations
  */
-async function downloadDocument(fileUrl: string): Promise<ArrayBuffer> {
-  try {
-    const response = await fetch(fileUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to download document: ${response.statusText}`);
-    }
-    
-    return await response.arrayBuffer();
-  } catch (error) {
-    console.error('Error downloading document:', error);
-    throw new Error(`Download failed: ${(error as Error).message}`);
-  }
-}
-
-/**
- * Process a document and create chunks in the database
- * @param documentId ID of the document to process
- * @param options Chunking options
- * @returns Result of the chunking operation
- */
-export async function chunkDocument(
-  documentId: string,
-  options: ChunkingOptions = {}
-): Promise<ChunkingResult> {
-  try {
-    console.log(`🔍 Processing document: ${documentId}`);
-    
-    // Get document info from Supabase
-    const { data: document, error: docError } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('id', documentId)
-      .single();
+export const ChunkingService = {
+  /**
+   * Process a document into chunks
+   * @param documentId ID of the document to process
+   * @param options Chunking options
+   * @returns Result of the chunking operation
+   */
+  async chunkDocument(documentId: string, options: ChunkingOptions = {}): Promise<ChunkingResult> {
+    try {
+      const response = await apiRequest(`/documents/chunk/${documentId}`, {
+        method: 'POST',
+        body: JSON.stringify(options),
+      });
       
-    if (docError || !document) {
-      console.error('Error fetching document:', docError);
-      return { 
-        success: false, 
-        documentId, 
-        chunksCreated: 0, 
-        error: docError || 'Document not found' 
+      const result = await response.json();
+      return result as ChunkingResult;
+    } catch (error) {
+      console.error('Error chunking document:', error);
+      return {
+        success: false,
+        documentId,
+        chunksCreated: 0,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
-    
-    // Download document content
-    console.log(`⬇️ Downloading: ${document.name}`);
-    const fileBuffer = await downloadDocument(document.file_url);
-    
-    // Extract text from document
-    console.log(`📄 Extracting text from: ${document.name}`);
-    const text = await extractText(Buffer.from(fileBuffer), document.content_type);
-    
-    if (!text || text.trim().length === 0) {
-      throw new Error('No text content extracted from document');
-    }
-    
-    // Split text into chunks
-    console.log(`✂️ Splitting into chunks...`);
-    const chunks = createDocumentChunks(text, options);
-    
-    console.log(`📤 Uploading ${chunks.length} chunks to Supabase...`);
-    
-    // Store each chunk in Supabase
-    const now = new Date().toISOString();
-    const chunkData = chunks.map(content => ({
-      id: uuidv4(),
-      document_id: documentId,
-      content: content,
-      scope: 'global',
-      embedded: false,
-      created_at: now
-    }));
-    
-    const { error: insertError } = await supabase
-      .from('chunks')
-      .insert(chunkData);
+  },
+  
+  /**
+   * Process all approved but unchunked documents
+   * @param options Chunking options
+   * @returns Results of the chunking operations
+   */
+  async processAllUnchunked(options: ChunkingOptions = {}): Promise<{
+    success: boolean;
+    message: string;
+    results: ChunkingResult[];
+  }> {
+    try {
+      const response = await apiRequest('/documents/process-all-unchunked', {
+        method: 'POST',
+        body: JSON.stringify(options),
+      });
       
-    if (insertError) {
-      console.error('Error inserting chunks:', insertError);
-      return { 
-        success: false, 
-        documentId, 
-        chunksCreated: 0, 
-        error: insertError 
+      const result = await response.json();
+      return result as {
+        success: boolean;
+        message: string;
+        results: ChunkingResult[];
+      };
+    } catch (error) {
+      console.error('Error processing unchunked documents:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : String(error),
+        results: [],
       };
     }
-    
-    // Update document as chunked
-    const { error: updateError } = await supabase
-      .from('documents')
-      .update({
-        chunked: true,
-        chunked_at: now
-      })
-      .eq('id', documentId);
-      
-    if (updateError) {
-      console.error('Error updating document status:', updateError);
-      return { 
-        success: false, 
-        documentId, 
-        chunksCreated: chunks.length, 
-        error: updateError 
-      };
-    }
-    
-    console.log(`✅ Document processed: ${document.name}, created ${chunks.length} chunks`);
-    return {
-      success: true,
-      documentId,
-      chunksCreated: chunks.length
-    };
-  } catch (error) {
-    console.error(`❌ Error chunking document ${documentId}:`, error);
-    return {
-      success: false,
-      documentId,
-      chunksCreated: 0,
-      error
-    };
-  }
-}
-
-/**
- * Process all unchunked documents in the database
- * @param options Chunking options
- * @returns Array of results, one for each document processed
- */
-export async function processAllUnchunkedDocuments(
-  options: ChunkingOptions = {}
-): Promise<ChunkingResult[]> {
-  try {
-    // Get all unchunked documents
-    const { data: documents, error } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('chunked', false)
-      .eq('approval_status', 'approved');
-      
-    if (error) {
-      console.error('Error fetching unchunked documents:', error);
-      throw error;
-    }
-    
-    console.log(`🔍 Found ${documents.length} unchunked documents.`);
-    
-    if (documents.length === 0) {
-      return [];
-    }
-    
-    // Process each document
-    const results: ChunkingResult[] = [];
-    for (const doc of documents) {
-      const result = await chunkDocument(doc.id, options);
-      results.push(result);
-    }
-    
-    return results;
-  } catch (error) {
-    console.error('Error processing unchunked documents:', error);
-    throw error;
-  }
-}
+  },
+};

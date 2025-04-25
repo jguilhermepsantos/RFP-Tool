@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/lib/auth';
-import { chunkDocument } from '@/lib/chunkingService';
+import { ChunkingService } from '@/lib/chunkingService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -180,9 +180,56 @@ export default function AdminSettings() {
     }
   });
 
+  // Processing state for chunking
+  const [processingChunks, setProcessingChunks] = useState<Record<string, boolean>>({});
+  
   // Handle document approval
-  const handleDocumentApproval = (id: string, status: 'approved' | 'rejected') => {
-    updateDocumentApproval.mutate({ id, status });
+  const handleDocumentApproval = async (id: string, status: 'approved' | 'rejected') => {
+    // First update the document status through the API
+    updateDocumentApproval.mutate({ id, status }, {
+      onSuccess: async (data) => {
+        // If the document is approved, trigger the chunking process
+        if (status === 'approved') {
+          try {
+            setProcessingChunks(prev => ({ ...prev, [id]: true }));
+            
+            toast({
+              title: "Processing document",
+              description: "Splitting document into chunks for AI processing...",
+            });
+            
+            // Call the chunking service to process the document
+            const result = await ChunkingService.chunkDocument(id, {
+              chunkSize: 500,
+              chunkOverlap: 50
+            });
+            
+            setProcessingChunks(prev => ({ ...prev, [id]: false }));
+            
+            if (result.success) {
+              toast({
+                title: "Document processed",
+                description: `Created ${result.chunksCreated} chunks for AI processing.`,
+              });
+            } else {
+              toast({
+                title: "Warning",
+                description: `Document approved but chunking failed: ${result.error}`,
+                variant: "destructive",
+              });
+            }
+          } catch (error) {
+            setProcessingChunks(prev => ({ ...prev, [id]: false }));
+            console.error("Error chunking document:", error);
+            toast({
+              title: "Error",
+              description: "Failed to process document chunks. Document was approved but needs to be reprocessed.",
+              variant: "destructive",
+            });
+          }
+        }
+      }
+    });
   };
 
   // Handle RFP document approval
@@ -311,26 +358,33 @@ export default function AdminSettings() {
                             <StatusBadge status={doc.approval_status} />
                           </TableCell>
                           <TableCell>
-                            <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-green-500 text-green-500 hover:bg-green-50"
-                                onClick={() => handleDocumentApproval(doc.id, 'approved')}
-                                disabled={doc.approval_status !== 'pending' || updateDocumentApproval.isPending}
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-red-500 text-red-500 hover:bg-red-50"
-                                onClick={() => handleDocumentApproval(doc.id, 'rejected')}
-                                disabled={doc.approval_status !== 'pending' || updateDocumentApproval.isPending}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            {processingChunks[doc.id] ? (
+                              <div className="flex items-center space-x-2 text-primary">
+                                <Scissors className="h-4 w-4 animate-pulse" />
+                                <span className="text-xs">Processing chunks...</span>
+                              </div>
+                            ) : (
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-green-500 text-green-500 hover:bg-green-50"
+                                  onClick={() => handleDocumentApproval(doc.id, 'approved')}
+                                  disabled={doc.approval_status !== 'pending' || updateDocumentApproval.isPending}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-red-500 text-red-500 hover:bg-red-50"
+                                  onClick={() => handleDocumentApproval(doc.id, 'rejected')}
+                                  disabled={doc.approval_status !== 'pending' || updateDocumentApproval.isPending}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

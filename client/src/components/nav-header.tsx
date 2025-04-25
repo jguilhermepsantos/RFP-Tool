@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, LogOut, User, FileUp, Settings } from "lucide-react";
+import { FileText, LogOut, User, FileUp, Settings, Scissors } from "lucide-react";
 
 export default function NavHeader() {
   const { user, logout, isAdmin } = useAuth();
@@ -90,12 +90,20 @@ export default function NavHeader() {
                 </DropdownMenuItem>
               </Link>
               {isAdmin && (
-                <Link href="/admin-settings">
-                  <DropdownMenuItem className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Admin Settings</span>
-                  </DropdownMenuItem>
-                </Link>
+                <>
+                  <Link href="/admin-settings">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Admin Settings</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/chunk-documents">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Scissors className="mr-2 h-4 w-4" />
+                      <span>Document Chunking</span>
+                    </DropdownMenuItem>
+                  </Link>
+                </>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
