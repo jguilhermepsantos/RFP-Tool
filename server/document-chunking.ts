@@ -3,9 +3,7 @@
  */
 import { storage } from './storage';
 import { v4 as uuidv4 } from 'uuid';
-// Use native fs module instead of browser-based PDF.js
-import fs from 'fs';
-import path from 'path';
+import { PDFExtract } from 'pdf.js-extract';
 
 /**
  * Options for text splitting
@@ -33,23 +31,23 @@ interface ChunkingResult {
  */
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   try {
-    // Set up the worker source
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    // Initialize the PDF extractor
+    const pdfExtract = new PDFExtract();
     
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({ data: buffer });
-    const pdfDocument = await loadingTask.promise;
+    // Extract text from the PDF data
+    const data = await pdfExtract.extractBuffer(buffer, {});
     
+    if (!data || !data.pages || data.pages.length === 0) {
+      throw new Error('Failed to extract data from PDF');
+    }
+    
+    // Process each page and extract the content
     let extractedText = '';
     
-    // Extract text from each page
-    for (let i = 1; i <= pdfDocument.numPages; i++) {
-      const page = await pdfDocument.getPage(i);
-      const content = await page.getTextContent();
-      
-      // Concatenate the text items
-      const pageText = content.items
-        .map(item => 'str' in item ? item.str : '')
+    for (const page of data.pages) {
+      // Extract text from current page
+      const pageText = page.content
+        .map((item: { str: string }) => item.str)
         .join(' ');
         
       extractedText += pageText + '\n\n';
