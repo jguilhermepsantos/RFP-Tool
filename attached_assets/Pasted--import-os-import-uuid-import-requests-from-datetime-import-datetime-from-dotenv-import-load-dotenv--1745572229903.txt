@@ -1,0 +1,81 @@
+
+import os
+import uuid
+import requests
+from datetime import datetime
+from dotenv import load_dotenv
+from supabase import create_client, Client
+from pdfminer.high_level import extract_text as pdf_extract_text
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Load environment variables
+load_dotenv()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Configure chunking behavior
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,
+    chunk_overlap=50
+)
+
+def extract_text_from_pdf(file_path):
+    print("🔍 Using pdfminer fallback extractor...")
+    return pdf_extract_text(file_path)
+
+def ingest_document(document):
+    file_url = document["file_url"]
+    document_id = document["id"]
+    name = document["name"]
+
+    print(f"⬇️ Downloading: {name}")
+    response = requests.get(file_url)
+    if response.status_code != 200:
+        print(f"❌ Failed to download: {file_url}")
+        return
+
+    file_path = f"/tmp/{name.replace(' ', '_')}.pdf"
+    with open(file_path, "wb") as f:
+        f.write(response.content)
+
+    print(f"📄 Extracting text...")
+    full_text = extract_text_from_pdf(file_path)
+
+    print(f"✂️ Splitting into chunks...")
+    chunks = splitter.split_text(full_text)
+
+    print(f"📤 Uploading {len(chunks)} chunks to Supabase...")
+    now = datetime.utcnow().isoformat()
+
+    for chunk in chunks:
+        chunk_id = str(uuid.uuid4())
+
+        supabase.table("chunks").insert({
+            "id": chunk_id,
+            "content": chunk,
+            "document_id": document_id,
+            "scope": "global",
+            "embedded": False,
+            "embedded_at": None
+        }).execute()
+
+    # Mark the document as chunked
+    supabase.table("documents").update({
+        "chunked": True,
+        "chunked_at": now
+    }).eq("id", document_id).execute()
+
+    print(f"✅ Done: {name}")
+
+def run():
+    response = supabase.table("documents").select("*").eq("chunked", False).execute()
+    documents = response.data
+    print(f"🔍 Found {len(documents)} unchunked documents.")
+
+    for doc in documents:
+        ingest_document(doc)
+
+if __name__ == "__main__":
+    run()

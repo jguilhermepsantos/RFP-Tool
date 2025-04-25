@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/lib/auth';
+import { chunkDocument } from '@/lib/chunkingService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -24,7 +25,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import NavHeader from '@/components/nav-header';
-import { Check, X, FileText, Filter } from 'lucide-react';
+import { Check, X, FileText, Filter, Scissors } from 'lucide-react';
 
 // Interfaces for the approval data
 // Adjusted to match actual API response (using snake_case for keys)
