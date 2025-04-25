@@ -48,8 +48,14 @@ chunkingRouter.post("/documents/process-all-unchunked", async (req: Request, res
     
     // Get all approved but unchunked documents
     const documents = await storage.getDocuments();
+    
+    // Log the documents to see what properties they have
+    console.log('Document properties example:', 
+      documents.length > 0 ? Object.keys(documents[0]) : 'No documents found');
+    
+    // Use approval_status instead of approvalStatus to match the database schema
     const approvedUnchunked = documents.filter(doc => 
-      doc.approvalStatus === 'approved' && !doc.chunked
+      doc.approval_status === 'approved' && !doc.chunked
     );
     
     console.log(`Found ${approvedUnchunked.length} approved but unchunked documents`);

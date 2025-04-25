@@ -370,12 +370,19 @@ export class SupabaseStorage implements IStorage {
   async updateDocumentApprovalStatus(id: string, approved: boolean): Promise<Document | undefined> {
     // Convert boolean to string status for approval_status column
     const approval_status = approved ? 'approved' : 'rejected';
+    const now = new Date().toISOString();
+    // In a real app, we would get the actual user ID here
+    const modifiedBy = 'admin-user';
     
     console.log(`[SupabaseStorage] Updating document ${id} approval_status to: ${approval_status}`);
     
     const { data, error } = await supabase
       .from('documents')
-      .update({ approval_status })
+      .update({ 
+        approval_status,
+        approval_status_modified_at: now,
+        approval_status_modified_by: modifiedBy
+      })
       .eq('id', id)
       .select()
       .single();
@@ -519,16 +526,32 @@ export class SupabaseStorage implements IStorage {
   }
 
   async updateSuggestedDocumentStatus(id: string, status: 'approved' | 'rejected', reviewedBy: string): Promise<Document | undefined> {
+    const now = new Date().toISOString();
+    
+    console.log(`[SupabaseStorage] Updating document ${id} status to: ${status} by user ${reviewedBy}`);
+    
     const { data, error } = await supabase
       .from('documents')
       .update({ 
-        approval_status: status
+        approval_status: status,
+        approval_status_modified_at: now,
+        approval_status_modified_by: reviewedBy
       })
       .eq('id', id)
       .select()
       .single();
     
-    if (error || !data) return undefined;
+    if (error) {
+      console.error(`[SupabaseStorage] Error updating document status:`, error);
+      return undefined;
+    }
+    
+    if (!data) {
+      console.error(`[SupabaseStorage] Document not found with ID: ${id}`);
+      return undefined;
+    }
+    
+    console.log(`[SupabaseStorage] Successfully updated document status:`, data);
     return data as Document;
   }
 }
