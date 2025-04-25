@@ -116,3 +116,105 @@ chunkingRouter.post("/documents/process-all-unchunked", async (req: Request, res
     });
   }
 });
+
+/**
+ * Process an RFP document into chunks from its questions and answers
+ * POST /rfp-documents/chunk/:rfpDocumentId
+ */
+chunkingRouter.post("/rfp-documents/chunk/:rfpDocumentId", async (req: Request, res: Response) => {
+  try {
+    const { rfpDocumentId } = req.params;
+    
+    console.log(`Received chunking request for RFP document ${rfpDocumentId}`);
+    
+    // Check if RFP document exists
+    const rfpDocument = await storage.getRfpDocument(rfpDocumentId);
+    
+    if (!rfpDocument) {
+      return res.status(404).json({
+        success: false,
+        error: `RFP document not found: ${rfpDocumentId}`
+      });
+    }
+    
+    // Process the RFP document into chunks
+    const result = await chunkRfpDocument(rfpDocumentId);
+    
+    return res.json(result);
+  } catch (error) {
+    console.error('Error in RFP chunking endpoint:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
+ * Process all approved but unchunked RFP documents
+ * POST /rfp-documents/process-all-unchunked
+ */
+chunkingRouter.post("/rfp-documents/process-all-unchunked", async (req: Request, res: Response) => {
+  try {
+    // Get all approved RFP documents
+    const rfpDocuments = await storage.getAllRfpDocuments();
+    
+    console.log(`Found ${rfpDocuments.length} RFP documents`);
+    
+    // Filter for approved but not chunked RFP documents
+    const approvedUnchunked = rfpDocuments.filter(doc => {
+      // If doc has approval_status property, use it (Supabase)
+      if ('approval_status' in doc) {
+        return doc.approval_status === 'approved' && doc.status !== 'chunked';
+      } 
+      // Otherwise use approvalStatus (memory storage)
+      else if ('approvalStatus' in doc) {
+        return doc.approvalStatus === 'approved' && doc.status !== 'chunked';
+      }
+      // Document doesn't have required properties
+      return false;
+    });
+    
+    console.log(`Found ${approvedUnchunked.length} approved but unchunked RFP documents`);
+    
+    if (approvedUnchunked.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No approved unchunked RFP documents found',
+        results: []
+      });
+    }
+    
+    // Process each RFP document
+    const results = [];
+    
+    for (const doc of approvedUnchunked) {
+      try {
+        console.log(`Processing RFP document ${doc.id}: ${doc.name || 'Unnamed'}`);
+        const result = await chunkRfpDocument(doc.id);
+        results.push(result);
+      } catch (error) {
+        console.error(`Error processing RFP document ${doc.id}:`, error);
+        results.push({
+          success: false,
+          documentId: doc.id,
+          chunksCreated: 0,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+    
+    return res.json({
+      success: true,
+      message: `Processed ${results.length} RFP documents`,
+      results
+    });
+  } catch (error) {
+    console.error('Error in process all unchunked RFP documents endpoint:', error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : String(error),
+      results: []
+    });
+  }
+});
