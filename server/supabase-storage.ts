@@ -415,9 +415,15 @@ export class SupabaseStorage implements IStorage {
   async updateDocumentChunkStatus(id: string, chunked: boolean): Promise<Document | undefined> {
     console.log(`[SupabaseStorage] Updating document ${id} chunked status to: ${chunked}`);
     
+    const now = new Date().toISOString();
+    
+    // Use chunked for the DB column name and chunked_at for timestamp
     const { data, error } = await supabase
       .from('documents')
-      .update({ chunked })
+      .update({ 
+        chunked, 
+        chunked_at: now 
+      })
       .eq('id', id)
       .select()
       .single();
@@ -448,9 +454,20 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createChunk(chunk: InsertChunk): Promise<Chunk> {
+    // Convert from camelCase (memory) to snake_case (Supabase)
+    const supabaseChunk = {
+      document_id: chunk.documentId,
+      content: chunk.content,
+      scope: chunk.scope,
+      // Add any additional fields as needed
+      created_at: new Date().toISOString()
+    };
+    
+    console.log('Creating chunk with data:', supabaseChunk);
+    
     const { data, error } = await supabase
       .from('chunks')
-      .insert(chunk)
+      .insert(supabaseChunk)
       .select()
       .single();
     
