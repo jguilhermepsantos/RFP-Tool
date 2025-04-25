@@ -233,15 +233,58 @@ export class DatabaseStorage implements IStorage {
 
   // Document operations
   async getDocuments(): Promise<Document[]> {
-    return db.select().from(documents);
+    try {
+      // Use raw SQL to avoid schema mismatch
+      const result = await db.execute(sql`SELECT * FROM documents`);
+      
+      // Map the raw results to our Document type
+      return result.rows.map(row => {
+        return {
+          id: row.id,
+          name: row.name,
+          fileUrl: row.file_url,
+          uploadedBy: row.uploaded_by,
+          createdAt: row.created_at,
+          chunked: row.chunked,
+          chunkedAt: row.chunked_at,
+          approvalStatus: row.approved ? 'approved' : 'pending', 
+          approvalStatusModifiedBy: null,
+          approvalStatusModifiedAt: null
+        } as Document;
+      });
+    } catch (error) {
+      console.error('Error getting documents:', error);
+      return [];
+    }
   }
 
   async getDocument(id: string): Promise<Document | undefined> {
-    const [document] = await db
-      .select()
-      .from(documents)
-      .where(eq(documents.id, id));
-    return document;
+    try {
+      // Use raw SQL to avoid schema mismatch
+      const result = await db.execute(sql`SELECT * FROM documents WHERE id = ${id}`);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      const row = result.rows[0];
+      // Map the raw result to our Document type
+      return {
+        id: row.id,
+        name: row.name,
+        fileUrl: row.file_url,
+        uploadedBy: row.uploaded_by,
+        createdAt: row.created_at,
+        chunked: row.chunked,
+        chunkedAt: row.chunked_at,
+        approvalStatus: row.approved ? 'approved' : 'pending',
+        approvalStatusModifiedBy: null,
+        approvalStatusModifiedAt: null
+      } as Document;
+    } catch (error) {
+      console.error('Error getting document:', error);
+      return undefined;
+    }
   }
 
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
@@ -259,20 +302,30 @@ export class DatabaseStorage implements IStorage {
     console.log(`Updating document approval status: ${id} to ${approved ? 'approved' : 'rejected'}`);
     
     try {
-      // First, let's query the document to see what fields it has
-      const [existingDoc] = await db
-        .select()
-        .from(documents)
-        .where(eq(documents.id, id));
+      // Query the document directly using SQL to bypass schema mismatches
+      const selectResult = await db.execute(
+        sql`SELECT * FROM documents WHERE id = ${id}`
+      );
       
-      console.log('Existing document fields:', Object.keys(existingDoc || {}));
+      if (selectResult.rows.length === 0) {
+        console.log(`Document not found with ID: ${id}`);
+        return undefined;
+      }
       
-      // Using direct SQL for this operation to avoid schema mismatches
-      const result = await db.execute(
+      const existingDoc = selectResult.rows[0];
+      console.log('Existing document fields:', Object.keys(existingDoc));
+      
+      // Using direct SQL for update to bypass schema mismatches
+      const updateResult = await db.execute(
         sql`UPDATE documents SET approved = ${approved} WHERE id = ${id} RETURNING *`
       );
       
-      const document = result.rows[0];
+      if (updateResult.rows.length === 0) {
+        console.log(`No document updated with ID: ${id}`);
+        return undefined;
+      }
+      
+      const document = updateResult.rows[0] as Document;
       console.log('Updated document:', document);
       return document;
     } catch (error) {
@@ -352,12 +405,27 @@ export class DatabaseStorage implements IStorage {
 
   async updateSuggestedDocumentStatus(id: string, status: 'approved' | 'rejected', reviewedBy: string): Promise<Document | undefined> {
     try {
-      // Using direct SQL for this operation to avoid schema mismatches
-      const result = await db.execute(
+      // Query the document first to check if it exists
+      const selectResult = await db.execute(
+        sql`SELECT * FROM documents WHERE id = ${id}`
+      );
+      
+      if (selectResult.rows.length === 0) {
+        console.log(`Document not found with ID: ${id}`);
+        return undefined;
+      }
+      
+      // Using direct SQL for update to bypass schema mismatches
+      const updateResult = await db.execute(
         sql`UPDATE documents SET approved = ${status === 'approved'} WHERE id = ${id} RETURNING *`
       );
       
-      const document = result.rows[0];
+      if (updateResult.rows.length === 0) {
+        console.log(`No document updated with ID: ${id}`);
+        return undefined;
+      }
+      
+      const document = updateResult.rows[0] as Document;
       return document;
     } catch (error) {
       console.error('Error updating suggested document status:', error);
