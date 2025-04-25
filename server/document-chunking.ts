@@ -173,8 +173,10 @@ export async function chunkDocument(
     
     console.log(`Processing document: ${document.name}`);
     
-    // Check for file URL in either snake_case (Supabase) or camelCase (memory storage) format
-    const fileUrl = document.file_url || document.fileUrl;
+    // Check for file URL
+    // For TypeScript safety, we need to use type assertion since document might be from Supabase
+    // which uses snake_case or from memory storage which uses camelCase
+    const fileUrl = (document as any).file_url || document.fileUrl;
     
     if (!fileUrl) {
       console.error('Document data:', document);
