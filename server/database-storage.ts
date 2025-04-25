@@ -197,20 +197,75 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllRfpDocuments(): Promise<RfpDocument[]> {
-    return db.select().from(rfpDocuments);
+    try {
+      // Use raw SQL to avoid schema mismatch
+      const result = await db.execute(sql`SELECT * FROM rfp_documents`);
+      
+      // Map the raw results to our RfpDocument type
+      return result.rows.map(row => {
+        return {
+          id: row.id,
+          name: row.name,
+          projectId: row.project_id,
+          fileUrl: row.file_url,
+          uploadedBy: row.uploaded_by,
+          uploadedAt: row.uploaded_at,
+          status: row.status,
+          isPastRfp: row.is_past_rfp,
+          approvalStatus: row.approved ? 'approved' : 'pending',
+          approvalStatusModifiedBy: null,
+          approvalStatusModifiedAt: null
+        } as RfpDocument;
+      });
+    } catch (error) {
+      console.error('Error getting RFP documents:', error);
+      return [];
+    }
   }
 
   async updateRfpDocumentApprovalStatus(id: string, status: string): Promise<RfpDocument | undefined> {
-    const now = new Date();
-    const [document] = await db
-      .update(rfpDocuments)
-      .set({ 
-        approvalStatus: status,
+    try {
+      const approved = status === 'approved';
+      const now = new Date().toISOString();
+      
+      // Query the document first to check if it exists
+      const selectResult = await db.execute(
+        sql`SELECT * FROM rfp_documents WHERE id = ${id}`
+      );
+      
+      if (selectResult.rows.length === 0) {
+        console.log(`RFP Document not found with ID: ${id}`);
+        return undefined;
+      }
+      
+      // Using direct SQL for update to bypass schema mismatches
+      const updateResult = await db.execute(
+        sql`UPDATE rfp_documents SET approved = ${approved} WHERE id = ${id} RETURNING *`
+      );
+      
+      if (updateResult.rows.length === 0) {
+        console.log(`No RFP document updated with ID: ${id}`);
+        return undefined;
+      }
+      
+      const row = updateResult.rows[0];
+      return {
+        id: row.id,
+        name: row.name,
+        projectId: row.project_id,
+        fileUrl: row.file_url,
+        uploadedBy: row.uploaded_by,
+        uploadedAt: row.uploaded_at,
+        status: row.status,
+        isPastRfp: row.is_past_rfp,
+        approvalStatus: row.approved ? 'approved' : 'pending',
+        approvalStatusModifiedBy: null,
         approvalStatusModifiedAt: now
-      })
-      .where(eq(rfpDocuments.id, id))
-      .returning();
-    return document;
+      } as RfpDocument;
+    } catch (error) {
+      console.error('Error updating RFP document approval status:', error);
+      throw error;
+    }
   }
 
   // RFP Question operations
