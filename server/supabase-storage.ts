@@ -393,6 +393,30 @@ export class SupabaseStorage implements IStorage {
     console.log(`[SupabaseStorage] Successfully updated document approval status:`, data);
     return data as Document;
   }
+  
+  async updateDocumentChunkStatus(id: string, chunked: boolean): Promise<Document | undefined> {
+    console.log(`[SupabaseStorage] Updating document ${id} chunked status to: ${chunked}`);
+    
+    const { data, error } = await supabase
+      .from('documents')
+      .update({ chunked })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error(`[SupabaseStorage] Error updating document chunk status:`, error);
+      return undefined;
+    }
+    
+    if (!data) {
+      console.error(`[SupabaseStorage] Document not found with ID: ${id}`);
+      return undefined;
+    }
+    
+    console.log(`[SupabaseStorage] Successfully updated document chunk status:`, data);
+    return data as Document;
+  }
 
   // Chunk operations
   async getChunks(documentId: string): Promise<Chunk[]> {
@@ -464,12 +488,15 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createKnowledgeDocument(document: any): Promise<Document> {
-    return this.createDocument({
+    // First create the document with the basic fields
+    const newDoc = await this.createDocument({
       name: document.name,
       fileUrl: document.filePath,
       uploadedBy: document.createdBy,
-      approved: true,
     });
+    
+    // Then set its approval status
+    return this.updateDocumentApprovalStatus(newDoc.id, true) as Promise<Document>;
   }
 
   async getSuggestedDocuments(): Promise<Document[]> {
