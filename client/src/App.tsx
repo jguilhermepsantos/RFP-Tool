@@ -11,6 +11,7 @@ import ProjectDetails from "@/pages/project-details";
 import RfpDocument from "@/pages/rfp-document";
 import SuggestDocument from "@/pages/suggest-document";
 import AdminSettings from "@/pages/admin-settings";
+import UploadTestPage from "@/pages/upload-test";
 
 function Router() {
   return (
@@ -52,6 +53,12 @@ function Router() {
         <RequireAdmin>
           <AdminSettings />
         </RequireAdmin>
+      </Route>
+      
+      <Route path="/upload-test">
+        <RequireAuth>
+          <UploadTestPage />
+        </RequireAuth>
       </Route>
       
       {/* Redirect from root to projects */}
