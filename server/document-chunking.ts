@@ -173,12 +173,18 @@ export async function chunkDocument(
     
     console.log(`Processing document: ${document.name}`);
     
-    if (!document.fileUrl) {
+    // Check for file URL in either snake_case (Supabase) or camelCase (memory storage) format
+    const fileUrl = document.file_url || document.fileUrl;
+    
+    if (!fileUrl) {
+      console.error('Document data:', document);
       throw new Error('Document has no file URL');
     }
     
+    console.log(`Using file URL: ${fileUrl}`);
+    
     // Fetch document content
-    const response = await fetch(document.fileUrl);
+    const response = await fetch(fileUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch document: ${response.statusText}`);
     }
