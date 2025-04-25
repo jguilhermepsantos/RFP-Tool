@@ -257,16 +257,22 @@ export class DatabaseStorage implements IStorage {
 
   async updateDocumentApprovalStatus(id: string, approved: boolean): Promise<Document | undefined> {
     console.log(`Updating document approval status: ${id} to ${approved ? 'approved' : 'rejected'}`);
-    const now = new Date();
+    
     try {
-      const [document] = await db
-        .update(documents)
-        .set({ 
-          approvalStatus: approved ? 'approved' : 'rejected',
-          approvalStatusModifiedAt: now 
-        })
-        .where(eq(documents.id, id))
-        .returning();
+      // First, let's query the document to see what fields it has
+      const [existingDoc] = await db
+        .select()
+        .from(documents)
+        .where(eq(documents.id, id));
+      
+      console.log('Existing document fields:', Object.keys(existingDoc || {}));
+      
+      // Using direct SQL for this operation to avoid schema mismatches
+      const result = await db.execute(
+        sql`UPDATE documents SET approved = ${approved} WHERE id = ${id} RETURNING *`
+      );
+      
+      const document = result.rows[0];
       console.log('Updated document:', document);
       return document;
     } catch (error) {
@@ -345,16 +351,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSuggestedDocumentStatus(id: string, status: 'approved' | 'rejected', reviewedBy: string): Promise<Document | undefined> {
-    const now = new Date();
-    const [document] = await db
-      .update(documents)
-      .set({ 
-        approvalStatus: status,
-        approvalStatusModifiedBy: reviewedBy,
-        approvalStatusModifiedAt: now 
-      })
-      .where(eq(documents.id, id))
-      .returning();
-    return document;
+    try {
+      // Using direct SQL for this operation to avoid schema mismatches
+      const result = await db.execute(
+        sql`UPDATE documents SET approved = ${status === 'approved'} WHERE id = ${id} RETURNING *`
+      );
+      
+      const document = result.rows[0];
+      return document;
+    } catch (error) {
+      console.error('Error updating suggested document status:', error);
+      throw error;
+    }
   }
 }
