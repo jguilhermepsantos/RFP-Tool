@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { supabase } from "@/lib/supabase";
 import NavHeader from "@/components/nav-header";
+import { uploadFile } from "@/lib/uploadService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -65,41 +65,27 @@ export default function SuggestDocument() {
     setIsSubmitting(true);
     
     try {
-      // Instead of uploading directly to Supabase, we'll send file metadata to our backend 
-      // Since we're working around the RLS policy in this implementation
+      // Use the uploadFile utility to directly upload to Supabase storage
+      // This will handle all the Supabase storage interactions for us
+      const folder = user.id; // Use user ID as the folder name for organization
+      const uploadResult = await uploadFile(file, folder);
       
-      // Call our API endpoint that will handle the upload simulation
-      const response = await fetch('/api/upload-document', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: file.name,
-          userId: user.id,
-          description: documentDescription || ''
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`File upload failed: ${errorData.message || response.statusText}`);
+      if (!uploadResult.success) {
+        throw new Error(`File upload failed: ${uploadResult.error?.message || 'Unknown error'}`);
       }
       
-      const uploadResult = await response.json();
-      const fileUrl = uploadResult.fileUrl;
-      const filePath = uploadResult.filePath;
+      console.log('✅ File uploaded:', uploadResult);
       
       // Create the document record in the database
       await apiRequest("/api/suggested-documents", {
         method: "POST",
         body: JSON.stringify({
           name: documentName,
-          filePath,
-          fileUrl,
+          fileUrl: uploadResult.fileUrl,
+          filePath: uploadResult.filePath,
+          uploadedBy: user.id,
           contentType: file.type,
           description: documentDescription,
-          suggestedBy: user.id,
         }),
         headers: {
           'Content-Type': 'application/json'
