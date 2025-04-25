@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { chunkDocument } from './document-chunking';
+import { chunkDocument, chunkRfpDocument } from './document-chunking';
 import { storage } from './storage';
 
 export const chunkingRouter = Router();

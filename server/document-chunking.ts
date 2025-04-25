@@ -216,7 +216,7 @@ export async function chunkDocument(
       await storage.createChunk({
         documentId,
         content: chunkText,
-        scope: document.name
+        scope: "global"
       });
       
       createdChunks++;
@@ -236,6 +236,100 @@ export async function chunkDocument(
     return {
       success: false,
       documentId,
+      chunksCreated: 0,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
+/**
+ * Process an RFP document and create chunks from its questions/answers
+ * @param rfpDocumentId ID of the RFP document to process
+ * @returns Result of the chunking operation
+ */
+export async function chunkRfpDocument(
+  rfpDocumentId: string
+): Promise<ChunkingResult> {
+  try {
+    console.log(`Starting chunking for RFP document ${rfpDocumentId}`);
+    
+    // Get RFP document from storage
+    const rfpDocument = await storage.getRfpDocument(rfpDocumentId);
+    
+    if (!rfpDocument) {
+      throw new Error(`RFP document not found: ${rfpDocumentId}`);
+    }
+    
+    console.log(`Processing RFP document: ${rfpDocument.name || rfpDocumentId}`);
+    
+    // Get all questions for this RFP document
+    const questions = await storage.getRfpQuestions(rfpDocumentId);
+    
+    if (!questions || questions.length === 0) {
+      throw new Error(`No questions found for RFP document: ${rfpDocumentId}`);
+    }
+    
+    console.log(`Found ${questions.length} questions for RFP document ${rfpDocumentId}`);
+    
+    // Get answers for all questions
+    const questionIds = questions.map(q => q.id);
+    const answers = await storage.getRfpAnswers(questionIds);
+    
+    console.log(`Found ${answers.length} answers for ${questions.length} questions`);
+    
+    // Create a map of question ID to its answer for easier lookup
+    const answerMap = new Map();
+    answers.forEach(answer => {
+      answerMap.set(answer.rfpQuestionId, answer);
+    });
+    
+    // Store chunks - one chunk per question-answer pair
+    let createdChunks = 0;
+    
+    for (const question of questions) {
+      const answer = answerMap.get(question.id);
+      
+      if (!answer) {
+        console.log(`No answer found for question ${question.id}, skipping`);
+        continue;
+      }
+      
+      // Combine question text and answers into a single chunk
+      const chunkContent = [
+        `Question: ${question.questionText || ''}`,
+        `Compliance Answer: ${answer.complianceAnswer || ''}`,
+        `Generated Answer: ${answer.generatedAnswer || ''}`
+      ].join('\n\n');
+      
+      if (chunkContent.trim().length === 0) {
+        console.log(`Empty content for question ${question.id}, skipping`);
+        continue;
+      }
+      
+      // Create chunk record, using rfpDocumentId as the documentId
+      await storage.createChunk({
+        documentId: rfpDocumentId,
+        content: chunkContent,
+        scope: "global"
+      });
+      
+      createdChunks++;
+    }
+    
+    // Update RFP document to mark as chunked - using a status update
+    await storage.updateRfpDocumentStatus(rfpDocumentId, 'chunked');
+    
+    return {
+      success: true,
+      documentId: rfpDocumentId,
+      chunksCreated: createdChunks
+    };
+  } catch (error) {
+    console.error(`Error chunking RFP document ${rfpDocumentId}:`, error);
+    
+    return {
+      success: false,
+      documentId: rfpDocumentId,
       chunksCreated: 0,
       error: error instanceof Error ? error.message : String(error)
     };
