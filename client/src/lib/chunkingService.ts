@@ -39,8 +39,12 @@ export const ChunkingService = {
     try {
       console.log(`Calling chunking API for document ${documentId} with options:`, options);
       
-      const response = await apiRequest(`/documents/chunk/${documentId}`, {
+      // Direct fetch to avoid apiRequest adding /api prefix
+      const response = await fetch(`/api/documents/chunk/${documentId}`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(options),
       });
       
@@ -77,8 +81,12 @@ export const ChunkingService = {
     try {
       console.log(`Calling process all unchunked API with options:`, options);
       
-      const response = await apiRequest('/documents/process-all-unchunked', {
+      // Direct fetch to avoid apiRequest adding /api prefix
+      const response = await fetch(`/api/documents/process-all-unchunked`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(options),
       });
       
