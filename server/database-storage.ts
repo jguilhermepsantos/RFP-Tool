@@ -46,12 +46,50 @@ export class DatabaseStorage implements IStorage {
 
   // Project operations
   async getProjects(): Promise<Project[]> {
-    return db.select().from(projects);
+    try {
+      // Use raw SQL to avoid schema mismatch
+      const result = await db.execute(sql`SELECT * FROM projects`);
+      
+      // Map the raw results to our Project type
+      return result.rows.map(row => {
+        return {
+          id: row.id,
+          name: row.name,
+          createdAt: row.created_at,
+          createdBy: row.created_by,
+          // Handle description conditionally since it might not exist in the DB
+          ...(row.description ? { description: row.description } : {})
+        } as Project;
+      });
+    } catch (error) {
+      console.error('Error getting projects:', error);
+      return [];
+    }
   }
 
   async getProject(id: string): Promise<Project | undefined> {
-    const [project] = await db.select().from(projects).where(eq(projects.id, id));
-    return project;
+    try {
+      // Use raw SQL to avoid schema mismatch
+      const result = await db.execute(sql`SELECT * FROM projects WHERE id = ${id}`);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      const row = result.rows[0];
+      // Map the raw result to our Project type
+      return {
+        id: row.id,
+        name: row.name,
+        createdAt: row.created_at,
+        createdBy: row.created_by,
+        // Handle description conditionally since it might not exist in the DB
+        ...(row.description ? { description: row.description } : {})
+      } as Project;
+    } catch (error) {
+      console.error('Error getting project:', error);
+      return undefined;
+    }
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {
