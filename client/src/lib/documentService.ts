@@ -21,8 +21,8 @@ export interface Document {
   approvalStatus: 'pending' | 'approved' | 'rejected';
   approvalStatusModifiedAt?: string;
   approvalStatusModifiedBy?: string;
-  embedded: boolean;
   chunked: boolean;
+  chunkedAt?: string;
 }
 
 /**
@@ -41,7 +41,6 @@ export async function createDocument(documentData: DocumentMetadata): Promise<{ 
       description: documentData.description || '',
       uploaded_by: documentData.uploadedBy,
       approval_status: 'pending',
-      embedded: false,
       chunked: false,
       created_at: new Date().toISOString()
     };
@@ -71,8 +70,8 @@ export async function createDocument(documentData: DocumentMetadata): Promise<{ 
       approvalStatus: data.approval_status,
       approvalStatusModifiedAt: data.approval_status_modified_at,
       approvalStatusModifiedBy: data.approval_status_modified_by,
-      embedded: data.embedded,
-      chunked: data.chunked
+      chunked: data.chunked,
+      chunkedAt: data.chunked_at
     };
 
     console.log('✅ Document record created:', document);
@@ -113,8 +112,8 @@ export async function getPendingDocuments(): Promise<{ success: boolean, documen
       approvalStatus: doc.approval_status,
       approvalStatusModifiedAt: doc.approval_status_modified_at,
       approvalStatusModifiedBy: doc.approval_status_modified_by,
-      embedded: doc.embedded,
-      chunked: doc.chunked
+      chunked: doc.chunked,
+      chunkedAt: doc.chunked_at
     }));
 
     return { success: true, documents };
@@ -166,8 +165,8 @@ export async function updateDocumentApprovalStatus(
       approvalStatus: data.approval_status,
       approvalStatusModifiedAt: data.approval_status_modified_at,
       approvalStatusModifiedBy: data.approval_status_modified_by,
-      embedded: data.embedded,
-      chunked: data.chunked
+      chunked: data.chunked,
+      chunkedAt: data.chunked_at
     };
 
     console.log('✅ Document approval status updated:', document);
