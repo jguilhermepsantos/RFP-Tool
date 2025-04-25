@@ -65,8 +65,7 @@ export default function SuggestDocument() {
     setIsSubmitting(true);
     
     try {
-      // Use the uploadFile utility to directly upload to Supabase storage
-      // This will handle all the Supabase storage interactions for us
+      // Step 1: Upload the file to Supabase storage directly
       const folder = user.id; // Use user ID as the folder name for organization
       const uploadResult = await uploadFile(file, folder);
       
@@ -76,21 +75,26 @@ export default function SuggestDocument() {
       
       console.log('✅ File uploaded:', uploadResult);
       
-      // Create the document record in the database
-      await apiRequest("/api/suggested-documents", {
-        method: "POST",
-        body: JSON.stringify({
-          name: documentName,
-          fileUrl: uploadResult.fileUrl,
-          filePath: uploadResult.filePath,
-          uploadedBy: user.id,
-          contentType: file.type,
-          description: documentDescription,
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      // Step 2: Create the document record directly in Supabase
+      // Import the createDocument function at the top of the file
+      const { createDocument } = await import('@/lib/documentService');
+      
+      const documentData = {
+        name: documentName,
+        fileUrl: uploadResult.fileUrl!,
+        filePath: uploadResult.filePath,
+        contentType: file.type,
+        description: documentDescription,
+        uploadedBy: user.id
+      };
+      
+      const docResult = await createDocument(documentData);
+      
+      if (!docResult.success) {
+        throw new Error(`Failed to create document record: ${docResult.error?.message || 'Unknown error'}`);
+      }
+      
+      console.log('✅ Document record created:', docResult.document);
       
       toast({
         title: "Success",
