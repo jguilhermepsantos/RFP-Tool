@@ -371,17 +371,18 @@ export class SupabaseStorage implements IStorage {
     // Convert boolean to string status for approval_status column
     const approval_status = approved ? 'approved' : 'rejected';
     const now = new Date().toISOString();
-    // In a real app, we would get the actual user ID here
-    const modifiedBy = 'admin-user';
     
     console.log(`[SupabaseStorage] Updating document ${id} approval_status to: ${approval_status}`);
     
+    // Only update the approval_status field, as approval_status_modified_by is expecting a UUID
+    // which we don't have reliably in the current context
     const { data, error } = await supabase
       .from('documents')
       .update({ 
         approval_status,
         approval_status_modified_at: now,
-        approval_status_modified_by: modifiedBy
+        // Remove this field for now as it expects a UUID
+        // approval_status_modified_by: modifiedBy
       })
       .eq('id', id)
       .select()

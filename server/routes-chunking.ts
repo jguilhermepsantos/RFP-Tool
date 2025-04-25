@@ -53,10 +53,25 @@ chunkingRouter.post("/documents/process-all-unchunked", async (req: Request, res
     console.log('Document properties example:', 
       documents.length > 0 ? Object.keys(documents[0]) : 'No documents found');
     
-    // Use approval_status instead of approvalStatus to match the database schema
-    const approvedUnchunked = documents.filter(doc => 
-      doc.approval_status === 'approved' && !doc.chunked
-    );
+    // Determine if we should use approval_status (Supabase) or approvalStatus (memory)
+    // Log the first document if available to see what fields are present
+    if (documents.length > 0) {
+      console.log('Document properties example:', Object.keys(documents[0]));
+    }
+    
+    // Check which property exists and use it
+    const approvedUnchunked = documents.filter(doc => {
+      // If doc has approval_status property, use it
+      if ('approval_status' in doc) {
+        return doc.approval_status === 'approved' && !doc.chunked;
+      } 
+      // Fallback to approvalStatus for compatibility
+      else if ('approvalStatus' in doc) {
+        return doc.approvalStatus === 'approved' && !doc.chunked;
+      }
+      // Document doesn't have either property
+      return false;
+    });
     
     console.log(`Found ${approvedUnchunked.length} approved but unchunked documents`);
     
