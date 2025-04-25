@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-// Use our patched registerRoutes from supabase-storage.ts instead
-import { registerRoutes } from "./supabase-storage";
+// Use registerRoutes from routes.ts
+import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
