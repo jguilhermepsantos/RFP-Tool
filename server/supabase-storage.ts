@@ -583,6 +583,45 @@ export class SupabaseStorage implements IStorage {
     if (error) throw new Error(`Failed to get document chunks: ${error.message}`);
     return data as Chunk[];
   }
+  
+  async getUnembeddedChunks(limit: number = 100): Promise<Chunk[]> {
+    console.log(`[SupabaseStorage] Fetching up to ${limit} unembedded chunks`);
+    
+    const { data, error } = await supabase
+      .from('chunks')
+      .select('*')
+      .eq('embedded', false)
+      .limit(limit);
+      
+    if (error) {
+      console.log(`[SupabaseStorage] Error getting unembedded chunks: ${error.message}`);
+      throw new Error(`Failed to get unembedded chunks: ${error.message}`);
+    }
+    
+    console.log(`[SupabaseStorage] Found ${data?.length || 0} unembedded chunks`);
+    return data as Chunk[];
+  }
+  
+  async markChunkAsEmbedded(chunkId: string): Promise<boolean> {
+    console.log(`[SupabaseStorage] Marking chunk ${chunkId} as embedded`);
+    
+    const now = new Date().toISOString();
+    
+    const { data, error } = await supabase
+      .from('chunks')
+      .update({
+        embedded: true,
+        embedded_at: now
+      })
+      .eq('id', chunkId);
+      
+    if (error) {
+      console.log(`[SupabaseStorage] Error marking chunk as embedded: ${error.message}`);
+      return false;
+    }
+    
+    return true;
+  }
 
   // Compliance Mapping operations
   async getComplianceMappings(projectId: string): Promise<ComplianceMapping[]> {

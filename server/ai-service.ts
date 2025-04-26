@@ -446,6 +446,78 @@ export async function indexKnowledgeBase(): Promise<{
   }
 }
 
+/**
+ * Embeds all unprocessed chunks and marks them as embedded in the database
+ */
+export async function embedUnprocessedChunks(limit: number = 100): Promise<{
+  success: boolean;
+  chunksEmbedded: number;
+  errors: any[];
+}> {
+  try {
+    console.log(`🔍 Fetching up to ${limit} unembedded chunks...`);
+    
+    // Get all unembedded chunks from database using our storage interface
+    const { storage } = await import('./storage');
+    const unembeddedChunks = await storage.getUnembeddedChunks(limit);
+    
+    console.log(`✅ Found ${unembeddedChunks.length} unembedded chunks.`);
+    
+    let embeddedCount = 0;
+    const errors: any[] = [];
+    
+    // Ensure Pinecone index exists
+    await initializePineconeIndex();
+    
+    // Process each chunk
+    for (const chunk of unembeddedChunks) {
+      try {
+        // Create metadata for the chunk
+        const metadata = {
+          documentId: chunk.documentId,
+          scope: chunk.scope || "global",
+        };
+        
+        // Index the chunk in Pinecone
+        const success = await indexChunk(chunk.id, chunk.content, metadata);
+        
+        if (success) {
+          // Mark as embedded in database
+          await storage.markChunkAsEmbedded(chunk.id);
+          embeddedCount++;
+          console.log(`✅ Embedded chunk ${chunk.id}`);
+        } else {
+          errors.push({
+            chunkId: chunk.id,
+            error: "Failed to index chunk in Pinecone"
+          });
+        }
+      } catch (error) {
+        console.error(`Error embedding chunk ${chunk.id}:`, error);
+        errors.push({
+          chunkId: chunk.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+    
+    console.log(`📊 Embedding process complete. Successfully embedded ${embeddedCount} chunks with ${errors.length} errors.`);
+    
+    return {
+      success: errors.length === 0,
+      chunksEmbedded: embeddedCount,
+      errors
+    };
+  } catch (error) {
+    console.error("Error in embedUnprocessedChunks:", error);
+    return {
+      success: false,
+      chunksEmbedded: 0,
+      errors: [error instanceof Error ? error.message : String(error)]
+    };
+  }
+}
+
 export async function processDocumentQuestions(documentId: string): Promise<{
   success: boolean;
   processedCount: number;
