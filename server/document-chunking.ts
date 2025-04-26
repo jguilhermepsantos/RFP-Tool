@@ -271,17 +271,10 @@ export async function chunkRfpDocument(
     if (!answers || answers.length === 0) {
       console.log(`WARNING: No answers found for RFP document: ${rfpDocumentId}`);
       
-      // Create a single placeholder chunk for this document to indicate it was processed
-      await storage.createChunk({
-        documentId: rfpDocumentId,
-        content: `This RFP document (${rfpDocumentId}) was processed on ${new Date().toISOString()} but no questions or answers were found.`,
-        scope: "global"
-      });
-      
-      // Update the document status to indicate it was processed
+      // Still update the status to indicate it was processed
       await storage.updateRfpDocumentStatus(rfpDocumentId, 'chunked');
       
-      // Return success but with 0 real chunks created
+      // Return success but with 0 chunks created
       return {
         success: true,
         documentId: rfpDocumentId,
