@@ -214,9 +214,6 @@ export class SupabaseStorage implements IStorage {
     console.log(`[SupabaseStorage] Updating RFP document approval status for ID: ${id} to ${status}`);
     
     const now = new Date().toISOString();
-    // In a real app, you would get the current user's ID for modified_by
-    // For now, we'll use a placeholder
-    const modifiedBy = 'admin-user'; 
     
     // Verify the document exists first
     const { data: checkData, error: checkError } = await supabase
@@ -237,12 +234,25 @@ export class SupabaseStorage implements IStorage {
     
     console.log(`[SupabaseStorage] Found RFP document to update: ${checkData.name || id}`);
     
-    // Build update payload
-    const updatePayload = {
+    // Get the current authenticated user
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData?.user?.id;
+    
+    console.log(`[SupabaseStorage] Current authenticated user ID: ${userId || 'none'}`);
+    
+    // Build update payload without the modified_by field (which expects UUID)
+    const updatePayload: any = {
       approval_status: status,
-      approval_status_modified_at: now,
-      approval_status_modified_by: modifiedBy
+      approval_status_modified_at: now
     };
+    
+    // Only add modified_by if we have a valid UUID (don't use strings for UUID fields)
+    if (userId) {
+      updatePayload.approval_status_modified_by = userId;
+    } else {
+      // Skip the modified_by field completely to avoid the UUID error
+      console.log('[SupabaseStorage] No authenticated user ID available, skipping modified_by field');
+    }
     
     console.log(`[SupabaseStorage] Update payload:`, updatePayload);
     
