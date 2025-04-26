@@ -352,98 +352,28 @@ export class SupabaseStorage implements IStorage {
   async getRfpAnswersByDocumentId(rfpDocumentId: string): Promise<RfpAnswer[]> {
     console.log(`[SupabaseStorage] Getting RFP answers directly for document ID: ${rfpDocumentId}`);
     
-    // First, try to find questions for this document
-    const { data: questions, error: questionsError } = await supabase
-      .from('rfp_questions')
-      .select('id, question_text')
-      .eq('rfp_document_id', rfpDocumentId);
-    
-    if (questionsError) {
-      console.log(`[SupabaseStorage] Error getting RFP questions: ${questionsError.message}`);
-      throw new Error(`Failed to get RFP questions for document: ${questionsError.message}`);
-    }
-    
-    console.log(`[SupabaseStorage] Found ${questions.length} questions for document ID: ${rfpDocumentId}`);
-    if (questions.length === 0) {
-      console.log(`[SupabaseStorage] *** No questions found for document, checking if RFP answers exist directly ***`);
-      
-      // Alternative approach: Check if answers with rfp_document_id exist directly
-      // Some implementations might store rfp_document_id directly in the answers table
-      const { data: directAnswers, error: directError } = await supabase
-        .from('rfp_answers')
-        .select('*')
-        .eq('rfp_document_id', rfpDocumentId);
-        
-      if (directError) {
-        console.log(`[SupabaseStorage] Error checking direct answers: ${directError.message}`);
-      } else {
-        console.log(`[SupabaseStorage] Direct answer check found ${directAnswers?.length || 0} answers`);
-        
-        // If we found answers directly, use them
-        if (directAnswers && directAnswers.length > 0) {
-          return directAnswers as RfpAnswer[];
-        }
-      }
-      
-      // If we still have no answers, try another approach - get all answers
-      // and inspect their structure (DEBUG ONLY)
-      console.log(`[SupabaseStorage] *** DEBUG: Checking structure of first 10 answers in system ***`);
-      const { data: sampleAnswers } = await supabase
-        .from('rfp_answers')
-        .select('*')
-        .limit(10);
-        
-      if (sampleAnswers && sampleAnswers.length > 0) {
-        console.log(`[SupabaseStorage] Sample answer structure:`, sampleAnswers[0]);
-        // Look for any field that might contain the document ID
-        for (const field in sampleAnswers[0]) {
-          if (typeof sampleAnswers[0][field] === 'string') {
-            console.log(`[SupabaseStorage] Checking field ${field}: ${sampleAnswers[0][field]}`);
-          }
-        }
-      } else {
-        console.log(`[SupabaseStorage] No sample answers found in the system`);
-      }
-      
-      // Return empty array if we can't find answers
-      console.log(`[SupabaseStorage] No answers could be found for document`);
-      return [];
-    }
-    
-    // Get question IDs to fetch answers
-    const questionIds = questions.map(q => q.id);
-    console.log(`[SupabaseStorage] Question IDs:`, questionIds);
-    
-    // Get answers for these questions
-    const { data: answers, error: answersError } = await supabase
+    // Directly query for answers linked to this RFP document
+    // All the content we need (question_text, compliance_answer, generated_answer) 
+    // is already available in the rfp_answers table
+    const { data: answers, error } = await supabase
       .from('rfp_answers')
       .select('*')
-      .in('rfp_question_id', questionIds);
+      .eq('rfp_document_id', rfpDocumentId);
     
-    if (answersError) {
-      console.log(`[SupabaseStorage] Error getting answers: ${answersError.message}`);
-      throw new Error(`Failed to get answers for questions: ${answersError.message}`);
+    if (error) {
+      console.log(`[SupabaseStorage] Error getting answers: ${error.message}`);
+      throw new Error(`Failed to get answers for RFP document: ${error.message}`);
     }
     
-    console.log(`[SupabaseStorage] Found ${answers?.length || 0} answers for ${questionIds.length} questions`);
+    console.log(`[SupabaseStorage] Direct answer check found ${answers?.length || 0} answers`);
     
-    // Combine questions and answers
-    const processedAnswers = answers.map(answer => {
-      // Find the matching question
-      const question = questions.find(q => q.id === answer.rfp_question_id);
-      
-      // Create a merged answer object
-      return {
-        ...answer,
-        question_text: question?.question_text || ''
-      };
-    });
-    
-    if (processedAnswers.length > 0) {
-      console.log(`[SupabaseStorage] First processed answer:`, processedAnswers[0]);
+    if (answers && answers.length > 0) {
+      console.log(`[SupabaseStorage] First answer:`, answers[0]);
+    } else {
+      console.log(`[SupabaseStorage] No answers found for this RFP document`);
     }
     
-    return processedAnswers as RfpAnswer[];
+    return answers as RfpAnswer[];
   }
 
   async createRfpAnswer(answer: InsertRfpAnswer): Promise<RfpAnswer> {
