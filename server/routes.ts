@@ -976,6 +976,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { status } = req.body;
       
+      console.log(`[API] Attempting to approve RFP document with ID: ${id} and status: ${status}`);
+      
       if (!id) {
         return res.status(400).json({ error: 'RFP Document ID is required' });
       }
@@ -984,9 +986,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Status must be either "approved" or "rejected"' });
       }
       
+      // First, check if the RFP document exists
+      const documentExists = await storage.getRfpDocument(id);
+      console.log(`[API] Document exists check:`, documentExists ? "YES" : "NO");
+      
+      if (!documentExists) {
+        console.log(`[API] RFP Document not found with ID: ${id}`);
+        return res.status(404).json({ error: 'RFP Document not found (pre-check)' });
+      }
+      
+      console.log(`[API] Updating approval status for RFP document: ${id}`);
       const rfpDocument = await storage.updateRfpDocumentApprovalStatus(id, status);
       
       if (!rfpDocument) {
+        console.log(`[API] Failed to update RFP Document status, returned undefined`);
         return res.status(404).json({ error: 'RFP Document not found' });
       }
       

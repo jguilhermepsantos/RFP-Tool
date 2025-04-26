@@ -156,13 +156,25 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getRfpDocument(id: string): Promise<RfpDocument | undefined> {
+    console.log(`[SupabaseStorage] Getting RFP document with ID: ${id}`);
+    
     const { data, error } = await supabase
       .from('rfp_documents')
       .select('*')
       .eq('id', id)
       .single();
     
-    if (error || !data) return undefined;
+    if (error) {
+      console.log(`[SupabaseStorage] Error getting RFP document: ${error.message}`, error);
+      return undefined;
+    }
+    
+    if (!data) {
+      console.log(`[SupabaseStorage] No RFP document found with ID: ${id}`);
+      return undefined;
+    }
+    
+    console.log(`[SupabaseStorage] Successfully retrieved RFP document:`, data);
     return data as RfpDocument;
   }
 
@@ -199,23 +211,59 @@ export class SupabaseStorage implements IStorage {
   }
 
   async updateRfpDocumentApprovalStatus(id: string, status: string): Promise<RfpDocument | undefined> {
+    console.log(`[SupabaseStorage] Updating RFP document approval status for ID: ${id} to ${status}`);
+    
     const now = new Date().toISOString();
     // In a real app, you would get the current user's ID for modified_by
     // For now, we'll use a placeholder
     const modifiedBy = 'admin-user'; 
     
+    // Verify the document exists first
+    const { data: checkData, error: checkError } = await supabase
+      .from('rfp_documents')
+      .select('id, name')
+      .eq('id', id)
+      .single();
+      
+    if (checkError) {
+      console.log(`[SupabaseStorage] Error checking if RFP document exists: ${checkError.message}`, checkError);
+      return undefined;
+    }
+    
+    if (!checkData) {
+      console.log(`[SupabaseStorage] RFP document does not exist with ID: ${id}`);
+      return undefined;
+    }
+    
+    console.log(`[SupabaseStorage] Found RFP document to update: ${checkData.name || id}`);
+    
+    // Build update payload
+    const updatePayload = {
+      approval_status: status,
+      approval_status_modified_at: now,
+      approval_status_modified_by: modifiedBy
+    };
+    
+    console.log(`[SupabaseStorage] Update payload:`, updatePayload);
+    
     const { data, error } = await supabase
       .from('rfp_documents')
-      .update({
-        approval_status: status,
-        approval_status_modified_at: now,
-        approval_status_modified_by: modifiedBy
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();
     
-    if (error || !data) return undefined;
+    if (error) {
+      console.log(`[SupabaseStorage] Error updating RFP document approval status: ${error.message}`, error);
+      return undefined;
+    }
+    
+    if (!data) {
+      console.log(`[SupabaseStorage] No data returned after updating RFP document`);
+      return undefined;
+    }
+    
+    console.log(`[SupabaseStorage] Successfully updated RFP document approval status:`, data);
     return data as RfpDocument;
   }
   
