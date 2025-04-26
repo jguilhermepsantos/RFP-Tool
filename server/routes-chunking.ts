@@ -218,3 +218,32 @@ chunkingRouter.post("/rfp-documents/process-all-unchunked", async (req: Request,
     });
   }
 });
+
+/**
+ * Process all unembedded chunks and embed them into the vector database
+ * POST /process-unembedded-chunks
+ */
+chunkingRouter.post("/process-unembedded-chunks", async (req: Request, res: Response) => {
+  try {
+    console.log(`Received request to process all unembedded chunks`);
+    
+    // Import the embedUnprocessedChunks function
+    const { embedUnprocessedChunks } = await import('./ai-service');
+    
+    // Process all unembedded chunks
+    const result = await embedUnprocessedChunks();
+    
+    return res.json({
+      success: result.success,
+      chunksEmbedded: result.chunksEmbedded,
+      errors: result.errors
+    });
+  } catch (error) {
+    console.error('Error processing unembedded chunks:', error);
+    return res.status(500).json({
+      success: false,
+      chunksEmbedded: 0,
+      errors: [error instanceof Error ? error.message : String(error)]
+    });
+  }
+});
