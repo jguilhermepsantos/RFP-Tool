@@ -46,6 +46,7 @@ export interface IStorage {
   
   // RFP Answer operations
   getRfpAnswers(questionIds: string[]): Promise<RfpAnswer[]>;
+  getRfpAnswersByDocumentId(rfpDocumentId: string): Promise<RfpAnswer[]>;
   createRfpAnswer(answer: InsertRfpAnswer): Promise<RfpAnswer>;
   updateRfpAnswer(answer: UpdateRfpAnswer): Promise<RfpAnswer | undefined>;
   

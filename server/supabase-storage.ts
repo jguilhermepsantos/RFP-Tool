@@ -190,6 +190,8 @@ export class SupabaseStorage implements IStorage {
   }
 
   async updateRfpDocumentStatus(id: string, status: string): Promise<RfpDocument | undefined> {
+    console.log(`[SupabaseStorage] Updating RFP document status for ID: ${id} to ${status}`);
+    
     const { data, error } = await supabase
       .from('rfp_documents')
       .update({ status })
@@ -197,7 +199,17 @@ export class SupabaseStorage implements IStorage {
       .select()
       .single();
     
-    if (error || !data) return undefined;
+    if (error) {
+      console.log(`[SupabaseStorage] Error updating RFP document status: ${error.message}`, error);
+      return undefined;
+    }
+    
+    if (!data) {
+      console.log(`[SupabaseStorage] No data returned after updating RFP document status`);
+      return undefined;
+    }
+    
+    console.log(`[SupabaseStorage] Successfully updated RFP document status:`, data);
     return data as RfpDocument;
   }
 
@@ -335,6 +347,48 @@ export class SupabaseStorage implements IStorage {
     }
     
     return data as RfpAnswer[];
+  }
+  
+  async getRfpAnswersByDocumentId(rfpDocumentId: string): Promise<RfpAnswer[]> {
+    console.log(`[SupabaseStorage] Getting RFP answers directly for document ID: ${rfpDocumentId}`);
+    
+    // Direct query to get all answers for a specific RFP document
+    // This joins rfp_questions and rfp_answers to get all answers with their question_text
+    // where the question belongs to the specified rfp_document_id
+    const { data, error } = await supabase
+      .from('rfp_answers')
+      .select(`
+        *,
+        rfp_questions!inner (
+          question_text,
+          rfp_document_id
+        )
+      `)
+      .eq('rfp_questions.rfp_document_id', rfpDocumentId);
+    
+    if (error) {
+      console.log(`[SupabaseStorage] Error getting RFP answers by document ID: ${error.message}`);
+      throw new Error(`Failed to get RFP answers by document ID: ${error.message}`);
+    }
+    
+    // Process the joined data to extract answers with question text
+    const processedAnswers = data.map(item => {
+      // Extract question_text from the joined data
+      const questionText = item.rfp_questions?.question_text || '';
+      
+      // Create a merged answer object
+      return {
+        ...item,
+        question_text: questionText
+      };
+    });
+    
+    console.log(`[SupabaseStorage] Found ${processedAnswers.length} RFP answers for document`);
+    if (processedAnswers.length > 0) {
+      console.log(`[SupabaseStorage] First answer:`, processedAnswers[0]);
+    }
+    
+    return processedAnswers as RfpAnswer[];
   }
 
   async createRfpAnswer(answer: InsertRfpAnswer): Promise<RfpAnswer> {

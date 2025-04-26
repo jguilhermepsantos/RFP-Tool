@@ -264,47 +264,42 @@ export async function chunkRfpDocument(
     
     console.log(`Processing RFP document: ${rfpDocument.name || rfpDocumentId}`);
     
-    // Get all questions for this RFP document
-    const questions = await storage.getRfpQuestions(rfpDocumentId);
+    // Get all answers for this RFP document directly
+    // We'll use a special method to get all answers by rfp_document_id
+    const answers = await storage.getRfpAnswersByDocumentId(rfpDocumentId);
     
-    if (!questions || questions.length === 0) {
-      throw new Error(`No questions found for RFP document: ${rfpDocumentId}`);
+    if (!answers || answers.length === 0) {
+      throw new Error(`No answers found for RFP document: ${rfpDocumentId}`);
     }
     
-    console.log(`Found ${questions.length} questions for RFP document ${rfpDocumentId}`);
+    console.log(`Found ${answers.length} answers for RFP document ${rfpDocumentId}`);
     
-    // Get answers for all questions
-    const questionIds = questions.map(q => q.id);
-    const answers = await storage.getRfpAnswers(questionIds);
-    
-    console.log(`Found ${answers.length} answers for ${questions.length} questions`);
-    
-    // Create a map of question ID to its answer for easier lookup
-    const answerMap = new Map();
-    answers.forEach(answer => {
-      answerMap.set(answer.rfpQuestionId, answer);
-    });
-    
-    // Store chunks - one chunk per question-answer pair
+    // Store chunks - one chunk per answer
     let createdChunks = 0;
     
-    for (const question of questions) {
-      const answer = answerMap.get(question.id);
-      
-      if (!answer) {
-        console.log(`No answer found for question ${question.id}, skipping`);
-        continue;
-      }
-      
+    for (const answer of answers) {
       // Combine question text and answers into a single chunk
+      // Handle both camelCase and snake_case field names from Supabase
+      const questionText = answer.questionText || 
+                          (answer as any).question_text || 
+                          '';
+      
+      const complianceAnswer = answer.complianceAnswer || 
+                              (answer as any).compliance_answer || 
+                              '';
+      
+      const generatedAnswer = answer.generatedAnswer || 
+                             (answer as any).generated_answer || 
+                             '';
+      
       const chunkContent = [
-        `Question: ${question.questionText || ''}`,
-        `Compliance Answer: ${answer.complianceAnswer || ''}`,
-        `Generated Answer: ${answer.generatedAnswer || ''}`
+        `Question: ${questionText}`,
+        `Compliance Answer: ${complianceAnswer}`,
+        `Generated Answer: ${generatedAnswer}`
       ].join('\n\n');
       
       if (chunkContent.trim().length === 0) {
-        console.log(`Empty content for question ${question.id}, skipping`);
+        console.log(`Empty content for answer ${answer.id}, skipping`);
         continue;
       }
       
