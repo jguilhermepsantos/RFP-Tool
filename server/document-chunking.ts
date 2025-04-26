@@ -269,7 +269,24 @@ export async function chunkRfpDocument(
     const answers = await storage.getRfpAnswersByDocumentId(rfpDocumentId);
     
     if (!answers || answers.length === 0) {
-      throw new Error(`No answers found for RFP document: ${rfpDocumentId}`);
+      console.log(`WARNING: No answers found for RFP document: ${rfpDocumentId}`);
+      
+      // Create a single placeholder chunk for this document to indicate it was processed
+      await storage.createChunk({
+        documentId: rfpDocumentId,
+        content: `This RFP document (${rfpDocumentId}) was processed on ${new Date().toISOString()} but no questions or answers were found.`,
+        scope: "global"
+      });
+      
+      // Update the document status to indicate it was processed
+      await storage.updateRfpDocumentStatus(rfpDocumentId, 'chunked');
+      
+      // Return success but with 0 real chunks created
+      return {
+        success: true,
+        documentId: rfpDocumentId,
+        chunksCreated: 0
+      };
     }
     
     console.log(`Found ${answers.length} answers for RFP document ${rfpDocumentId}`);
