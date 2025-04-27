@@ -5,10 +5,21 @@ import { useToast } from "@/hooks/use-toast";
 import NavHeader from "@/components/nav-header";
 import RfpDocumentTable from "@/components/rfp-document-table";
 import DocumentUpload from "@/components/document-upload";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, Trash2, Shield } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface ProjectDetailsProps {
   projectId: string;
@@ -28,6 +39,14 @@ interface MemberData {
   user_id: string;
   role: string;
   created_at: string;
+  email?: string;
+}
+
+interface UserData {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
 }
 
 interface DocumentData {
@@ -42,6 +61,24 @@ interface DocumentData {
   is_past_rfp?: boolean;
 }
 
+// Add member form schema
+const addMemberSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  role: z.string().refine(val => ["owner", "collaborator", "viewer"].includes(val), {
+    message: "Please select a valid role"
+  })
+});
+
+// Update role form schema
+const updateRoleSchema = z.object({
+  role: z.string().refine(val => ["owner", "collaborator", "viewer"].includes(val), {
+    message: "Please select a valid role"
+  })
+});
+
+type AddMemberFormValues = z.infer<typeof addMemberSchema>;
+type UpdateRoleFormValues = z.infer<typeof updateRoleSchema>;
+
 export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -50,6 +87,13 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
   const [project, setProject] = useState<ProjectData | null>(null);
   const [documents, setDocuments] = useState<DocumentData[]>([]);
   const [members, setMembers] = useState<MemberData[]>([]);
+  const [usersWithEmail, setUsersWithEmail] = useState<Record<string, string>>({});
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<MemberData | null>(null);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
+  const [memberToUpdateRole, setMemberToUpdateRole] = useState<MemberData | null>(null);
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchProjectDetails = async () => {

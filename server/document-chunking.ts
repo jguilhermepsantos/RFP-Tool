@@ -337,7 +337,7 @@ export async function chunkRfpDocument(
     }
     
     // Update RFP document to mark as chunked - using a status update
-    await storage.updateRfpDocumentStatus(rfpDocumentId, 'chunked');
+    // await storage.updateRfpDocumentStatus(rfpDocumentId, 'chunked');
     
     // Trigger embedding process for the newly created chunks
     if (createdChunks > 0) {
