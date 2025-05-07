@@ -11,10 +11,10 @@ interface ApiRequestOptions extends RequestInit {
   params?: Record<string, any>;
 }
 
-export async function apiRequest<T = any>(
+export async function apiRequest(
   url: string,
   options?: ApiRequestOptions,
-): Promise<T> {
+): Promise<Response> {
   // Add URL parameters if provided
   let finalUrl = url;
   if (options?.params) {
@@ -31,18 +31,12 @@ export async function apiRequest<T = any>(
     }
   }
 
-  console.log(`🔍 API Request: ${options?.method || 'GET'} ${finalUrl}`);
-  
-  const startTime = performance.now();
   const res = await fetch(finalUrl, {
     method: options?.method || 'GET',
     headers: options?.headers || {},
     body: options?.body,
     credentials: "include",
   });
-  
-  const endTime = performance.now();
-  console.log(`✅ API Response: ${options?.method || 'GET'} ${finalUrl} - ${res.status} in ${Math.round(endTime - startTime)}ms`);
 
   await throwIfResNotOk(res);
   
@@ -60,16 +54,9 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const url = queryKey[0] as string;
-    console.log(`🔍 QueryFn Request: GET ${url}`);
-    
-    const startTime = performance.now();
-    const res = await fetch(url, {
+    const res = await fetch(queryKey[0] as string, {
       credentials: "include",
     });
-    
-    const endTime = performance.now();
-    console.log(`✅ QueryFn Response: GET ${url} - ${res.status} in ${Math.round(endTime - startTime)}ms`);
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
