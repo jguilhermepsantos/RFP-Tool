@@ -84,7 +84,12 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
 
   const project = projectData?.project;
   const document = data?.document;
-  const questionsWithAnswers = data?.questionsWithAnswers || [];
+  // Sort the questions by created_at ascending (oldest first)
+  const questionsWithAnswers = [...(data?.questionsWithAnswers || [])].sort((a, b) => {
+    const dateA = a.answer?.createdAt ? new Date(a.answer.createdAt).getTime() : 0;
+    const dateB = b.answer?.createdAt ? new Date(b.answer.createdAt).getTime() : 0;
+    return dateA - dateB;
+  });
 
   const handleProcessDocument = async () => {
     try {

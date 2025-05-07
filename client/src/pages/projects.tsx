@@ -56,11 +56,12 @@ export default function Projects() {
       // Get project IDs
       const projectIds = projectPermissions.map(p => p.project_id);
       
-      // Get projects by IDs
+      // Get projects by IDs and sort by created_at DESC
       const { data: projects, error: projError } = await supabase
         .from('projects')
         .select('*')
-        .in('id', projectIds);
+        .in('id', projectIds)
+        .order('created_at', { ascending: false });
         
       if (projError) throw new Error(projError.message);
       
