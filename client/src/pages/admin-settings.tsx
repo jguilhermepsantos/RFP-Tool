@@ -421,7 +421,7 @@ export default function AdminSettings() {
                             )}
                           </TableCell>
                           <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
-                          <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
+                          <TableCell>{formatDate(doc.created_at)}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />
                           </TableCell>
@@ -520,7 +520,7 @@ export default function AdminSettings() {
                           <TableCell className="font-medium flex items-center">
                             <FileText className="mr-2 h-4 w-4 text-gray-500" />
                             <a 
-                              href={`/rfp-document/${doc.id}`} 
+                              href={`/project/${doc.project_id}/rfp-document/${doc.id}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline"
