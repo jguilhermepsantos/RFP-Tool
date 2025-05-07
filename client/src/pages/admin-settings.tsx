@@ -398,7 +398,7 @@ export default function AdminSettings() {
                         <TableHead>Name</TableHead>
                         <TableHead>Uploaded By</TableHead>
                         <TableHead>Uploaded At</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>Approval Status</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -407,7 +407,18 @@ export default function AdminSettings() {
                         <TableRow key={doc.id}>
                           <TableCell className="font-medium flex items-center">
                             <FileText className="mr-2 h-4 w-4 text-gray-500" />
-                            {doc.name || doc.file_url || 'Unnamed document'}
+                            {doc.file_url ? (
+                              <a 
+                                href={doc.file_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                              >
+                                {doc.name || doc.file_url || 'Unnamed document'}
+                              </a>
+                            ) : (
+                              doc.name || 'Unnamed document'
+                            )}
                           </TableCell>
                           <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
                           <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
@@ -508,7 +519,14 @@ export default function AdminSettings() {
                         <TableRow key={doc.id}>
                           <TableCell className="font-medium flex items-center">
                             <FileText className="mr-2 h-4 w-4 text-gray-500" />
-                            {doc.name || doc.file_url || 'Unnamed document'}
+                            <a 
+                              href={`/rfp-document/${doc.id}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {doc.name || doc.file_url || 'Unnamed document'}
+                            </a>
                           </TableCell>
                           <TableCell>{getProjectName(doc.project_id)}</TableCell>
                           <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
