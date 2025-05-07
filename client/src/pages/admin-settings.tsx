@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { ChunkingService } from '@/lib/chunkingService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +47,7 @@ interface RfpDocument {
   project_id: string | null;
   uploaded_by: string | null;
   uploaded_at: string | null;
+  // We don't actually need created_at field since we'll use uploaded_at
   status: string | null;
   file_url: string | null;
   is_past_rfp: boolean | null;
@@ -60,6 +62,7 @@ export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState<string>('documents');
   const [documentFilterStatus, setDocumentFilterStatus] = useState<string>('all');
   const [rfpFilterStatus, setRfpFilterStatus] = useState<string>('all');
+  const [userEmailsMap, setUserEmailsMap] = useState<Record<string, string>>({});
   
   // Headers for admin API requests
   const adminHeaders = {
@@ -266,6 +269,60 @@ export default function AdminSettings() {
     const shortId = projectId.substring(0, 8) + '...';
     return shortId;
   };
+  
+  // Function to get user email from user ID
+  const getUserEmail = (userId: string | null) => {
+    if (!userId) return 'N/A';
+    
+    // Return the email from the map if it exists
+    if (userEmailsMap[userId]) {
+      return userEmailsMap[userId];
+    }
+    
+    // If we don't have the email, return a formatted user ID
+    const shortId = userId.substring(0, 8) + '...';
+    return shortId;
+  };
+  
+  // Fetch user emails for document uploaders
+  useEffect(() => {
+    const fetchUserEmails = async () => {
+      // Collect all user IDs from documents and RFP documents
+      const userIds = new Set<string>();
+      
+      documents.forEach(doc => {
+        if (doc.uploaded_by) userIds.add(doc.uploaded_by);
+      });
+      
+      allRfpDocuments.forEach(doc => {
+        if (doc.uploaded_by) userIds.add(doc.uploaded_by);
+      });
+      
+      if (userIds.size === 0) return;
+      
+      try {
+        // Query Supabase for user details
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, email')
+          .in('id', Array.from(userIds));
+          
+        if (error) throw new Error(error.message);
+        
+        // Create a map of user IDs to emails
+        const emailMap: Record<string, string> = {};
+        data.forEach(user => {
+          emailMap[user.id] = user.email;
+        });
+        
+        setUserEmailsMap(emailMap);
+      } catch (err) {
+        console.error('Error fetching user emails:', err);
+      }
+    };
+    
+    fetchUserEmails();
+  }, [documents, allRfpDocuments]);
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
@@ -352,7 +409,7 @@ export default function AdminSettings() {
                             <FileText className="mr-2 h-4 w-4 text-gray-500" />
                             {doc.name || doc.file_url || 'Unnamed document'}
                           </TableCell>
-                          <TableCell>{doc.uploaded_by}</TableCell>
+                          <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
                           <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />
@@ -440,6 +497,8 @@ export default function AdminSettings() {
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Project</TableHead>
+                        <TableHead>Uploaded By</TableHead>
+                        <TableHead>Uploaded At</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Approval Status</TableHead>
                         <TableHead>Actions</TableHead>
@@ -453,6 +512,8 @@ export default function AdminSettings() {
                             {doc.name || doc.file_url || 'Unnamed document'}
                           </TableCell>
                           <TableCell>{getProjectName(doc.project_id)}</TableCell>
+                          <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
+                          <TableCell>{formatDate(doc.created_at)}</TableCell>
                           <TableCell>{doc.status}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />
