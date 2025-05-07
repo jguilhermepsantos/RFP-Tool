@@ -513,7 +513,7 @@ export default function AdminSettings() {
                           </TableCell>
                           <TableCell>{getProjectName(doc.project_id)}</TableCell>
                           <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
-                          <TableCell>{formatDate(doc.created_at)}</TableCell>
+                          <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
                           <TableCell>{doc.status}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />
