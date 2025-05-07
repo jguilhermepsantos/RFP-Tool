@@ -47,8 +47,8 @@ export class DatabaseStorage implements IStorage {
   // Project operations
   async getProjects(): Promise<Project[]> {
     try {
-      // Use raw SQL to avoid schema mismatch
-      const result = await db.execute(sql`SELECT * FROM projects`);
+      // Use raw SQL to avoid schema mismatch and sort by created_at in descending order
+      const result = await db.execute(sql`SELECT * FROM projects ORDER BY created_at DESC`);
       
       // Map the raw results to our Project type
       return result.rows.map(row => {
@@ -104,31 +104,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProjectsByUserId(userId: string): Promise<Project[]> {
-    const permissions = await db
-      .select()
-      .from(projectPermissions)
-      .where(eq(projectPermissions.userId, userId));
-    
-    const projectIds = permissions.map(p => p.projectId);
-    
-    if (projectIds.length === 0) {
-      return [];
-    }
-    
-    // For simplicity, just return all projects if user has permissions
-    // or the first project if only one permission exists
-    if (projectIds.length === 1) {
-      // Using sql.raw to avoid TypeScript issues
-      const [project] = await db
+    try {
+      const permissions = await db
         .select()
-        .from(projects)
-        .where(sql`id = ${projectIds[0]}`);
+        .from(projectPermissions)
+        .where(eq(projectPermissions.userId, userId));
       
-      return project ? [project] : [];
-    } else {
-      // Return all projects - in a real implementation we would
-      // use an "IN" clause to filter by all project IDs
-      return db.select().from(projects);
+      const projectIds = permissions.map(p => p.projectId);
+      
+      if (projectIds.length === 0) {
+        return [];
+      }
+      
+      // For simplicity, we'll fallback to getting all projects and filtering in memory
+      // This is not ideal for performance but works around type issues
+      if (projectIds.length === 1) {
+        const result = await db.execute(
+          sql`SELECT * FROM projects WHERE id = ${projectIds[0]} ORDER BY created_at DESC`
+        );
+        
+        return result.rows.map(row => ({
+          id: row.id,
+          name: row.name,
+          createdAt: row.created_at,
+          createdBy: row.created_by,
+          ...(row.description ? { description: row.description } : {})
+        } as Project));
+      } else {
+        // Get all projects then filter - in a real app this would use a proper IN clause
+        const result = await db.execute(
+          sql`SELECT * FROM projects ORDER BY created_at DESC`
+        );
+        
+        const filteredRows = result.rows.filter(row => 
+          projectIds.includes(row.id)
+        );
+        
+        return filteredRows.map(row => ({
+          id: row.id,
+          name: row.name,
+          createdAt: row.created_at,
+          createdBy: row.created_by,
+          ...(row.description ? { description: row.description } : {})
+        } as Project));
+      }
+    } catch (error) {
+      console.error('Error getting projects by user ID:', error);
+      return [];
     }
   }
 
@@ -162,10 +184,32 @@ export class DatabaseStorage implements IStorage {
 
   // RFP Document operations
   async getRfpDocuments(projectId: string): Promise<RfpDocument[]> {
-    return db
-      .select()
-      .from(rfpDocuments)
-      .where(eq(rfpDocuments.projectId, projectId));
+    try {
+      // Use raw SQL to avoid schema mismatch and sort by uploaded_at in descending order
+      const result = await db.execute(
+        sql`SELECT * FROM rfp_documents WHERE project_id = ${projectId} ORDER BY uploaded_at DESC`
+      );
+      
+      // Map the raw results to our RfpDocument type
+      return result.rows.map(row => {
+        return {
+          id: row.id,
+          name: row.name,
+          projectId: row.project_id,
+          fileUrl: row.file_url,
+          uploadedBy: row.uploaded_by,
+          uploadedAt: row.uploaded_at,
+          status: row.status,
+          isPastRfp: row.is_past_rfp,
+          approvalStatus: row.approved ? 'approved' : 'pending',
+          approvalStatusModifiedBy: null,
+          approvalStatusModifiedAt: null
+        } as RfpDocument;
+      });
+    } catch (error) {
+      console.error('Error getting RFP documents for project:', error);
+      return [];
+    }
   }
 
   async getRfpDocument(id: string): Promise<RfpDocument | undefined> {
@@ -300,6 +344,32 @@ export class DatabaseStorage implements IStorage {
         .from(rfpAnswers)
         .where(sql`rfp_question_id = ${questionIds[0]}`);
     } else {
+      return [];
+    }
+  }
+  
+  async getRfpAnswersByDocumentId(rfpDocumentId: string): Promise<RfpAnswer[]> {
+    try {
+      // Get answers for a specific document, sorted by created_at
+      const result = await db.execute(
+        sql`SELECT * FROM rfp_answers WHERE rfp_document_id = ${rfpDocumentId} ORDER BY created_at ASC`
+      );
+      
+      return result.rows.map(row => {
+        return {
+          id: row.id,
+          rfpDocumentId: row.rfp_document_id,
+          rfpQuestionId: row.rfp_question_id,
+          questionText: row.question_text,
+          generatedAnswer: row.generated_answer,
+          complianceAnswer: row.compliance_answer,
+          createdAt: row.created_at,
+          lastReviewedBy: row.last_reviewed_by,
+          lastReviewedAt: row.last_reviewed_at
+        } as RfpAnswer;
+      });
+    } catch (error) {
+      console.error('Error getting RFP answers by document ID:', error);
       return [];
     }
   }
@@ -461,6 +531,44 @@ export class DatabaseStorage implements IStorage {
 
   async getDocumentChunks(documentId: string, documentType: string): Promise<Chunk[]> {
     return this.getChunks(documentId);
+  }
+  
+  async getUnembeddedChunks(limit: number = 100): Promise<Chunk[]> {
+    try {
+      // Get chunks that haven't been embedded yet
+      const result = await db.execute(
+        sql`SELECT * FROM chunks WHERE embedded = false LIMIT ${limit}`
+      );
+      
+      return result.rows.map(row => {
+        return {
+          id: row.id,
+          documentId: row.document_id,
+          content: row.content,
+          createdAt: row.created_at,
+          scope: row.scope,
+          embedded: row.embedded,
+          embeddedAt: row.embedded_at
+        } as Chunk;
+      });
+    } catch (error) {
+      console.error('Error getting unembedded chunks:', error);
+      return [];
+    }
+  }
+  
+  async markChunkAsEmbedded(chunkId: string): Promise<boolean> {
+    try {
+      const now = new Date();
+      const result = await db.execute(
+        sql`UPDATE chunks SET embedded = true, embedded_at = ${now} WHERE id = ${chunkId}`
+      );
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error(`Error marking chunk ${chunkId} as embedded:`, error);
+      return false;
+    }
   }
 
   // Compliance Mapping operations

@@ -370,7 +370,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { data: questionsData, error: questionsError } = await supabase
             .from("rfp_questions")
             .select("*")
-            .eq("rfp_document_id", documentId);
+            .eq("rfp_document_id", documentId)
+            .order("created_at", { ascending: true });
 
           if (questionsError) {
             console.log(`Error fetching questions:`, questionsError);
@@ -413,7 +414,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { data: answersData, error: answersError } = await supabase
             .from("rfp_answers")
             .select("*")
-            .eq("rfp_document_id", documentId);
+            .eq("rfp_document_id", documentId)
+            .order("created_at", { ascending: true });
 
           if (answersError) {
             console.log(`Error fetching answers:`, answersError);
