@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from './supabase';
 import { useLocation } from 'wouter';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { queryClient } from './queryClient';
 
 interface AuthUserData {
   id: string;
@@ -63,11 +64,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (!session) {
             setUser(null);
+            // Invalidate all queries when user logs out
+            queryClient.invalidateQueries();
           } else if (event === 'SIGNED_IN') {
             // When user signs in, ensure they have a profile
             try {
               const userData = await ensureUserProfile(session.user);
               setUser(userData);
+              // Invalidate all queries when user signs in
+              queryClient.invalidateQueries();
             } catch (error) {
               console.error("Error in auth change handler:", error);
             }
@@ -187,6 +192,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error('Error logging out:', error.message);
     }
+    
+    // Explicitly invalidate all queries when logging out
+    queryClient.invalidateQueries();
+    queryClient.clear();
     
     setUser(null);
     setSession(null);
