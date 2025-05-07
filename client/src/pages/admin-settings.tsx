@@ -240,10 +240,10 @@ export default function AdminSettings() {
     updateRfpDocumentApproval.mutate({ id, status });
   };
 
-  // Format date for display
+  // Format date for display - show only the date part
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString();
+    return new Date(dateString).toLocaleDateString();
   };
   
   // Function to get project name from project ID
@@ -499,7 +499,6 @@ export default function AdminSettings() {
                         <TableHead>Project</TableHead>
                         <TableHead>Uploaded By</TableHead>
                         <TableHead>Uploaded At</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead>Approval Status</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -514,7 +513,6 @@ export default function AdminSettings() {
                           <TableCell>{getProjectName(doc.project_id)}</TableCell>
                           <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
                           <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
-                          <TableCell>{doc.status}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />
                           </TableCell>
