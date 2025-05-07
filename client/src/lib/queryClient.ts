@@ -11,10 +11,10 @@ interface ApiRequestOptions extends RequestInit {
   params?: Record<string, any>;
 }
 
-export async function apiRequest(
+export async function apiRequest<T = any>(
   url: string,
   options?: ApiRequestOptions,
-): Promise<Response> {
+): Promise<T> {
   // Add URL parameters if provided
   let finalUrl = url;
   if (options?.params) {

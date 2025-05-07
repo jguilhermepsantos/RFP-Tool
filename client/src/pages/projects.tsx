@@ -38,45 +38,24 @@ export default function Projects() {
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [`/api/projects`],
-    queryFn: async () => {
-      if (!user?.id) throw new Error("User ID is required");
-      // Make direct call to Supabase to get projects
-      const { data: projectPermissions, error: permError } = await supabase
-        .from('project_permissions')
-        .select('project_id, role')
-        .eq('user_id', user.id);
-        
-      if (permError) throw new Error(permError.message);
-      
-      // If no permissions found, return empty array
-      if (!projectPermissions || projectPermissions.length === 0) {
-        return { projects: [] };
+    queryFn: () => apiRequest('/api/projects', {
+      // Ensure we have the user's ID in the request
+      params: { 
+        userId: user?.id 
+      },
+      headers: {
+        'Authorization': user?.email || ''
       }
-      
-      // Get project IDs
-      const projectIds = projectPermissions.map(p => p.project_id);
-      
-      // Get projects by IDs and sort by created_at DESC
-      const { data: projects, error: projError } = await supabase
-        .from('projects')
-        .select('*')
-        .in('id', projectIds)
-        .order('created_at', { ascending: false });
-        
-      if (projError) throw new Error(projError.message);
-      
-      // Combine projects with their roles
-      const projectsWithRole = projects.map(project => {
-        const permission = projectPermissions.find(p => p.project_id === project.id);
-        return {
-          ...project,
-          role: permission?.role || 'viewer'
-        };
-      });
-      
-      return { projects: projectsWithRole };
-    },
-    enabled: !!user,
+    }),
+    enabled: !!user?.id,
+    // Add specific staleTime to prevent unnecessary refetching
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    // Add retry false to prevent retrying on failure
+    retry: false,
+    // Add key for debugging in console
+    meta: {
+      debugLabel: 'projectsList'
+    }
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -101,31 +80,23 @@ export default function Projects() {
     if (!user) return;
 
     try {
-      // Create project directly in Supabase
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .insert({
+      // Use the API endpoint to create the project
+      const response = await apiRequest('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': user.email || ''
+        },
+        body: JSON.stringify({
           name: values.name,
-          description: values.description || null,
-          created_by: user.id,
-          created_at: new Date().toISOString()
+          description: values.description || null
         })
-        .select()
-        .single();
-        
-      if (projectError) throw new Error(projectError.message);
-      
-      // Add project permission for the creator
-      const { error: permError } = await supabase
-        .from('project_permissions')
-        .insert({
-          project_id: project.id,
-          user_id: user.id,
-          role: 'owner',
-          created_at: new Date().toISOString()
-        });
-        
-      if (permError) throw new Error(permError.message);
+      });
+
+      // Check if we got a successful response with a project ID
+      if (!response || !response.id) {
+        throw new Error('Failed to create project: Invalid response from server');
+      }
 
       toast({
         title: "Success",
@@ -140,8 +111,9 @@ export default function Projects() {
       setDialogOpen(false);
       
       // Redirect to the project details page
-      setLocation(`/projects/${project.id}`);
+      setLocation(`/projects/${response.id}`);
     } catch (error) {
+      console.error('Project creation error:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -150,7 +122,8 @@ export default function Projects() {
     }
   };
 
-  const projects = data?.projects as ProjectWithRole[] || [];
+  // Note: data is already the response in our updated version
+  const projects = Array.isArray(data?.projects) ? data.projects as ProjectWithRole[] : [];
 
   return (
     <div className="min-h-screen bg-slate-50">
