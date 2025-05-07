@@ -520,7 +520,7 @@ export default function AdminSettings() {
                           <TableCell className="font-medium flex items-center">
                             <FileText className="mr-2 h-4 w-4 text-gray-500" />
                             <a 
-                              href={`/project/${doc.project_id}/rfp-document/${doc.id}`} 
+                              href={`/projects/${doc.project_id}/rfp-documents/${doc.id}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline"
