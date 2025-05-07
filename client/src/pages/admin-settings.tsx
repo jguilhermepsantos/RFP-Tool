@@ -235,9 +235,39 @@ export default function AdminSettings() {
     });
   };
 
-  // Handle RFP document approval
+  // Handle RFP document approval with improved error handling
   const handleRfpDocumentApproval = (id: string, status: 'approved' | 'rejected') => {
-    updateRfpDocumentApproval.mutate({ id, status });
+    try {
+      // Set a timeout to detect if the call is taking too long
+      const timeoutId = setTimeout(() => {
+        console.log('RFP document approval request is taking a long time...');
+        toast({
+          title: 'Processing',
+          description: 'The request is taking longer than expected. Please wait...',
+        });
+      }, 5000); // 5 second timeout
+      
+      updateRfpDocumentApproval.mutate(
+        { id, status },
+        {
+          onSuccess: () => {
+            clearTimeout(timeoutId);
+            console.log(`RFP Document ${id} ${status} successfully`);
+          },
+          onError: (error) => {
+            clearTimeout(timeoutId);
+            console.error('Error approving RFP document:', error);
+          }
+        }
+      );
+    } catch (err) {
+      console.error('Exception in handleRfpDocumentApproval:', err);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Format date for display - show only the date part
@@ -290,17 +320,26 @@ export default function AdminSettings() {
       // Collect all user IDs from documents and RFP documents
       const userIds = new Set<string>();
       
-      documents.forEach(doc => {
-        if (doc.uploaded_by) userIds.add(doc.uploaded_by);
-      });
+      if (documents && documents.length > 0) {
+        documents.forEach(doc => {
+          if (doc.uploaded_by) userIds.add(doc.uploaded_by);
+        });
+      }
       
-      allRfpDocuments.forEach(doc => {
-        if (doc.uploaded_by) userIds.add(doc.uploaded_by);
-      });
+      if (allRfpDocuments && allRfpDocuments.length > 0) {
+        allRfpDocuments.forEach(doc => {
+          if (doc.uploaded_by) userIds.add(doc.uploaded_by);
+        });
+      }
       
-      if (userIds.size === 0) return;
+      if (userIds.size === 0) {
+        console.log('No user IDs found to fetch emails for');
+        return;
+      }
       
       try {
+        console.log(`Fetching emails for ${userIds.size} users:`, Array.from(userIds));
+        
         // Query Supabase for user details
         const { data, error } = await supabase
           .from('users')
@@ -309,15 +348,22 @@ export default function AdminSettings() {
           
         if (error) throw new Error(error.message);
         
+        if (!data || data.length === 0) {
+          console.warn('No user data returned from Supabase');
+          return;
+        }
+        
         // Create a map of user IDs to emails
         const emailMap: Record<string, string> = {};
         data.forEach(user => {
           emailMap[user.id] = user.email;
         });
         
+        console.log('Email map created:', emailMap);
         setUserEmailsMap(emailMap);
       } catch (err) {
         console.error('Error fetching user emails:', err);
+        // Continue without emails, don't block the UI
       }
     };
     
@@ -421,7 +467,7 @@ export default function AdminSettings() {
                             )}
                           </TableCell>
                           <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
-                          <TableCell>{formatDate(doc.created_at)}</TableCell>
+                          <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />
                           </TableCell>
