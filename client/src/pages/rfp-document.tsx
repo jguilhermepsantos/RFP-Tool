@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
@@ -21,6 +21,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [isDownloading, setIsDownloading] = useState(false);
 
   interface ProjectResponse {
     project: {
@@ -87,7 +88,12 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
 
   const handleProcessDocument = async () => {
     try {
-      await apiRequest("POST", `/api/projects/${projectId}/rfp-documents/${documentId}/process`, {});
+      await apiRequest(`/api/projects/${projectId}/rfp-documents/${documentId}/process`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
       
       toast({
         title: "Success",
@@ -109,8 +115,14 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
 
   const updateDocumentStatus = async (status: string) => {
     try {
-      await apiRequest("PATCH", `/api/projects/${projectId}/rfp-documents/${documentId}/status`, {
-        status
+      await apiRequest(`/api/projects/${projectId}/rfp-documents/${documentId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          status
+        })
       });
       
       toast({
@@ -152,7 +164,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     if (!documentId) return;
     
     try {
-      setIsLoading(true);
+      setIsDownloading(true);
       
       // Get the CSV data from the API
       const response = await fetch(`/api/projects/${projectId}/rfp-documents/${documentId}/export-csv`);
@@ -169,14 +181,14 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
       const url = URL.createObjectURL(blob);
       
       // Create a temporary link to trigger the download
-      const link = document.createElement('a');
+      const link = window.document.createElement('a');
       link.href = url;
       link.setAttribute('download', `${document?.name || 'rfp_export'}_answers.csv`);
-      document.body.appendChild(link);
+      window.document.body.appendChild(link);
       link.click();
       
       // Clean up
-      document.body.removeChild(link);
+      window.document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
       toast({
@@ -190,7 +202,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         description: (error as Error).message || "Failed to download CSV file",
       });
     } finally {
-      setIsLoading(false);
+      setIsDownloading(false);
     }
   };
 

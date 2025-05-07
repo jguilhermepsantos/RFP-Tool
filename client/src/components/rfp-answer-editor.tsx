@@ -63,9 +63,15 @@ export default function RfpAnswerEditor({
     setIsSaving(true);
     
     try {
-      await apiRequest("PATCH", `/api/rfp-answers/${question.answer.id}`, {
-        complianceAnswer,
-        generatedAnswer
+      await apiRequest(`/api/rfp-answers/${question.answer.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          complianceAnswer,
+          generatedAnswer
+        })
       });
       
       toast({
