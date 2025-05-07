@@ -280,7 +280,7 @@ export default function AdminSettings() {
   };
 
   // Format date for display - show only the date part
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | undefined | null) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
   };
@@ -310,7 +310,7 @@ export default function AdminSettings() {
   };
   
   // Function to get user email from user ID
-  const getUserEmail = (userId: string | null) => {
+  const getUserEmail = (userId: string | undefined | null) => {
     if (!userId) return 'N/A';
     
     // Return the email from the map if it exists
@@ -380,7 +380,7 @@ export default function AdminSettings() {
   }, [documents, allRfpDocuments]);
 
   // Status badge component
-  const StatusBadge = ({ status }: { status: string }) => {
+  const StatusBadge = ({ status }: { status: string | undefined }) => {
     switch (status) {
       case 'approved':
         return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
@@ -493,7 +493,7 @@ export default function AdminSettings() {
                                   variant="outline"
                                   className="border-green-500 text-green-500 hover:bg-green-50"
                                   onClick={() => handleDocumentApproval(doc.id, 'approved')}
-                                  disabled={doc.approval_status !== 'pending' || updateDocumentApproval.isPending}
+                                  disabled={(doc.approval_status || doc.approvalStatus) !== 'pending' || updateDocumentApproval.isPending}
                                 >
                                   <Check className="h-4 w-4" />
                                 </Button>
@@ -502,7 +502,7 @@ export default function AdminSettings() {
                                   variant="outline"
                                   className="border-red-500 text-red-500 hover:bg-red-50"
                                   onClick={() => handleDocumentApproval(doc.id, 'rejected')}
-                                  disabled={doc.approval_status !== 'pending' || updateDocumentApproval.isPending}
+                                  disabled={(doc.approval_status || doc.approvalStatus) !== 'pending' || updateDocumentApproval.isPending}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
