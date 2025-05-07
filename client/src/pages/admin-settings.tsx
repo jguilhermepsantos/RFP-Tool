@@ -35,6 +35,7 @@ interface Document {
   name: string;
   uploaded_by: string;
   uploaded_at: string;
+  created_at: string;
   file_url: string | null;
   approval_status: 'pending' | 'approved' | 'rejected';
   approval_status_modified_at: string | null;
@@ -467,7 +468,7 @@ export default function AdminSettings() {
                             )}
                           </TableCell>
                           <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
-                          <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
+                          <TableCell>{formatDate(doc.created_at)}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />
                           </TableCell>
