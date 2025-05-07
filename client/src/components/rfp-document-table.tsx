@@ -36,7 +36,12 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
     setProcessingDocId(documentId);
     
     try {
-      await apiRequest("POST", `/api/projects/${projectId}/rfp-documents/${documentId}/process`, {});
+      await apiRequest(`/api/projects/${projectId}/rfp-documents/${documentId}/process`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
       
       toast({
         title: "Success",
@@ -62,8 +67,12 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
     setProcessingDocId(documentId);
     
     try {
-      await apiRequest("PATCH", `/api/projects/${projectId}/rfp-documents/${documentId}/status`, {
-        status
+      await apiRequest(`/api/projects/${projectId}/rfp-documents/${documentId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ status })
       });
       
       toast({
