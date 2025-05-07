@@ -33,13 +33,21 @@ import { Check, X, FileText, Filter, Scissors } from 'lucide-react';
 interface Document {
   id: string;
   name: string;
-  uploaded_by: string;
-  uploaded_at: string;
-  created_at: string;
-  file_url: string | null;
-  approval_status: 'pending' | 'approved' | 'rejected';
-  approval_status_modified_at: string | null;
-  approval_status_modified_by: string | null;
+  uploadedBy: string;
+  uploadedAt?: string;
+  createdAt: string;
+  fileUrl: string | null;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvalStatusModifiedAt: string | null;
+  approvalStatusModifiedBy: string | null;
+  // For backward compatibility with API response
+  uploaded_by?: string;
+  uploaded_at?: string;
+  created_at?: string;
+  file_url?: string | null;
+  approval_status?: 'pending' | 'approved' | 'rejected';
+  approval_status_modified_at?: string | null;
+  approval_status_modified_by?: string | null;
 }
 
 interface RfpDocument {
@@ -468,7 +476,7 @@ export default function AdminSettings() {
                             )}
                           </TableCell>
                           <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
-                          <TableCell>{formatDate(doc.created_at)}</TableCell>
+                          <TableCell>{formatDate(doc.createdAt || doc.created_at)}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />
                           </TableCell>
