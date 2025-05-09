@@ -401,7 +401,14 @@ export class SupabaseStorage implements IStorage {
       updateObj.generated_answer = answer.generatedAnswer;
     }
     
-    // final_answer field removed as it doesn't exist in the database
+    // Add review information when provided
+    if (answer.lastReviewedBy !== undefined) {
+      updateObj.last_reviewed_by = answer.lastReviewedBy;
+    }
+    
+    if (answer.lastReviewedAt !== undefined) {
+      updateObj.last_reviewed_at = answer.lastReviewedAt;
+    }
     
     // Only update if we have fields to update
     if (Object.keys(updateObj).length === 0) {
