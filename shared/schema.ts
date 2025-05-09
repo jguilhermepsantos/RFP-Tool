@@ -200,7 +200,8 @@ export const updateRfpAnswerSchema = z.object({
   id: z.string().uuid(),
   complianceAnswer: z.string().optional(),
   generatedAnswer: z.string().optional(),
-  // Remove finalAnswer as it doesn't exist in the database
+  lastReviewedBy: z.string().uuid().optional(),
+  lastReviewedAt: z.string().optional(),
 });
 
 // Schema for updating document approval status

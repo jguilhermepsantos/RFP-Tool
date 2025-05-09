@@ -58,7 +58,7 @@ export default function RfpAnswerEditor({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleSaveChanges = async () => {
-    if (!question.answer?.id) return;
+    if (!question.answer?.id || !user?.id) return;
     
     setIsSaving(true);
     
@@ -70,7 +70,9 @@ export default function RfpAnswerEditor({
         },
         body: JSON.stringify({
           complianceAnswer,
-          generatedAnswer
+          generatedAnswer,
+          lastReviewedBy: user.id,
+          lastReviewedAt: new Date().toISOString()
         })
       });
       
