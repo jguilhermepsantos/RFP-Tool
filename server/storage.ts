@@ -79,8 +79,8 @@ export interface IStorage {
   updateSuggestedDocumentStatus(id: string, status: 'approved' | 'rejected', reviewedBy: string): Promise<Document | undefined>;
 }
 
-// Import the DatabaseStorage implementation
-import { DatabaseStorage } from './database-storage';
+// Import the SupabaseOnlyStorage implementation
+import { SupabaseOnlyStorage } from './supabase-only-storage';
 
-// Export an instance of DatabaseStorage to be used throughout the application
-export const storage = new DatabaseStorage();
+// Export an instance of SupabaseOnlyStorage to be used throughout the application
+export const storage = new SupabaseOnlyStorage();
