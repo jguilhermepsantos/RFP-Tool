@@ -1068,15 +1068,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User management endpoints
+  // User management endpoints - direct Supabase query
   apiRouter.get("/admin/users", async (req: Request, res: Response) => {
     try {
-      console.log('[API] /admin/users - Starting request');
-      const users = await storage.getAllUsers();
-      console.log('[API] /admin/users - Retrieved users:', users?.length || 0);
-      res.json(users);
+      console.log('[API] /admin/users - Starting direct Supabase query');
+      
+      // Direct Supabase query to bypass any storage issues
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('[API] Supabase error:', error);
+        return res.status(500).json({ error: `Supabase error: ${error.message}` });
+      }
+      
+      console.log('[API] /admin/users - Retrieved users directly from Supabase:', users?.length || 0);
+      
+      if (users && users.length > 0) {
+        console.log('[API] First user sample:', users[0]);
+      }
+      
+      res.json(users || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('[API] Error fetching users:', error);
       res.status(500).json({ error: 'Failed to fetch users' });
     }
   });
