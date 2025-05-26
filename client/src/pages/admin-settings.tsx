@@ -111,8 +111,8 @@ export default function AdminSettings() {
     isLoading: isAllUsersLoading,
     error: usersError
   } = useQuery({
-    queryKey: ['/api/admin/users'],
-    queryFn: () => apiRequest('/api/admin/users', { headers: adminHeaders }),
+    queryKey: ['/api/admin/users-list'],
+    queryFn: () => apiRequest('/api/admin/users-list', { headers: adminHeaders }),
     enabled: activeSection === 'user-management'
   });
   

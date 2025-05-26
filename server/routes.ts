@@ -1069,7 +1069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management endpoints - direct Supabase query
-  apiRouter.get("/admin/users", async (req: Request, res: Response) => {
+  apiRouter.get("/admin/users-list", async (req: Request, res: Response) => {
     try {
       console.log('[API] /admin/users - Starting direct Supabase query');
       
