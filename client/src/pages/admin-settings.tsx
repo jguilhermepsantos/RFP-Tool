@@ -597,8 +597,8 @@ export default function AdminSettings() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={user.accessGranted ? 'default' : 'destructive'}>
-                                {user.accessGranted ? 'Granted' : 'Denied'}
+                              <Badge variant={(user.accessGranted || user.access_granted) ? 'default' : 'destructive'}>
+                                {(user.accessGranted || user.access_granted) ? 'Granted' : 'Denied'}
                               </Badge>
                             </TableCell>
                             <TableCell>{formatDate(user.createdAt)}</TableCell>
@@ -606,11 +606,11 @@ export default function AdminSettings() {
                               <div className="flex gap-2">
                                 <Button
                                   size="sm"
-                                  variant={user.accessGranted ? 'destructive' : 'default'}
-                                  onClick={() => updateUserAccess.mutate({id: user.id, accessGranted: !user.accessGranted})}
+                                  variant={(user.accessGranted || user.access_granted) ? 'destructive' : 'default'}
+                                  onClick={() => updateUserAccess.mutate({id: user.id, accessGranted: !(user.accessGranted || user.access_granted)})}
                                   disabled={updateUserAccess.isPending}
                                 >
-                                  {user.accessGranted ? 'Revoke' : 'Grant'} Access
+                                  {(user.accessGranted || user.access_granted) ? 'Revoke' : 'Grant'} Access
                                 </Button>
                                 <Button
                                   size="sm"
