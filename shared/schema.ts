@@ -114,6 +114,14 @@ export const complianceMappings = pgTable("compliance_mappings", {
   mappedLabel: text("mapped_label"),
 });
 
+// Feedbacks table
+export const feedbacks = pgTable("feedbacks", {
+  id: uuid("id").primaryKey(),
+  uploadedBy: uuid("uploaded_by").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Define insert schemas using drizzle-zod
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true, 
@@ -169,6 +177,11 @@ export const insertChunkSchema = createInsertSchema(chunks).omit({
 
 export const insertComplianceMappingSchema = createInsertSchema(complianceMappings);
 
+export const insertFeedbackSchema = createInsertSchema(feedbacks).omit({
+  id: true, 
+  createdAt: true
+});
+
 // Define types using z.infer
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
@@ -179,6 +192,7 @@ export type InsertRfpQuestion = z.infer<typeof insertRfpQuestionSchema>;
 export type InsertRfpAnswer = z.infer<typeof insertRfpAnswerSchema>;
 export type InsertChunk = z.infer<typeof insertChunkSchema>;
 export type InsertComplianceMapping = z.infer<typeof insertComplianceMappingSchema>;
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 
 // Define select types
 export type User = typeof users.$inferSelect;
@@ -190,6 +204,7 @@ export type RfpQuestion = typeof rfpQuestions.$inferSelect;
 export type RfpAnswer = typeof rfpAnswers.$inferSelect;
 export type Chunk = typeof chunks.$inferSelect;
 export type ComplianceMapping = typeof complianceMappings.$inferSelect;
+export type Feedback = typeof feedbacks.$inferSelect;
 
 // Extended schemas for form validation
 export const loginSchema = z.object({

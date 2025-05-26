@@ -10,6 +10,7 @@ import {
   Document, InsertDocument,
   Chunk, InsertChunk,
   ComplianceMapping, InsertComplianceMapping,
+  Feedback, InsertFeedback,
   UpdateRfpAnswer
 } from '@shared/schema';
 

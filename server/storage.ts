@@ -11,6 +11,7 @@ import {
   Document, InsertDocument, 
   Chunk, InsertChunk,
   ComplianceMapping, InsertComplianceMapping,
+  Feedback, InsertFeedback,
   UpdateRfpAnswer
 } from "@shared/schema";
 
@@ -77,6 +78,10 @@ export interface IStorage {
   getSuggestedDocuments(): Promise<Document[]>;
   createSuggestedDocument(document: any): Promise<Document>;
   updateSuggestedDocumentStatus(id: string, status: 'approved' | 'rejected', reviewedBy: string): Promise<Document | undefined>;
+  
+  // Feedback operations
+  createFeedback(feedback: InsertFeedback): Promise<Feedback>;
+  getFeedbacks(): Promise<Feedback[]>;
 }
 
 // Import the SupabaseStorage implementation

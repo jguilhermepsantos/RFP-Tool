@@ -131,112 +131,149 @@ async function searchChunks(query: string, nResults: number = 3): Promise<string
 /**
  * Generate an AI answer from retrieved context chunks and the question
  */
-async function generateAnswer(contextChunks: string[], question: string): Promise<string> {
-  try {
-    const context = contextChunks.length > 0 
-      ? contextChunks.join("\n\n") 
-      : "No specific context available for this question.";
+// async function generateAnswer(contextChunks: string[], question: string): Promise<string> {
+//   try {
+//     const context = contextChunks.length > 0 
+//       ? contextChunks.join("\n\n") 
+//       : "No specific context available for this question.";
       
-    const prompt = `You are a Solution Engineer answering a customer RFP.
-${contextChunks.length > 0 
-  ? 'Use only the context below to answer clearly and accurately.' 
-  : 'No specific context is available. Answer based on your general knowledge, but mention that this is a general response.'}
+//     const prompt = `You are a Solution Engineer answering a customer RFP.
+// ${contextChunks.length > 0 
+//   ? 'Use only the context below to answer clearly and accurately.' 
+//   : 'No specific context is available. Answer based on your general knowledge, but mention that this is a general response.'}
 
-Context:
-${context}
+// Context:
+// ${context}
 
-Question:
-${question}
+// Question:
+// ${question}
 
-Answer:`;
+// Answer:`;
 
-    console.log(`🧠 Generating answer for: ${question}`);
+//     console.log(`🧠 Generating answer for: ${question}`);
     
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.2
-    });
+//     const response = await openai.chat.completions.create({
+//       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+//       messages: [{ role: "user", content: prompt }],
+//       temperature: 0.2
+//     });
     
-    return response.choices[0].message.content || "Unable to generate answer.";
-  } catch (error) {
-    console.error("Error generating answer:", error);
-    return "Error generating answer. Please try again later.";
-  }
-}
+//     return response.choices[0].message.content || "Unable to generate answer.";
+//   } catch (error) {
+//     console.error("Error generating answer:", error);
+//     return "Error generating answer. Please try again later.";
+//   }
+// }
 
-/**
- * Main function to process a question and return an answer
- */
+// /**
+//  * Main function to process a question and return an answer
+//  */
+// export async function answerQuestion(question: string, nResults: number = 3): Promise<{
+//   compliance: string;
+//   answer: string;
+// }> {
+//   try {
+//     console.log(`💬 Processing question: ${question}`);
+    
+//     // Step 1: Retrieve relevant chunks
+//     const documents = await searchChunks(question, nResults);
+    
+//     // Even if no documents are found, we can still generate an answer 
+//     // with the updated generateAnswer function that handles empty context
+//     if (documents.length === 0) {
+//       console.log("No relevant documents found in knowledge base. Generating answer without specific context.");
+//     }
+    
+//     // Step 2: Generate the answer
+//     const answer = await generateAnswer(documents, question);
+    
+//     // Log retrieval results
+//     console.log("\n🧠 Top Matches:");
+//     documents.forEach((doc, i) => {
+//       console.log(`🔹 ${doc.substring(0, 100)}...`);
+//     });
+    
+//     console.log("\n✅ Final Answer:");
+//     console.log(answer);
+    
+//     // Simple compliance detection based on the answer content
+//     let compliance = "Unknown";
+    
+//     // Check if the answer contains indicators of compliance levels
+//     const answerLower = answer.toLowerCase();
+//     if (answerLower.includes("full compliance") || 
+//         answerLower.includes("fully compliant") || 
+//         answerLower.includes("fully supports") ||
+//         answerLower.includes("yes, natively")) {
+//       compliance = "Yes, natively";
+//     } else if (answerLower.includes("partial compliance") || 
+//                answerLower.includes("partially compliant") ||
+//                answerLower.includes("requires configuration") ||
+//                answerLower.includes("with customization")) {
+//       compliance = "Yes, with customization";
+//     } else if (answerLower.includes("roadmap") ||
+//                answerLower.includes("future release") ||
+//                answerLower.includes("planned feature")) {
+//       compliance = "Future roadmap";
+//     } else if (answerLower.includes("does not support") ||
+//                answerLower.includes("not supported") ||
+//                answerLower.includes("cannot provide") ||
+//                answerLower.includes("no support for")) {
+//       compliance = "No";
+//     } else if (answerLower.includes("third-party") ||
+//                answerLower.includes("3rd party") ||
+//                answerLower.includes("partner solution")) {
+//       compliance = "Yes, with 3rd party";
+//     } else if (documents.length === 0 || 
+//                answerLower.includes("no specific context") ||
+//                answerLower.includes("general response")) {
+//       compliance = "Unknown";
+//     } else {
+//       // Default to assuming support
+//       compliance = "Yes, natively";
+//     }
+    
+//     return {
+//       compliance,
+//       answer
+//     };
+//   } catch (error) {
+//     console.error("Error answering question:", error);
+//     return {
+//       compliance: "Error",
+//       answer: "An error occurred while processing your question."
+//     };
+//   }
+// }
+
 export async function answerQuestion(question: string, nResults: number = 3): Promise<{
   compliance: string;
   answer: string;
 }> {
   try {
     console.log(`💬 Processing question: ${question}`);
-    
+
     // Step 1: Retrieve relevant chunks
     const documents = await searchChunks(question, nResults);
-    
-    // Even if no documents are found, we can still generate an answer 
-    // with the updated generateAnswer function that handles empty context
+
     if (documents.length === 0) {
-      console.log("No relevant documents found in knowledge base. Generating answer without specific context.");
+      console.log("No relevant documents found. Generating fallback answer.");
     }
-    
-    // Step 2: Generate the answer
-    const answer = await generateAnswer(documents, question);
-    
-    // Log retrieval results
+
+    // Step 2: Generate both compliance + elaborate answer in a single LLM call
+    const { compliance, answer } = await generateAnswer(documents, question);
+
+    // Log result
     console.log("\n🧠 Top Matches:");
     documents.forEach((doc, i) => {
       console.log(`🔹 ${doc.substring(0, 100)}...`);
     });
-    
+
     console.log("\n✅ Final Answer:");
     console.log(answer);
-    
-    // Simple compliance detection based on the answer content
-    let compliance = "Unknown";
-    
-    // Check if the answer contains indicators of compliance levels
-    const answerLower = answer.toLowerCase();
-    if (answerLower.includes("full compliance") || 
-        answerLower.includes("fully compliant") || 
-        answerLower.includes("fully supports") ||
-        answerLower.includes("yes, natively")) {
-      compliance = "Yes, natively";
-    } else if (answerLower.includes("partial compliance") || 
-               answerLower.includes("partially compliant") ||
-               answerLower.includes("requires configuration") ||
-               answerLower.includes("with customization")) {
-      compliance = "Yes, with customization";
-    } else if (answerLower.includes("roadmap") ||
-               answerLower.includes("future release") ||
-               answerLower.includes("planned feature")) {
-      compliance = "Future roadmap";
-    } else if (answerLower.includes("does not support") ||
-               answerLower.includes("not supported") ||
-               answerLower.includes("cannot provide") ||
-               answerLower.includes("no support for")) {
-      compliance = "No";
-    } else if (answerLower.includes("third-party") ||
-               answerLower.includes("3rd party") ||
-               answerLower.includes("partner solution")) {
-      compliance = "Yes, with 3rd party";
-    } else if (documents.length === 0 || 
-               answerLower.includes("no specific context") ||
-               answerLower.includes("general response")) {
-      compliance = "Unknown";
-    } else {
-      // Default to assuming support
-      compliance = "Yes, natively";
-    }
-    
-    return {
-      compliance,
-      answer
-    };
+
+    return { compliance, answer };
+
   } catch (error) {
     console.error("Error answering question:", error);
     return {
@@ -245,6 +282,67 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
     };
   }
 }
+
+async function generateAnswer(contextChunks: string[], question: string): Promise<{
+  compliance: string;
+  answer: string;
+}> {
+  try {
+    const context = contextChunks.length > 0
+      ? contextChunks.join("\n\n")
+      : "No specific context available for this question.";
+
+    const prompt = `You are a VTEX Solution Engineer answering a customer RFP.
+
+${contextChunks.length > 0
+  ? "Use only the context below to answer clearly and accurately."
+  : "No specific context is available. Answer based on your general knowledge, but make it clear that this is a general response."}
+
+Context:
+${context}
+
+Question:
+${question}
+
+Respond strictly in the following JSON format (and nothing else):
+
+{
+  "compliance": "<one of: Yes, natively | Yes, with customization | Yes, with 3rd party integration | No, not provided | Unknown>",
+  "answer": "<elaborate answer string>"
+}
+`;
+
+    console.log(`🧠 Sending prompt to LLM...`);
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2
+    });
+
+    const raw = response.choices[0].message.content || "";
+
+    // Try parsing response
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd = raw.lastIndexOf('}');
+    const jsonString = raw.slice(jsonStart, jsonEnd + 1);
+
+    const parsed = JSON.parse(jsonString);
+
+    return {
+      compliance: parsed.compliance || "Unknown",
+      answer: parsed.answer || "No answer returned."
+    };
+
+  } catch (error) {
+    console.error("Error generating or parsing answer:", error);
+    return {
+      compliance: "Error",
+      answer: "An error occurred while generating the answer."
+    };
+  }
+}
+
 
 /**
  * Create an embedding for a text using OpenAI
