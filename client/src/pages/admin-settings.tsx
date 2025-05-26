@@ -119,16 +119,16 @@ export default function AdminSettings() {
     enabled: activeSection === 'knowledge-base'
   });
 
-  // Fetch users
+  // Fetch users (always fetch to display user emails in all sections)
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['/api/admin/users'],
-    enabled: activeSection === 'user-management'
+    queryKey: ['/api/admin/users']
   });
 
   const users = usersData?.users || [];
 
   // Helper function to get user email by ID
   const getUserEmail = (userId: string): string => {
+    if (!userId) return 'N/A';
     const foundUser = users.find((u: User) => u.id === userId);
     return foundUser?.email || userId;
   };
@@ -339,12 +339,24 @@ export default function AdminSettings() {
               {rfpDocuments.map((doc: RfpDocument) => (
                 <TableRow key={doc.id}>
                   <TableCell>
-                    <a
-                      href={`/projects/${doc.projectId || doc.project_id}/rfp-documents/${doc.id}`}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      {doc.name || 'Untitled Document'}
-                    </a>
+                    {doc.fileUrl || doc.file_url ? (
+                      <a
+                        href={doc.fileUrl || doc.file_url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      >
+                        {doc.name || `RFP Document ${doc.id.slice(0, 8)}`}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <a
+                        href={`/projects/${doc.projectId || doc.project_id}/rfp-documents/${doc.id}`}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        {doc.name || `RFP Document ${doc.id.slice(0, 8)}`}
+                      </a>
+                    )}
                   </TableCell>
                   <TableCell>
                     {projectsData?.projects?.find((p: Project) => p.id === (doc.projectId || doc.project_id))?.name || 'Unknown Project'}
