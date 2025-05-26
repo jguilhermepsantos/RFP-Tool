@@ -435,25 +435,29 @@ export default function AdminSettings() {
                                   <StatusBadge status={doc.approval_status} />
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => updateDocumentApproval.mutate({id: doc.id, status: 'approved'})}
-                                      disabled={updateDocumentApproval.isPending}
-                                    >
-                                      <Check className="h-4 w-4 mr-1" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => updateDocumentApproval.mutate({id: doc.id, status: 'rejected'})}
-                                      disabled={updateDocumentApproval.isPending}
-                                    >
-                                      <X className="h-4 w-4 mr-1" />
-                                      Reject
-                                    </Button>
-                                  </div>
+                                  {doc.approval_status === 'pending' ? (
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => updateDocumentApproval.mutate({id: doc.id, status: 'approved'})}
+                                        disabled={updateDocumentApproval.isPending}
+                                      >
+                                        <Check className="h-4 w-4 mr-1" />
+                                        Approve
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => updateDocumentApproval.mutate({id: doc.id, status: 'rejected'})}
+                                        disabled={updateDocumentApproval.isPending}
+                                      >
+                                        <X className="h-4 w-4 mr-1" />
+                                        Reject
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-gray-500">No actions available</span>
+                                  )}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -526,25 +530,29 @@ export default function AdminSettings() {
                                   <StatusBadge status={doc.approval_status} />
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => updateRfpDocumentApproval.mutate({id: doc.id, status: 'approved'})}
-                                      disabled={updateRfpDocumentApproval.isPending}
-                                    >
-                                      <Check className="h-4 w-4 mr-1" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => updateRfpDocumentApproval.mutate({id: doc.id, status: 'rejected'})}
-                                      disabled={updateRfpDocumentApproval.isPending}
-                                    >
-                                      <X className="h-4 w-4 mr-1" />
-                                      Reject
-                                    </Button>
-                                  </div>
+                                  {doc.approval_status === 'pending' ? (
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => updateRfpDocumentApproval.mutate({id: doc.id, status: 'approved'})}
+                                        disabled={updateRfpDocumentApproval.isPending}
+                                      >
+                                        <Check className="h-4 w-4 mr-1" />
+                                        Approve
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => updateRfpDocumentApproval.mutate({id: doc.id, status: 'rejected'})}
+                                        disabled={updateRfpDocumentApproval.isPending}
+                                      >
+                                        <X className="h-4 w-4 mr-1" />
+                                        Reject
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-gray-500">No actions available</span>
+                                  )}
                                 </TableCell>
                               </TableRow>
                             ))}
