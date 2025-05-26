@@ -1159,10 +1159,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
       
-      const feedback = await storage.createFeedback({
+      // Insert directly into PostgreSQL to avoid schema mapping issues
+      const { db } = await import('./db');
+      const { feedbacks } = await import('../shared/schema');
+      
+      const [feedback] = await db.insert(feedbacks).values({
         content,
-        uploadedBy: user.id
-      });
+        uploadedBy: user.id,
+      }).returning();
       
       return res.status(201).json(feedback);
     } catch (error) {
