@@ -40,12 +40,13 @@ export async function apiRequest(
 
   await throwIfResNotOk(res);
   
-  // If it's a GET request, try to parse the JSON
-  if (!options?.method || options.method === 'GET') {
+  // Parse JSON for all successful requests
+  try {
     return await res.json();
+  } catch (e) {
+    // If JSON parsing fails, return the response object
+    return res;
   }
-  
-  return res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
