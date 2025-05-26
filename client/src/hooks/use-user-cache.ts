@@ -25,13 +25,15 @@ export function useUserCache(userIds: (string | null)[]): UseUserCacheResult {
         return { users: [] };
       }
 
-      return await apiRequest('/api/users/batch', {
+      const response = await apiRequest('/api/users/batch', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userIds: validUserIds }),
-      }) as { users: User[] };
+      });
+      console.log('useUserCache API response:', response);
+      return response as { users: User[] };
     },
     enabled: validUserIds.length > 0,
     staleTime: 10 * 60 * 1000, // Cache users for 10 minutes
