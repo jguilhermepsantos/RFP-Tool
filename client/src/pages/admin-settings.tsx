@@ -69,6 +69,7 @@ interface RfpDocument {
 export default function AdminSettings() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [activeSection, setActiveSection] = useState<string>('knowledge-base');
   const [activeTab, setActiveTab] = useState<string>('documents');
   const [documentFilterStatus, setDocumentFilterStatus] = useState<string>('all');
   const [rfpFilterStatus, setRfpFilterStatus] = useState<string>('all');
