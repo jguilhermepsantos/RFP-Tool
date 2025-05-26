@@ -153,6 +153,8 @@ export default function AdminSettings() {
   const { getUserEmail, isLoading: isUsersLoading } = useUserCache(allUserIds);
     
   console.log("RFP documents:", rfpDocuments);
+  console.log("RFP document uploaded_by values:", rfpDocuments.map(doc => ({ name: doc.name, uploaded_by: doc.uploaded_by })));
+  console.log("All user IDs being fetched:", allUserIds);
   console.log("Projects:", projects);
 
   // Mutation for updating document approval status
