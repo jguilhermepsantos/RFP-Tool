@@ -46,8 +46,14 @@ export function useUserCache(userIds: (string | null)[]): UseUserCacheResult {
   }
 
   const getUserEmail = (userId: string | null): string => {
-    if (!userId) return 'Unknown User';
+    console.log('getUserEmail called with userId:', userId);
+    if (!userId) {
+      console.log('getUserEmail returning Unknown User (null userId)');
+      return 'Unknown User';
+    }
     const user = userMap.get(userId);
+    console.log('getUserEmail userMap lookup result:', user);
+    console.log('getUserEmail userMap contents:', Array.from(userMap.entries()));
     return user?.email || 'Unknown User';
   };
 
