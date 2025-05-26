@@ -16,6 +16,9 @@ export default function ProvideFeedbackPage() {
     mutationFn: (content: string) => {
       return apiRequest("/api/feedback", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ content }),
       });
     },
