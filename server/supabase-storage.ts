@@ -52,26 +52,46 @@ export class SupabaseStorage implements IStorage {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
     
-    if (error) throw new Error(`Failed to get all users: ${error.message}`);
-    return data as User[];
+    if (error) {
+      console.error('Error fetching users from Supabase:', error);
+      throw new Error(`Failed to fetch users: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
-  async updateUserAccess(userId: string, accessGranted: boolean): Promise<User | undefined> {
+  async updateUserAccess(id: string, accessGranted: boolean): Promise<User | undefined> {
     const { data, error } = await supabase
       .from('users')
       .update({ access_granted: accessGranted })
-      .eq('id', userId)
+      .eq('id', id)
       .select()
       .single();
     
     if (error) {
-      console.error(`Error updating user access: ${error.message}`);
-      return undefined;
+      console.error('Error updating user access in Supabase:', error);
+      throw new Error(`Failed to update user access: ${error.message}`);
     }
     
-    return data as User;
+    return data || undefined;
+  }
+
+  async updateUserRole(id: string, role: string): Promise<User | undefined> {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ role })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating user role in Supabase:', error);
+      throw new Error(`Failed to update user role: ${error.message}`);
+    }
+    
+    return data || undefined;
   }
   
   // Project operations
