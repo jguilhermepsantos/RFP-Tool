@@ -7,10 +7,12 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, MessageSquare } from "lucide-react";
 import NavHeader from "@/components/nav-header";
+import { useAuth } from "@/lib/auth";
 
 export default function ProvideFeedbackPage() {
   const [content, setContent] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const feedbackMutation = useMutation({
     mutationFn: (content: string) => {
@@ -18,6 +20,7 @@ export default function ProvideFeedbackPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": user?.email || "",
         },
         body: JSON.stringify({ content }),
       });
