@@ -44,6 +44,28 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(users.createdAt);
+  }
+
+  async updateUserAccess(id: string, accessGranted: boolean): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ accessGranted })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
+  async updateUserRole(id: string, role: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
   // Project operations
   async getProjects(): Promise<Project[]> {
     try {
