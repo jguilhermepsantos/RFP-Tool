@@ -601,7 +601,7 @@ export default function AdminSettings() {
                                 {(user.accessGranted || user.access_granted) ? 'Granted' : 'Denied'}
                               </Badge>
                             </TableCell>
-                            <TableCell>{formatDate(user.createdAt)}</TableCell>
+                            <TableCell>{formatDate(user.createdAt || user.created_at)}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <Button
