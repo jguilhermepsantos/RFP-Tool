@@ -785,7 +785,14 @@ export class SupabaseStorage implements IStorage {
       .single();
     
     if (error) throw new Error(`Failed to create feedback: ${error.message}`);
-    return data as Feedback;
+    
+    // Map the response back to camelCase for consistency
+    return {
+      id: data.id,
+      uploadedBy: data.uploaded_by,
+      content: data.content,
+      createdAt: data.created_at
+    } as Feedback;
   }
 
   async getFeedbacks(): Promise<Feedback[]> {
