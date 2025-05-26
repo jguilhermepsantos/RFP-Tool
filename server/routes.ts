@@ -1068,6 +1068,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User management endpoints
+  apiRouter.get("/admin/users", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
+  apiRouter.post("/admin/users/:id/access", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { accessGranted } = req.body;
+      
+      if (typeof accessGranted !== 'boolean') {
+        return res.status(400).json({ error: 'accessGranted must be a boolean' });
+      }
+
+      const result = await storage.updateUserAccess(id, accessGranted);
+      if (!result) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating user access:', error);
+      res.status(500).json({ error: 'Failed to update user access' });
+    }
+  });
+
+  apiRouter.post("/admin/users/:id/role", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      
+      if (!['admin', 'user'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role. Must be admin or user.' });
+      }
+
+      const result = await storage.updateUserRole(id, role);
+      if (!result) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      res.status(500).json({ error: 'Failed to update user role' });
+    }
+  });
+
   // Create the HTTP server
   const httpServer = createServer(app);
   return httpServer;
