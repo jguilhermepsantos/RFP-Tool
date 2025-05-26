@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, LogOut, User, FileUp, Settings, Scissors } from "lucide-react";
+import { FileText, LogOut, User, FileUp, Settings, MessageSquare } from "lucide-react";
 
 export default function NavHeader() {
   const { user, logout, isAdmin } = useAuth();
@@ -96,6 +96,12 @@ export default function NavHeader() {
                 <DropdownMenuItem className="cursor-pointer">
                   <FileUp className="mr-2 h-4 w-4" />
                   <span>Suggest Document</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/provide-feedback">
+                <DropdownMenuItem className="cursor-pointer">
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  <span>Provide Feedback</span>
                 </DropdownMenuItem>
               </Link>
               {isAdmin && (
