@@ -947,6 +947,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User management endpoints
+  apiRouter.get("/admin/users", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      return res.status(200).json({ users });
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  apiRouter.patch("/admin/users/:userId/access", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const { accessGranted } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "Valid user ID is required" });
+      }
+      
+      if (typeof accessGranted !== 'boolean') {
+        return res.status(400).json({ message: "accessGranted must be a boolean" });
+      }
+      
+      const updatedUser = await storage.updateUserAccess(userId, accessGranted);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      return res.status(200).json({ user: updatedUser });
+    } catch (error) {
+      console.error('Error updating user access:', error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   apiRouter.post("/admin/documents/:id/approve", requireAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
