@@ -605,6 +605,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Batch users endpoint for efficient user data fetching
+  apiRouter.post("/users/batch", async (req: Request, res: Response) => {
+    try {
+      const { userIds } = req.body;
+      
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: "Valid user IDs array is required" });
+      }
+      
+      // Remove duplicates and filter out null/undefined values
+      const uniqueUserIds = Array.from(new Set(userIds.filter(id => id)));
+      
+      if (uniqueUserIds.length === 0) {
+        return res.status(200).json({ users: [] });
+      }
+      
+      // Fetch all users in a single query using Supabase
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('id, email, name')
+        .in('id', uniqueUserIds);
+      
+      if (error) {
+        console.error('Error fetching batch users:', error);
+        return res.status(500).json({ message: "Failed to fetch users" });
+      }
+      
+      return res.status(200).json({ users: users || [] });
+    } catch (error) {
+      console.error('Error in batch users endpoint:', error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // RFP Answer routes
   apiRouter.patch(
     "/rfp-answers/:answerId",
