@@ -133,6 +133,19 @@ export default function AdminSettings() {
     return foundUser?.email || userId;
   };
 
+  // Helper function to extract filename from file URL
+  const getDocumentName = (doc: RfpDocument): string => {
+    const fileUrl = doc.fileUrl || doc.file_url;
+    if (doc.name) return doc.name;
+    if (fileUrl) {
+      // Extract filename from URL
+      const filename = fileUrl.split('/').pop() || '';
+      // Decode URL encoding and clean up
+      return decodeURIComponent(filename).replace(/^\d+_/, '') || `RFP Document ${doc.id.slice(0, 8)}`;
+    }
+    return `RFP Document ${doc.id.slice(0, 8)}`;
+  };
+
   // Document approval mutation
   const documentApprovalMutation = useMutation({
     mutationFn: async ({ documentId, approved }: { documentId: string; approved: boolean }) => {
@@ -346,7 +359,7 @@ export default function AdminSettings() {
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
                       >
-                        {doc.name || `RFP Document ${doc.id.slice(0, 8)}`}
+                        {getDocumentName(doc)}
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (
@@ -354,7 +367,7 @@ export default function AdminSettings() {
                         href={`/projects/${doc.projectId || doc.project_id}/rfp-documents/${doc.id}`}
                         className="text-blue-600 hover:text-blue-800"
                       >
-                        {doc.name || `RFP Document ${doc.id.slice(0, 8)}`}
+                        {getDocumentName(doc)}
                       </a>
                     )}
                   </TableCell>
