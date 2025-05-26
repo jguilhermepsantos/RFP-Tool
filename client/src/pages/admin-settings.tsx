@@ -6,6 +6,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { ChunkingService } from '@/lib/chunkingService';
+import { useUserCache } from '@/hooks/use-user-cache';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -71,7 +72,6 @@ export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState<string>('documents');
   const [documentFilterStatus, setDocumentFilterStatus] = useState<string>('all');
   const [rfpFilterStatus, setRfpFilterStatus] = useState<string>('all');
-  const [userEmailsMap, setUserEmailsMap] = useState<Record<string, string>>({});
   
   // Headers for admin API requests
   const adminHeaders = {
@@ -132,6 +132,17 @@ export default function AdminSettings() {
     if (rfpFilterStatus === 'all') return true;
     return doc.approval_status === rfpFilterStatus;
   });
+
+  // Collect all user IDs that need to be fetched for email display
+  const allUserIds = [
+    ...documents.map(doc => doc.uploaded_by || doc.uploadedBy),
+    ...documents.map(doc => doc.approval_status_modified_by || doc.approvalStatusModifiedBy),
+    ...rfpDocuments.map(doc => doc.uploaded_by),
+    ...rfpDocuments.map(doc => doc.approval_status_modified_by)
+  ].filter((id): id is string => Boolean(id));
+
+  // Use the batch user cache hook
+  const { getUserEmail, isLoading: isUsersLoading } = useUserCache(allUserIds);
     
   console.log("RFP documents:", rfpDocuments);
   console.log("Projects:", projects);
@@ -309,75 +320,7 @@ export default function AdminSettings() {
     return shortId;
   };
   
-  // Function to get user email from user ID
-  const getUserEmail = (userId: string | undefined | null) => {
-    if (!userId) return 'N/A';
-    
-    // Return the email from the map if it exists
-    if (userEmailsMap[userId]) {
-      return userEmailsMap[userId];
-    }
-    
-    // If we don't have the email, return a formatted user ID
-    const shortId = userId.substring(0, 8) + '...';
-    return shortId;
-  };
-  
-  // Fetch user emails for document uploaders
-  useEffect(() => {
-    const fetchUserEmails = async () => {
-      // Collect all user IDs from documents and RFP documents
-      const userIds = new Set<string>();
-      
-      if (documents && documents.length > 0) {
-        documents.forEach(doc => {
-          if (doc.uploaded_by) userIds.add(doc.uploaded_by);
-        });
-      }
-      
-      if (allRfpDocuments && allRfpDocuments.length > 0) {
-        allRfpDocuments.forEach(doc => {
-          if (doc.uploaded_by) userIds.add(doc.uploaded_by);
-        });
-      }
-      
-      if (userIds.size === 0) {
-        console.log('No user IDs found to fetch emails for');
-        return;
-      }
-      
-      try {
-        console.log(`Fetching emails for ${userIds.size} users:`, Array.from(userIds));
-        
-        // Query Supabase for user details
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, email')
-          .in('id', Array.from(userIds));
-          
-        if (error) throw new Error(error.message);
-        
-        if (!data || data.length === 0) {
-          console.warn('No user data returned from Supabase');
-          return;
-        }
-        
-        // Create a map of user IDs to emails
-        const emailMap: Record<string, string> = {};
-        data.forEach(user => {
-          emailMap[user.id] = user.email;
-        });
-        
-        console.log('Email map created:', emailMap);
-        setUserEmailsMap(emailMap);
-      } catch (err) {
-        console.error('Error fetching user emails:', err);
-        // Continue without emails, don't block the UI
-      }
-    };
-    
-    fetchUserEmails();
-  }, [documents, allRfpDocuments]);
+
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string | undefined }) => {
@@ -475,7 +418,7 @@ export default function AdminSettings() {
                               doc.name || 'Unnamed document'
                             )}
                           </TableCell>
-                          <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
+                          <TableCell>{getUserEmail(doc.uploaded_by || null)}</TableCell>
                           <TableCell>{formatDate(doc.createdAt || doc.created_at)}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />
@@ -584,7 +527,7 @@ export default function AdminSettings() {
                             </a>
                           </TableCell>
                           <TableCell>{getProjectName(doc.project_id)}</TableCell>
-                          <TableCell>{getUserEmail(doc.uploaded_by)}</TableCell>
+                          <TableCell>{getUserEmail(doc.uploaded_by || null)}</TableCell>
                           <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
                           <TableCell>
                             <StatusBadge status={doc.approval_status} />

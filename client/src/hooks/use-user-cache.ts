@@ -16,9 +16,9 @@ interface UseUserCacheResult {
 
 export function useUserCache(userIds: (string | null)[]): UseUserCacheResult {
   // Filter out null/undefined values and remove duplicates
-  const validUserIds = [...new Set(userIds.filter(Boolean))] as string[];
+  const validUserIds = Array.from(new Set(userIds.filter(Boolean))) as string[];
 
-  const { data: usersData, isLoading, error } = useQuery({
+  const { data: usersData, isLoading, error } = useQuery<{ users: User[] }>({
     queryKey: ['/api/users/batch', validUserIds.sort().join(',')],
     queryFn: async () => {
       if (validUserIds.length === 0) {
@@ -31,7 +31,7 @@ export function useUserCache(userIds: (string | null)[]): UseUserCacheResult {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userIds: validUserIds }),
-      });
+      }) as { users: User[] };
     },
     enabled: validUserIds.length > 0,
     staleTime: 10 * 60 * 1000, // Cache users for 10 minutes
