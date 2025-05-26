@@ -777,7 +777,10 @@ export class SupabaseStorage implements IStorage {
   async createFeedback(feedback: InsertFeedback): Promise<Feedback> {
     const { data, error } = await supabase
       .from('feedbacks')
-      .insert(feedback)
+      .insert({
+        content: feedback.content,
+        uploaded_by: feedback.uploadedBy
+      })
       .select()
       .single();
     
