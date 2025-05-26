@@ -56,6 +56,15 @@ export default function NavHeader() {
                 Suggest Document
               </div>
             </Link>
+            <Link href="/provide-feedback">
+              <div className={`px-3 py-2 rounded-md text-sm font-medium cursor-pointer ${
+                location === '/provide-feedback' 
+                  ? 'bg-primary/10 text-primary' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}>
+                Provide Feedback
+              </div>
+            </Link>
           </nav>
         </div>
         

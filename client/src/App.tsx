@@ -11,7 +11,7 @@ import ProjectDetails from "@/pages/project-details";
 import RfpDocument from "@/pages/rfp-document";
 import SuggestDocument from "@/pages/suggest-document";
 import AdminSettings from "@/pages/admin-settings";
-
+import ProvideFeedback from "@/pages/provide-feedback";
 import UploadTestPage from "@/pages/upload-test";
 
 function Router() {
@@ -47,6 +47,12 @@ function Router() {
       <Route path="/suggest-document">
         <RequireAuth>
           <SuggestDocument />
+        </RequireAuth>
+      </Route>
+      
+      <Route path="/provide-feedback">
+        <RequireAuth>
+          <ProvideFeedback />
         </RequireAuth>
       </Route>
       

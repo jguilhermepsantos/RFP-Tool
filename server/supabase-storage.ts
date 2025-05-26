@@ -772,6 +772,28 @@ export class SupabaseStorage implements IStorage {
     console.log(`[SupabaseStorage] Successfully updated document status:`, data);
     return data as Document;
   }
+
+  // Feedback operations
+  async createFeedback(feedback: InsertFeedback): Promise<Feedback> {
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .insert(feedback)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create feedback: ${error.message}`);
+    return data as Feedback;
+  }
+
+  async getFeedbacks(): Promise<Feedback[]> {
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw new Error(`Failed to get feedbacks: ${error.message}`);
+    return data as Feedback[];
+  }
 }
 
 // Special patched method that will get a document with its answers in one query

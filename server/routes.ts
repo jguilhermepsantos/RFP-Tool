@@ -1139,6 +1139,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Feedback routes
+  apiRouter.post("/feedback", async (req: Request, res: Response) => {
+    try {
+      const { content } = req.body;
+      const userEmail = req.headers.authorization;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: 'Content is required' });
+      }
+      
+      if (!userEmail) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      // Get user by email to get the user ID
+      const user = await storage.getUserByEmail(userEmail);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      const feedback = await storage.createFeedback({
+        content,
+        uploadedBy: user.id
+      });
+      
+      return res.status(201).json(feedback);
+    } catch (error) {
+      console.error('Error creating feedback:', error);
+      return res.status(500).json({ error: 'Failed to create feedback' });
+    }
+  });
+
+  apiRouter.get("/admin/feedback", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const feedbacks = await storage.getFeedbacks();
+      return res.status(200).json(feedbacks);
+    } catch (error) {
+      console.error('Error fetching feedbacks:', error);
+      return res.status(500).json({ error: 'Failed to fetch feedbacks' });
+    }
+  });
+
   // Create the HTTP server
   const httpServer = createServer(app);
   return httpServer;
