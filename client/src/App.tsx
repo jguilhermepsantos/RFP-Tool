@@ -62,11 +62,7 @@ function Router() {
         </RequireAuth>
       </Route>
       
-      <Route path="/chunk-documents">
-        <RequireAdmin>
-          <ChunkDocuments />
-        </RequireAdmin>
-      </Route>
+
       
       {/* Redirect from root to projects */}
       <Route path="/">
