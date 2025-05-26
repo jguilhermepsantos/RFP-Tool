@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, MessageSquare } from "lucide-react";
+import NavHeader from "@/components/nav-header";
 
 export default function ProvideFeedbackPage() {
   const [content, setContent] = useState("");
@@ -50,8 +51,11 @@ export default function ProvideFeedbackPage() {
   };
 
   return (
-    <div className="container py-10">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <NavHeader />
+      
+      <div className="container py-10">
+        <div className="max-w-2xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Provide Feedback</h1>
           <p className="text-muted-foreground">
@@ -116,6 +120,7 @@ export default function ProvideFeedbackPage() {
             <li>• Performance or speed-related concerns</li>
             <li>• Any other thoughts about the tool</li>
           </ul>
+        </div>
         </div>
       </div>
     </div>
