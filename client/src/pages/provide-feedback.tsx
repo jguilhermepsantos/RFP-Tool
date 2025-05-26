@@ -14,7 +14,7 @@ export default function ProvideFeedbackPage() {
 
   const feedbackMutation = useMutation({
     mutationFn: (content: string) => {
-      return apiRequest("/feedback", {
+      return apiRequest("/api/feedback", {
         method: "POST",
         body: JSON.stringify({ content }),
       });
