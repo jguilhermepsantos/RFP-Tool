@@ -20,7 +20,6 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name"),
   role: text("role").default('user'),
-  accessGranted: boolean("access_granted").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -15,7 +15,7 @@ import {
   users, projects, projectPermissions, rfpDocuments, 
   rfpQuestions, rfpAnswers, documents, chunks, complianceMappings
 } from "@shared/schema";
-import { db, supabase } from './db';
+import { db } from './db';
 import { eq, and, or, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { IStorage } from './storage';
@@ -42,52 +42,6 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: true });
-    
-    if (error) {
-      console.error('Error fetching users from Supabase:', error);
-      throw new Error(`Failed to fetch users: ${error.message}`);
-    }
-    
-    return data || [];
-  }
-
-  async updateUserAccess(id: string, accessGranted: boolean): Promise<User | undefined> {
-    const { data, error } = await supabase
-      .from('users')
-      .update({ access_granted: accessGranted })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error updating user access in Supabase:', error);
-      throw new Error(`Failed to update user access: ${error.message}`);
-    }
-    
-    return data || undefined;
-  }
-
-  async updateUserRole(id: string, role: string): Promise<User | undefined> {
-    const { data, error } = await supabase
-      .from('users')
-      .update({ role })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error updating user role in Supabase:', error);
-      throw new Error(`Failed to update user role: ${error.message}`);
-    }
-    
-    return data || undefined;
   }
 
   // Project operations

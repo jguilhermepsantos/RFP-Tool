@@ -605,40 +605,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
-  // Batch users endpoint for efficient user data fetching
-  apiRouter.post("/users/batch", async (req: Request, res: Response) => {
-    try {
-      const { userIds } = req.body;
-      
-      if (!Array.isArray(userIds) || userIds.length === 0) {
-        return res.status(400).json({ message: "Valid user IDs array is required" });
-      }
-      
-      // Remove duplicates and filter out null/undefined values
-      const uniqueUserIds = Array.from(new Set(userIds.filter(id => id)));
-      
-      if (uniqueUserIds.length === 0) {
-        return res.status(200).json({ users: [] });
-      }
-      
-      // Fetch all users in a single query using Supabase
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('id, email, name')
-        .in('id', uniqueUserIds);
-      
-      if (error) {
-        console.error('Error fetching batch users:', error);
-        return res.status(500).json({ message: "Failed to fetch users" });
-      }
-      
-      return res.status(200).json({ users: users || [] });
-    } catch (error) {
-      console.error('Error in batch users endpoint:', error);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
   // RFP Answer routes
   apiRouter.patch(
     "/rfp-answers/:answerId",
@@ -1065,77 +1031,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error updating RFP document approval status:', error);
       return res.status(500).json({ error: 'Failed to update RFP document approval status' });
-    }
-  });
-
-  // User management endpoints - direct Supabase query
-  apiRouter.get("/admin/users-list", async (req: Request, res: Response) => {
-    try {
-      console.log('[API] /admin/users - Starting direct Supabase query');
-      
-      // Direct Supabase query to bypass any storage issues
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: true });
-      
-      if (error) {
-        console.error('[API] Supabase error:', error);
-        return res.status(500).json({ error: `Supabase error: ${error.message}` });
-      }
-      
-      console.log('[API] /admin/users - Retrieved users directly from Supabase:', users?.length || 0);
-      
-      if (users && users.length > 0) {
-        console.log('[API] First user sample:', users[0]);
-      }
-      
-      res.json(users || []);
-    } catch (error) {
-      console.error('[API] Error fetching users:', error);
-      res.status(500).json({ error: 'Failed to fetch users' });
-    }
-  });
-
-  apiRouter.post("/admin/users/:id/access", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { accessGranted } = req.body;
-      
-      if (typeof accessGranted !== 'boolean') {
-        return res.status(400).json({ error: 'accessGranted must be a boolean' });
-      }
-
-      const result = await storage.updateUserAccess(id, accessGranted);
-      if (!result) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      res.json(result);
-    } catch (error) {
-      console.error('Error updating user access:', error);
-      res.status(500).json({ error: 'Failed to update user access' });
-    }
-  });
-
-  apiRouter.post("/admin/users/:id/role", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { role } = req.body;
-      
-      if (!['admin', 'user'].includes(role)) {
-        return res.status(400).json({ error: 'Invalid role. Must be admin or user.' });
-      }
-
-      const result = await storage.updateUserRole(id, role);
-      if (!result) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      res.json(result);
-    } catch (error) {
-      console.error('Error updating user role:', error);
-      res.status(500).json({ error: 'Failed to update user role' });
     }
   });
 
