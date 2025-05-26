@@ -39,11 +39,17 @@ export function useUserCache(userIds: (string | null)[]): UseUserCacheResult {
 
   // Create a lookup map for O(1) access
   const userMap = new Map<string, User>();
+  console.log('useUserCache usersData:', usersData);
   if (usersData?.users) {
+    console.log('useUserCache processing users:', usersData.users);
     usersData.users.forEach((user: User) => {
+      console.log('useUserCache adding user to map:', user);
       userMap.set(user.id, user);
     });
+  } else {
+    console.log('useUserCache no users data available');
   }
+  console.log('useUserCache final userMap size:', userMap.size);
 
   const getUserEmail = (userId: string | null): string => {
     console.log('getUserEmail called with userId:', userId);
