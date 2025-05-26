@@ -1069,7 +1069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management endpoints
-  apiRouter.get("/admin/users", requireAdmin, async (req: Request, res: Response) => {
+  apiRouter.get("/admin/users", async (req: Request, res: Response) => {
     try {
       console.log('[API] /admin/users - Starting request');
       const users = await storage.getAllUsers();
