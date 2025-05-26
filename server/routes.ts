@@ -1071,7 +1071,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User management endpoints
   apiRouter.get("/admin/users", requireAdmin, async (req: Request, res: Response) => {
     try {
+      console.log('[API] /admin/users - Starting request');
       const users = await storage.getAllUsers();
+      console.log('[API] /admin/users - Retrieved users:', users?.length || 0);
       res.json(users);
     } catch (error) {
       console.error('Error fetching users:', error);
