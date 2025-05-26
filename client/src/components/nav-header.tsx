@@ -97,12 +97,7 @@ export default function NavHeader() {
                       <span>Admin Settings</span>
                     </DropdownMenuItem>
                   </Link>
-                  <Link href="/chunk-documents">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Scissors className="mr-2 h-4 w-4" />
-                      <span>Document Chunking</span>
-                    </DropdownMenuItem>
-                  </Link>
+
                 </>
               )}
               <DropdownMenuSeparator />
