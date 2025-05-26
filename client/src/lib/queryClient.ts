@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { supabase } from "./supabase";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -31,9 +32,20 @@ export async function apiRequest(
     }
   }
 
+  // Prepare headers
+  const headers: Record<string, string> = { ...options?.headers } || {};
+  
+  // For admin endpoints, include the user's email in the authorization header
+  if (url.includes('/admin/') || url.includes('/projects/all')) {
+    const userEmail = await getCurrentUserEmail();
+    if (userEmail) {
+      headers.authorization = userEmail;
+    }
+  }
+
   const res = await fetch(finalUrl, {
     method: options?.method || 'GET',
-    headers: options?.headers || {},
+    headers,
     body: options?.body,
     credentials: "include",
   });
@@ -48,14 +60,32 @@ export async function apiRequest(
   return res;
 }
 
+// Helper function to get current user email for authorization
+async function getCurrentUserEmail(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.email || null;
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    const url = queryKey[0] as string;
+    const headers: Record<string, string> = {};
+    
+    // For admin endpoints, include the user's email in the authorization header
+    if (url.includes('/admin/') || url.includes('/projects/all')) {
+      const userEmail = await getCurrentUserEmail();
+      if (userEmail) {
+        headers.authorization = userEmail;
+      }
+    }
+    
+    const res = await fetch(url, {
       credentials: "include",
+      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
