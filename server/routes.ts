@@ -2,8 +2,8 @@ import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { supabase } from "./db";
-import { handleMockUpload, isS3Configured } from './supabase-s3';
-import { chunkingRouter } from './routes-chunking';
+import { handleMockUpload, isS3Configured } from "./supabase-s3";
+import { chunkingRouter } from "./routes-chunking";
 import {
   insertUserSchema,
   insertProjectSchema,
@@ -21,35 +21,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
   const apiRouter = express.Router();
   app.use("/api", apiRouter);
-  
+
   // Register chunking routes
   apiRouter.use(chunkingRouter);
-  
+
   // Middleware for requiring admin access
-  const requireAdmin = async (req: Request, res: Response, next: express.NextFunction) => {
+  const requireAdmin = async (
+    req: Request,
+    res: Response,
+    next: express.NextFunction,
+  ) => {
     try {
       // In a real app, get this from session or JWT token
       const userEmail = req.headers.authorization;
-      
+
       if (!userEmail) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       console.log(`Admin authorization attempted with email: ${userEmail}`);
-      
+
       // For development purposes, bypass admin check
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Development mode: bypassing admin check');
+      if (process.env.NODE_ENV === "development") {
+        console.log("Development mode: bypassing admin check");
         return next();
       }
-      
+
       // Check if the user is an admin
       const user = await storage.getUserByEmail(userEmail);
-      
-      if (!user || user.role !== 'admin') {
+
+      if (!user || user.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       // User is admin, proceed
       next();
     } catch (error) {
@@ -140,16 +144,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API endpoint to get ALL projects (for admin users)
-  apiRouter.get("/projects/all", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const projects = await storage.getProjects();
-      return res.status(200).json({ projects });
-    } catch (error) {
-      console.error("Error getting all projects:", error);
-      return res.status(500).json({ error: "Failed to retrieve all projects" });
-    }
-  });
-  
+  apiRouter.get(
+    "/projects/all",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const projects = await storage.getProjects();
+        return res.status(200).json({ projects });
+      } catch (error) {
+        console.error("Error getting all projects:", error);
+        return res
+          .status(500)
+          .json({ error: "Failed to retrieve all projects" });
+      }
+    },
+  );
+
   apiRouter.get("/projects/:id", async (req: Request, res: Response) => {
     try {
       const projectId = req.params.id;
@@ -248,76 +258,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: Request, res: Response) => {
       try {
         const documentId = req.params.documentId;
-        
+
         if (!documentId) {
-          return res.status(400).json({ message: "Valid document ID is required" });
+          return res
+            .status(400)
+            .json({ message: "Valid document ID is required" });
         }
-        
+
         // Get document details first to check if it's in 'done' status
         const { data: document, error: documentError } = await supabase
-          .from('rfp_documents')
-          .select('*')
-          .eq('id', documentId)
+          .from("rfp_documents")
+          .select("*")
+          .eq("id", documentId)
           .single();
-          
+
         if (documentError || !document) {
-          console.error('Error fetching document:', documentError);
+          console.error("Error fetching document:", documentError);
           return res.status(404).json({ message: "Document not found" });
         }
-        
+
         // Ensure document is in 'done' status
-        if (document.status !== 'done') {
-          return res.status(400).json({ 
-            message: "Only documents with 'done' status can be exported to CSV" 
+        if (document.status !== "done") {
+          return res.status(400).json({
+            message: "Only documents with 'done' status can be exported to CSV",
           });
         }
-        
+
         // Get all answers for this document
         const { data: answers, error: answersError } = await supabase
-          .from('rfp_answers')
-          .select('*')
-          .eq('rfp_document_id', documentId);
-          
+          .from("rfp_answers")
+          .select("*")
+          .eq("rfp_document_id", documentId);
+
         if (answersError) {
-          console.error('Error fetching answers:', answersError);
-          return res.status(500).json({ message: "Error fetching document answers" });
+          console.error("Error fetching answers:", answersError);
+          return res
+            .status(500)
+            .json({ message: "Error fetching document answers" });
         }
-        
+
         if (!answers || answers.length === 0) {
-          return res.status(404).json({ message: "No answers found for this document" });
+          return res
+            .status(404)
+            .json({ message: "No answers found for this document" });
         }
-        
+
         // Generate CSV content
         const csvHeader = "Question,Compliance,Answer\n";
-        
-        const csvRows = answers.map(answer => {
+
+        const csvRows = answers.map((answer) => {
           // Escape double quotes in fields by replacing with two double quotes
-          const question = answer.question_text?.replace(/"/g, '""') || '';
-          const compliance = answer.compliance_answer?.replace(/"/g, '""') || '';
-          const answerText = answer.generated_answer?.replace(/"/g, '""') || '';
-          
+          const question = answer.question_text?.replace(/"/g, '""') || "";
+          const compliance =
+            answer.compliance_answer?.replace(/"/g, '""') || "";
+          const answerText = answer.generated_answer?.replace(/"/g, '""') || "";
+
           // Wrap fields in double quotes and separate with commas
           return `"${question}","${compliance}","${answerText}"`;
         });
-        
-        const csvContent = csvHeader + csvRows.join('\n');
-        
+
+        const csvContent = csvHeader + csvRows.join("\n");
+
         // Set response headers for CSV download
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="rfp_export_${documentId}.csv"`);
-        
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="rfp_export_${documentId}.csv"`,
+        );
+
         // Send CSV content
         return res.status(200).send(csvContent);
       } catch (error) {
-        console.error('Error exporting to CSV:', error);
-        return res.status(500).json({ 
+        console.error("Error exporting to CSV:", error);
+        return res.status(500).json({
           message: "Internal server error",
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
-    }
+    },
   );
-  
+
   apiRouter.get(
     "/projects/:projectId/rfp-documents/:documentId",
     async (req: Request, res: Response) => {
@@ -343,11 +363,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (documentError) {
           console.log(`Error fetching document:`, documentError);
-          return res
-            .status(500)
-            .json({
-              message: `Failed to fetch document: ${documentError.message}`,
-            });
+          return res.status(500).json({
+            message: `Failed to fetch document: ${documentError.message}`,
+          });
         }
 
         if (!documentData) {
@@ -357,9 +375,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Document from database:`, documentData);
 
         let questionsWithAnswers = [];
-        
+
         console.log(`Document status: ${documentData.status}`);
-        
+
         // Handle differently based on document status
         if (documentData.status === "unprocessed") {
           // For unprocessed documents, get questions without answers
@@ -375,11 +393,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (questionsError) {
             console.log(`Error fetching questions:`, questionsError);
-            return res
-              .status(500)
-              .json({
-                message: `Failed to fetch questions: ${questionsError.message}`,
-              });
+            return res.status(500).json({
+              message: `Failed to fetch questions: ${questionsError.message}`,
+            });
           }
 
           console.log(
@@ -419,11 +435,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (answersError) {
             console.log(`Error fetching answers:`, answersError);
-            return res
-              .status(500)
-              .json({
-                message: `Failed to fetch answers: ${answersError.message}`,
-              });
+            return res.status(500).json({
+              message: `Failed to fetch answers: ${answersError.message}`,
+            });
           }
 
           console.log(
@@ -528,18 +542,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Import the AI service
-        const { processDocumentQuestions } = await import('./ai-service');
-        
+        const { processDocumentQuestions } = await import("./ai-service");
+
         // Process all questions for this document using RAG
         const processingResult = await processDocumentQuestions(documentId);
-        
+
         if (!processingResult.success) {
-          console.log(`Errors occurred during processing:`, processingResult.errors);
+          console.log(
+            `Errors occurred during processing:`,
+            processingResult.errors,
+          );
           // Continue even if there are some errors, as we may have processed some questions successfully
         }
-        
-        console.log(`Successfully processed ${processingResult.processedCount} questions`);
-        
+
+        console.log(
+          `Successfully processed ${processingResult.processedCount} questions`,
+        );
+
         // Update document status to processed
         const updatedDocument = await storage.updateRfpDocumentStatus(
           documentId,
@@ -550,13 +569,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: true,
           processedCount: processingResult.processedCount,
           document: updatedDocument,
-          errors: processingResult.errors
+          errors: processingResult.errors,
         });
       } catch (error) {
         console.error("Error in document processing endpoint:", error);
-        return res.status(500).json({ 
+        return res.status(500).json({
           message: "Internal server error",
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     },
@@ -609,32 +628,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/users/batch", async (req: Request, res: Response) => {
     try {
       const { userIds } = req.body;
-      
+
       if (!Array.isArray(userIds) || userIds.length === 0) {
-        return res.status(400).json({ message: "Valid user IDs array is required" });
+        return res
+          .status(400)
+          .json({ message: "Valid user IDs array is required" });
       }
-      
+
       // Remove duplicates and filter out null/undefined values
-      const uniqueUserIds = Array.from(new Set(userIds.filter(id => id)));
-      
+      const uniqueUserIds = Array.from(new Set(userIds.filter((id) => id)));
+
       if (uniqueUserIds.length === 0) {
         return res.status(200).json({ users: [] });
       }
-      
+
       // Fetch all users in a single query using Supabase
       const { data: users, error } = await supabase
-        .from('users')
-        .select('id, email, name')
-        .in('id', uniqueUserIds);
-      
+        .from("users")
+        .select("id, email, name")
+        .in("id", uniqueUserIds);
+
       if (error) {
-        console.error('Error fetching batch users:', error);
+        console.error("Error fetching batch users:", error);
         return res.status(500).json({ message: "Failed to fetch users" });
       }
-      
+
       return res.status(200).json({ users: users || [] });
     } catch (error) {
-      console.error('Error in batch users endpoint:', error);
+      console.error("Error in batch users endpoint:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -684,150 +705,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/ai/answer", async (req: Request, res: Response) => {
     try {
       const { question } = req.body;
-      
-      if (!question || typeof question !== 'string') {
-        return res.status(400).json({ message: "Valid question text is required" });
+
+      if (!question || typeof question !== "string") {
+        return res
+          .status(400)
+          .json({ message: "Valid question text is required" });
       }
-      
+
       // Import the AI service
-      const { answerQuestion } = await import('./ai-service');
-      
+      const { answerQuestion } = await import("./ai-service");
+
       // Get answer from RAG engine
       const result = await answerQuestion(question);
-      
+
       return res.status(200).json(result);
     } catch (error) {
       console.error("Error generating answer:", error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         message: "Error generating answer",
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
-  
-  apiRouter.post("/vector-db/initialize", async (req: Request, res: Response) => {
-    try {
-      // Import the AI service
-      const { initializePineconeIndex } = await import('./ai-service');
-      
-      // Initialize Pinecone index
-      const success = await initializePineconeIndex();
-      
-      return res.status(200).json({ 
-        success,
-        message: success ? "Vector database initialized successfully" : "Failed to initialize vector database"
-      });
-    } catch (error) {
-      console.error("Error initializing vector database:", error);
-      return res.status(500).json({ 
-        success: false,
-        message: "Error initializing vector database",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-  
-  apiRouter.post("/vector-db/index-document/:documentId", async (req: Request, res: Response) => {
-    try {
-      const documentId = req.params.documentId;
-      
-      if (!documentId) {
-        return res.status(400).json({ message: "Valid document ID is required" });
+
+  apiRouter.post(
+    "/vector-db/initialize",
+    async (req: Request, res: Response) => {
+      try {
+        // Import the AI service
+        const { initializePineconeIndex } = await import("./ai-service");
+
+        // Initialize Pinecone index
+        const success = await initializePineconeIndex();
+
+        return res.status(200).json({
+          success,
+          message: success
+            ? "Vector database initialized successfully"
+            : "Failed to initialize vector database",
+        });
+      } catch (error) {
+        console.error("Error initializing vector database:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Error initializing vector database",
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
-      
-      // Import the AI service
-      const { indexDocumentChunks } = await import('./ai-service');
-      
-      // Index document chunks
-      const result = await indexDocumentChunks(documentId);
-      
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error("Error indexing document:", error);
-      return res.status(500).json({ 
-        success: false,
-        message: "Error indexing document",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-  
-  apiRouter.post("/vector-db/index-knowledge-base", async (req: Request, res: Response) => {
-    try {
-      // Import the AI service
-      const { indexKnowledgeBase } = await import('./ai-service');
-      
-      // Index all knowledge base documents
-      const result = await indexKnowledgeBase();
-      
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error("Error indexing knowledge base:", error);
-      return res.status(500).json({ 
-        success: false,
-        message: "Error indexing knowledge base",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-  
+    },
+  );
+
+  apiRouter.post(
+    "/vector-db/index-document/:documentId",
+    async (req: Request, res: Response) => {
+      try {
+        const documentId = req.params.documentId;
+
+        if (!documentId) {
+          return res
+            .status(400)
+            .json({ message: "Valid document ID is required" });
+        }
+
+        // Import the AI service
+        const { indexDocumentChunks } = await import("./ai-service");
+
+        // Index document chunks
+        const result = await indexDocumentChunks(documentId);
+
+        return res.status(200).json(result);
+      } catch (error) {
+        console.error("Error indexing document:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Error indexing document",
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
+
+  apiRouter.post(
+    "/vector-db/index-knowledge-base",
+    async (req: Request, res: Response) => {
+      try {
+        // Import the AI service
+        const { indexKnowledgeBase } = await import("./ai-service");
+
+        // Index all knowledge base documents
+        const result = await indexKnowledgeBase();
+
+        return res.status(200).json(result);
+      } catch (error) {
+        console.error("Error indexing knowledge base:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Error indexing knowledge base",
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
+
   // Use the S3 service for file uploads
 
   // File upload handling for document suggestions
   apiRouter.post("/upload-document", async (req: Request, res: Response) => {
     try {
       // Get file metadata from the request
-      const userId = req.body.userId || 'unknown-user';
-      const fileName = req.body.name || 'unnamed-document';
-      const contentType = req.body.contentType || 'application/pdf';
-      
-      console.log(`Processing file upload request: ${fileName} for user ${userId}`);
-      
+      const userId = req.body.userId || "unknown-user";
+      const fileName = req.body.name || "unnamed-document";
+      const contentType = req.body.contentType || "application/pdf";
+
+      console.log(
+        `Processing file upload request: ${fileName} for user ${userId}`,
+      );
+
       try {
         // Try the S3 credentials if configured
         if (isS3Configured()) {
-          console.log('Using S3 credentials for Supabase upload');
-          
+          console.log("Using S3 credentials for Supabase upload");
+
           // Use the S3 client to upload a mock file
           // In a full implementation, this would process a real file upload
-          const { fileUrl, filePath } = await handleMockUpload(userId, fileName, contentType);
-          
+          const { fileUrl, filePath } = await handleMockUpload(
+            userId,
+            fileName,
+            contentType,
+          );
+
           return res.status(200).json({
             success: true,
             fileUrl,
             filePath,
-            message: "File uploaded successfully to Supabase storage"
+            message: "File uploaded successfully to Supabase storage",
           });
         }
       } catch (uploadError) {
         // Log the error but continue with the fallback
-        console.warn('S3 upload failed, falling back to mock implementation:', uploadError);
+        console.warn(
+          "S3 upload failed, falling back to mock implementation:",
+          uploadError,
+        );
       }
-      
+
       // Fall back to mock implementation regardless of whether S3 credentials exist
-      console.log('Using mock URLs for development/testing');
-      
+      console.log("Using mock URLs for development/testing");
+
       // Generate file paths in the same format that would be used in production
       const timestamp = Date.now();
       const filePath = `${userId}/${timestamp}_${fileName}`;
       const fileUrl = `https://txgrhpmthibqetiephzp.supabase.co/storage/v1/object/public/vtex-files/${filePath}`;
-      
+
       return res.status(200).json({
         success: true,
         fileUrl,
         filePath,
-        message: "Mock file metadata processed successfully"
+        message: "Mock file metadata processed successfully",
       });
     } catch (error) {
       console.error("Error processing upload request:", error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         success: false,
         message: "Error processing upload request",
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
-  
+
   // Suggested Document routes
   apiRouter.get("/suggested-documents", async (req: Request, res: Response) => {
     try {
@@ -836,9 +881,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json({ documents: mockDocuments });
     } catch (error) {
       console.error("Error fetching suggested documents:", error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         message: "Internal server error",
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -852,7 +897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // For MVP, create a simple mock document response and store in memory
         // Instead of actually storing in the database
-        
+
         // Extract the data from the request
         const {
           name,
@@ -860,9 +905,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           uploadedBy,
           suggestedBy,
           description,
-          contentType
+          contentType,
         } = req.body;
-        
+
         // Don't attempt to access the database - create a pure mock response
         const mockDocument = {
           id: crypto.randomUUID(),
@@ -870,19 +915,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fileUrl,
           uploadedBy: uploadedBy || suggestedBy,
           description, // Include description in our mock
-          contentType: contentType || 'application/pdf',
+          contentType: contentType || "application/pdf",
           createdAt: new Date(),
-          approvalStatus: 'pending',
+          approvalStatus: "pending",
           embedded: false,
-          chunked: false
+          chunked: false,
         };
-        
+
         // Store in our in-memory array for MVP
         mockDocuments.push(mockDocument);
-        
+
         console.log("Created mock document:", mockDocument);
         console.log("Total mock documents:", mockDocuments.length);
-        
+
         return res.status(201).json({ document: mockDocument });
       } catch (error) {
         console.error("Error creating mock document:", error);
@@ -890,10 +935,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: error.errors[0].message });
         }
         // Return detailed error for debugging
-        return res.status(500).json({ 
-          message: "Internal server error", 
+        return res.status(500).json({
+          message: "Internal server error",
           error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined
+          stack: error instanceof Error ? error.stack : undefined,
         });
       }
     },
@@ -926,31 +971,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // For MVP, update the in-memory document
-        const documentIndex = mockDocuments.findIndex(doc => doc.id === documentId);
-        
+        const documentIndex = mockDocuments.findIndex(
+          (doc) => doc.id === documentId,
+        );
+
         if (documentIndex === -1) {
           return res.status(404).json({ message: "Document not found" });
         }
-        
+
         // Create an updated copy of the document
         const updatedDocument = {
           ...mockDocuments[documentIndex],
           approvalStatus: status,
           reviewedBy: reviewedBy,
-          reviewedAt: new Date()
+          reviewedAt: new Date(),
         };
-        
+
         // Update the document in the array
         mockDocuments[documentIndex] = updatedDocument;
-        
+
         console.log(`Document ${documentId} status updated to ${status}`);
 
         return res.status(200).json({ document: updatedDocument });
       } catch (error) {
         console.error("Error updating suggested document:", error);
-        return res.status(500).json({ 
+        return res.status(500).json({
           message: "Internal server error",
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     },
@@ -960,299 +1007,383 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin middleware already defined at the top of the file
 
   // Admin routes
-  apiRouter.get("/admin/documents", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const documents = await storage.getDocuments();
-      return res.status(200).json(documents);
-    } catch (error) {
-      console.error('Error fetching documents for admin:', error);
-      return res.status(500).json({ error: 'Failed to fetch documents' });
-    }
-  });
+  apiRouter.get(
+    "/admin/documents",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const documents = await storage.getDocuments();
+        return res.status(200).json(documents);
+      } catch (error) {
+        console.error("Error fetching documents for admin:", error);
+        return res.status(500).json({ error: "Failed to fetch documents" });
+      }
+    },
+  );
 
-  apiRouter.get("/admin/rfp-documents", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      // Get all RFP documents across all projects
-      const documents = await storage.getAllRfpDocuments();
-      return res.status(200).json(documents);
-    } catch (error) {
-      console.error('Error fetching RFP documents for admin:', error);
-      return res.status(500).json({ error: 'Failed to fetch RFP documents' });
-    }
-  });
+  apiRouter.get(
+    "/admin/rfp-documents",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        // Get all RFP documents across all projects
+        const documents = await storage.getAllRfpDocuments();
+        return res.status(200).json(documents);
+      } catch (error) {
+        console.error("Error fetching RFP documents for admin:", error);
+        return res.status(500).json({ error: "Failed to fetch RFP documents" });
+      }
+    },
+  );
 
-  apiRouter.post("/admin/documents/:id/approve", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-      
-      if (!id) {
-        return res.status(400).json({ error: 'Document ID is required' });
-      }
-      
-      if (!['approved', 'rejected'].includes(status)) {
-        return res.status(400).json({ error: 'Status must be either "approved" or "rejected"' });
-      }
-      
-      const document = await storage.updateDocumentApprovalStatus(id, status === 'approved');
-      
-      if (!document) {
-        return res.status(404).json({ error: 'Document not found' });
-      }
-      
-      return res.status(200).json(document);
-    } catch (error) {
-      console.error('Error updating document approval status:', error);
-      return res.status(500).json({ error: 'Failed to update document approval status' });
-    }
-  });
+  apiRouter.post(
+    "/admin/documents/:id/approve",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const { status } = req.body;
 
-  apiRouter.post("/admin/rfp-documents/:id/approve", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-      
-      console.log(`[API] Attempting to approve RFP document with ID: ${id} and status: ${status}`);
-      
-      if (!id) {
-        return res.status(400).json({ error: 'RFP Document ID is required' });
-      }
-      
-      if (!['approved', 'rejected'].includes(status)) {
-        return res.status(400).json({ error: 'Status must be either "approved" or "rejected"' });
-      }
-      
-      // First, check if the RFP document exists
-      const documentExists = await storage.getRfpDocument(id);
-      console.log(`[API] Document exists check:`, documentExists ? "YES" : "NO");
-      
-      if (!documentExists) {
-        console.log(`[API] RFP Document not found with ID: ${id}`);
-        return res.status(404).json({ error: 'RFP Document not found (pre-check)' });
-      }
-      
-      console.log(`[API] Updating approval status for RFP document: ${id}`);
-      const rfpDocument = await storage.updateRfpDocumentApprovalStatus(id, status);
-      
-      if (!rfpDocument) {
-        console.log(`[API] Failed to update RFP Document status, returned undefined`);
-        return res.status(404).json({ error: 'RFP Document not found' });
-      }
-      
-      // If document was approved, trigger the chunking process
-      if (status === 'approved') {
-        try {
-          console.log(`RFP document ${id} approved. Triggering chunking process...`);
-          
-          // Trigger the chunking process asynchronously (don't await)
-          fetch(`http://localhost:${process.env.PORT || 5000}/api/rfp-documents/chunk/${id}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }).catch(error => {
-            console.error(`Error triggering RFP document chunking for ${id}:`, error);
-          });
-          
-          console.log(`RFP document chunking process triggered for ${id}`);
-        } catch (chunkingError) {
-          console.error(`Error triggering RFP document chunking for ${id}:`, chunkingError);
-          // We don't fail the approval process if chunking trigger fails
+        if (!id) {
+          return res.status(400).json({ error: "Document ID is required" });
         }
+
+        if (!["approved", "rejected"].includes(status)) {
+          return res
+            .status(400)
+            .json({ error: 'Status must be either "approved" or "rejected"' });
+        }
+
+        const document = await storage.updateDocumentApprovalStatus(
+          id,
+          status === "approved",
+        );
+
+        if (!document) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        return res.status(200).json(document);
+      } catch (error) {
+        console.error("Error updating document approval status:", error);
+        return res
+          .status(500)
+          .json({ error: "Failed to update document approval status" });
       }
-      
-      return res.status(200).json(rfpDocument);
-    } catch (error) {
-      console.error('Error updating RFP document approval status:', error);
-      return res.status(500).json({ error: 'Failed to update RFP document approval status' });
-    }
-  });
+    },
+  );
+
+  apiRouter.post(
+    "/admin/rfp-documents/:id/approve",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        console.log(
+          `[API] Attempting to approve RFP document with ID: ${id} and status: ${status}`,
+        );
+
+        if (!id) {
+          return res.status(400).json({ error: "RFP Document ID is required" });
+        }
+
+        if (!["approved", "rejected"].includes(status)) {
+          return res
+            .status(400)
+            .json({ error: 'Status must be either "approved" or "rejected"' });
+        }
+
+        // First, check if the RFP document exists
+        const documentExists = await storage.getRfpDocument(id);
+        console.log(
+          `[API] Document exists check:`,
+          documentExists ? "YES" : "NO",
+        );
+
+        if (!documentExists) {
+          console.log(`[API] RFP Document not found with ID: ${id}`);
+          return res
+            .status(404)
+            .json({ error: "RFP Document not found (pre-check)" });
+        }
+
+        console.log(`[API] Updating approval status for RFP document: ${id}`);
+        const rfpDocument = await storage.updateRfpDocumentApprovalStatus(
+          id,
+          status,
+        );
+
+        if (!rfpDocument) {
+          console.log(
+            `[API] Failed to update RFP Document status, returned undefined`,
+          );
+          return res.status(404).json({ error: "RFP Document not found" });
+        }
+
+        // If document was approved, trigger the chunking process
+        if (status === "approved") {
+          try {
+            console.log(
+              `RFP document ${id} approved. Triggering chunking process...`,
+            );
+
+            // Trigger the chunking process asynchronously (don't await)
+            fetch(
+              `http://localhost:${process.env.PORT || 5000}/api/rfp-documents/chunk/${id}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              },
+            ).catch((error) => {
+              console.error(
+                `Error triggering RFP document chunking for ${id}:`,
+                error,
+              );
+            });
+
+            console.log(`RFP document chunking process triggered for ${id}`);
+          } catch (chunkingError) {
+            console.error(
+              `Error triggering RFP document chunking for ${id}:`,
+              chunkingError,
+            );
+            // We don't fail the approval process if chunking trigger fails
+          }
+        }
+
+        return res.status(200).json(rfpDocument);
+      } catch (error) {
+        console.error("Error updating RFP document approval status:", error);
+        return res
+          .status(500)
+          .json({ error: "Failed to update RFP document approval status" });
+      }
+    },
+  );
 
   // User management endpoints - direct Supabase query
   apiRouter.get("/admin/users-list", async (req: Request, res: Response) => {
     try {
-      console.log('[API] /admin/users - Starting direct Supabase query');
-      
+      console.log("[API] /admin/users - Starting direct Supabase query");
+
       // Direct Supabase query to bypass any storage issues
       const { data: users, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: true });
-      
+        .from("users")
+        .select("*")
+        .order("created_at", { ascending: true });
+
       if (error) {
-        console.error('[API] Supabase error:', error);
-        return res.status(500).json({ error: `Supabase error: ${error.message}` });
+        console.error("[API] Supabase error:", error);
+        return res
+          .status(500)
+          .json({ error: `Supabase error: ${error.message}` });
       }
-      
-      console.log('[API] /admin/users - Retrieved users directly from Supabase:', users?.length || 0);
-      
+
+      console.log(
+        "[API] /admin/users - Retrieved users directly from Supabase:",
+        users?.length || 0,
+      );
+
       if (users && users.length > 0) {
-        console.log('[API] First user sample:', users[0]);
+        console.log("[API] First user sample:", users[0]);
       }
-      
+
       res.json(users || []);
     } catch (error) {
-      console.error('[API] Error fetching users:', error);
-      res.status(500).json({ error: 'Failed to fetch users' });
+      console.error("[API] Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
     }
   });
 
   // Invite user endpoint
-  apiRouter.post("/admin/invite-user", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { email, role } = req.body;
-      
-      if (!email || !role) {
-        return res.status(400).json({ error: 'Email and role are required' });
-      }
-      
-      if (!['user', 'admin'].includes(role)) {
-        return res.status(400).json({ error: 'Role must be either "user" or "admin"' });
-      }
-      
-      // Use Supabase Auth Admin API to invite the user
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-        data: { 
-          role: role,
-          access_granted: true 
-        },
-        redirectTo: `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/signup-complete`
-      });
-      
-      if (error) {
-        console.error('Error inviting user via Supabase Auth:', error);
-        return res.status(400).json({ error: error.message });
-      }
-      
-      // Create user record in our users table
+  apiRouter.post(
+    "/admin/invite-user",
+    requireAdmin,
+    async (req: Request, res: Response) => {
       try {
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user?.id,
-            email: email,
-            role: role,
-            access_granted: true,
-            name: null
-          })
-          .select()
-          .single();
-          
-        if (userError) {
-          console.error('Error creating user record:', userError);
-          // Don't fail the invitation if user record creation fails
+        console.log("bibi");
+        const { email, role } = req.body;
+
+        if (!email || !role) {
+          return res.status(400).json({ error: "Email and role are required" });
         }
-      } catch (userRecordError) {
-        console.error('Error creating user record:', userRecordError);
-        // Continue even if user record creation fails
+
+        if (!["user", "admin"].includes(role)) {
+          return res
+            .status(400)
+            .json({ error: 'Role must be either "user" or "admin"' });
+        }
+
+        // Use Supabase Auth Admin API to invite the user
+
+        const { data, error } = await supabase.auth.admin.inviteUserByEmail(
+          email,
+          {
+            data: {
+              role: role,
+              access_granted: true,
+            },
+            redirectTo: `https://f402b1cf-2835-446b-9514-edec5b65cdec-00-39q8okukjdr9q.worf.replit.dev/signup-complete`,
+          },
+        );
+
+        if (error) {
+          console.error("Error inviting user via Supabase Auth:", error);
+          return res.status(400).json({ error: error.message });
+        }
+
+        // Create user record in our users table
+        try {
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .insert({
+              id: data.user?.id,
+              email: email,
+              role: role,
+              access_granted: true,
+              name: null,
+            })
+            .select()
+            .single();
+
+          if (userError) {
+            console.error("Error creating user record:", userError);
+            // Don't fail the invitation if user record creation fails
+          }
+        } catch (userRecordError) {
+          console.error("Error creating user record:", userRecordError);
+          // Continue even if user record creation fails
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: "User invitation sent successfully",
+          user: data.user,
+        });
+      } catch (error) {
+        console.error("Error inviting user:", error);
+        return res
+          .status(500)
+          .json({ error: "Failed to send user invitation" });
       }
-      
-      return res.status(200).json({ 
-        success: true, 
-        message: 'User invitation sent successfully',
-        user: data.user 
-      });
-    } catch (error) {
-      console.error('Error inviting user:', error);
-      return res.status(500).json({ error: 'Failed to send user invitation' });
-    }
-  });
+    },
+  );
 
-  apiRouter.post("/admin/users/:id/access", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { accessGranted } = req.body;
-      
-      if (typeof accessGranted !== 'boolean') {
-        return res.status(400).json({ error: 'accessGranted must be a boolean' });
+  apiRouter.post(
+    "/admin/users/:id/access",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const { accessGranted } = req.body;
+
+        if (typeof accessGranted !== "boolean") {
+          return res
+            .status(400)
+            .json({ error: "accessGranted must be a boolean" });
+        }
+
+        const result = await storage.updateUserAccess(id, accessGranted);
+        if (!result) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json(result);
+      } catch (error) {
+        console.error("Error updating user access:", error);
+        res.status(500).json({ error: "Failed to update user access" });
       }
+    },
+  );
 
-      const result = await storage.updateUserAccess(id, accessGranted);
-      if (!result) {
-        return res.status(404).json({ error: 'User not found' });
+  apiRouter.post(
+    "/admin/users/:id/role",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const { role } = req.body;
+
+        if (!["admin", "user"].includes(role)) {
+          return res
+            .status(400)
+            .json({ error: "Invalid role. Must be admin or user." });
+        }
+
+        const result = await storage.updateUserRole(id, role);
+        if (!result) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json(result);
+      } catch (error) {
+        console.error("Error updating user role:", error);
+        res.status(500).json({ error: "Failed to update user role" });
       }
-
-      res.json(result);
-    } catch (error) {
-      console.error('Error updating user access:', error);
-      res.status(500).json({ error: 'Failed to update user access' });
-    }
-  });
-
-  apiRouter.post("/admin/users/:id/role", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { role } = req.body;
-      
-      if (!['admin', 'user'].includes(role)) {
-        return res.status(400).json({ error: 'Invalid role. Must be admin or user.' });
-      }
-
-      const result = await storage.updateUserRole(id, role);
-      if (!result) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      res.json(result);
-    } catch (error) {
-      console.error('Error updating user role:', error);
-      res.status(500).json({ error: 'Failed to update user role' });
-    }
-  });
+    },
+  );
 
   // Feedback routes
   apiRouter.post("/feedback", async (req: Request, res: Response) => {
     try {
       const { content } = req.body;
       const userEmail = req.headers.authorization;
-      
-      if (!content || typeof content !== 'string') {
-        return res.status(400).json({ error: 'Content is required' });
+
+      if (!content || typeof content !== "string") {
+        return res.status(400).json({ error: "Content is required" });
       }
-      
+
       if (!userEmail) {
-        return res.status(401).json({ error: 'Authentication required' });
+        return res.status(401).json({ error: "Authentication required" });
       }
-      
+
       // Get user by email to get the user ID
       const user = await storage.getUserByEmail(userEmail);
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(404).json({ error: "User not found" });
       }
-      
+
       // Insert into Supabase feedbacks table
-      const { supabase } = await import('./db');
-      
+      const { supabase } = await import("./db");
+
       const { data: feedback, error } = await supabase
-        .from('feedbacks')
+        .from("feedbacks")
         .insert({
           content,
-          uploaded_by: user.id
+          uploaded_by: user.id,
         })
         .select()
         .single();
-      
+
       if (error) {
-        console.error('Supabase feedback error:', error);
+        console.error("Supabase feedback error:", error);
         throw new Error(`Failed to create feedback: ${error.message}`);
       }
-      
+
       return res.status(201).json(feedback);
     } catch (error) {
-      console.error('Error creating feedback:', error);
-      return res.status(500).json({ error: 'Failed to create feedback' });
+      console.error("Error creating feedback:", error);
+      return res.status(500).json({ error: "Failed to create feedback" });
     }
   });
 
-  apiRouter.get("/admin/feedback", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const feedbacks = await storage.getFeedbacks();
-      return res.status(200).json(feedbacks);
-    } catch (error) {
-      console.error('Error fetching feedbacks:', error);
-      return res.status(500).json({ error: 'Failed to fetch feedbacks' });
-    }
-  });
+  apiRouter.get(
+    "/admin/feedback",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const feedbacks = await storage.getFeedbacks();
+        return res.status(200).json(feedbacks);
+      } catch (error) {
+        console.error("Error fetching feedbacks:", error);
+        return res.status(500).json({ error: "Failed to fetch feedbacks" });
+      }
+    },
+  );
 
   // Create the HTTP server
   const httpServer = createServer(app);

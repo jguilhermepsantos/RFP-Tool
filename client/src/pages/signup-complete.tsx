@@ -42,10 +42,17 @@ export default function SignupComplete() {
     const checkInvitationToken = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
+        
+        // Check for Supabase session parameters after email verification
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        const tokenType = urlParams.get('token_type');
+        
+        // Also check for direct token parameters (fallback)
+        const directToken = urlParams.get('token');
         const type = urlParams.get('type');
         
-        if (token && type === 'invite') {
+        if ((accessToken && refreshToken) || (directToken && type === 'invite')) {
           setIsValidInvitation(true);
         } else {
           setIsValidInvitation(false);
@@ -64,7 +71,7 @@ export default function SignupComplete() {
     };
 
     checkInvitationToken();
-  }, [location, toast]);
+  }, [toast]);
 
   const onSubmit = async (data: PasswordForm) => {
     setIsLoading(true);
