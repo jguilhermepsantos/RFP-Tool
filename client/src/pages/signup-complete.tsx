@@ -43,6 +43,25 @@ export default function SignupComplete() {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         
+        // Check for Supabase error parameters first
+        const error = urlParams.get('error');
+        const errorCode = urlParams.get('error_code');
+        const errorDescription = urlParams.get('error_description');
+        
+        if (error) {
+          setIsValidInvitation(false);
+          const message = errorCode === 'otp_expired' 
+            ? "This invitation link has expired. Please request a new invitation."
+            : errorDescription || "This invitation link is invalid or has expired.";
+          
+          toast({
+            title: "Invitation Error",
+            description: message,
+            variant: "destructive",
+          });
+          return;
+        }
+        
         // Check for Supabase session parameters after email verification
         const accessToken = urlParams.get('access_token');
         const refreshToken = urlParams.get('refresh_token');
