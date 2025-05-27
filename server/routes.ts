@@ -1159,14 +1159,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
       
-      // Insert directly into PostgreSQL to avoid schema mapping issues
-      const { db } = await import('./db');
-      const { feedbacks } = await import('../shared/schema');
+      // Insert into Supabase feedbacks table
+      const { supabase } = await import('./db');
       
-      const [feedback] = await db.insert(feedbacks).values({
-        content,
-        uploadedBy: user.id,
-      }).returning();
+      const { data: feedback, error } = await supabase
+        .from('feedbacks')
+        .insert({
+          content,
+          uploaded_by: user.id
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Supabase feedback error:', error);
+        throw new Error(`Failed to create feedback: ${error.message}`);
+      }
       
       return res.status(201).json(feedback);
     } catch (error) {
