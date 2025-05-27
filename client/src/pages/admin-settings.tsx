@@ -27,7 +27,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import NavHeader from '@/components/nav-header';
-import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User } from 'lucide-react';
+import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User, MessageSquare } from 'lucide-react';
 
 // Interfaces for the approval data
 interface Document {
@@ -61,6 +61,13 @@ interface RfpDocument {
   approval_status: 'pending' | 'approved' | 'rejected';
   approval_status_modified_at: string | null;
   approval_status_modified_by: string | null;
+}
+
+interface Feedback {
+  id: string;
+  content: string;
+  uploaded_by: string;
+  created_at: string;
 }
 
 export default function AdminSettings() {
@@ -354,6 +361,18 @@ export default function AdminSettings() {
                   >
                     <Users className="h-4 w-4" />
                     User Management
+                  </button>
+                  <button
+                    onClick={() => setActiveSection('feedbacks')}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors",
+                      activeSection === 'feedbacks' 
+                        ? "bg-blue-100 text-blue-900" 
+                        : "hover:bg-gray-100"
+                    )}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Feedbacks
                   </button>
                 </nav>
               </CardContent>
