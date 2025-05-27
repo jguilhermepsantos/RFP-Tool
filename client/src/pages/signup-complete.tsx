@@ -41,12 +41,14 @@ export default function SignupComplete() {
     // Check if this is a valid invitation callback
     const checkInvitationToken = async () => {
       try {
-        const urlParams = new URLSearchParams(window.location.search);
+        // Check both URL search params and hash params (Supabase uses hash for errors)
+        const searchParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
         
-        // Check for Supabase error parameters first
-        const error = urlParams.get('error');
-        const errorCode = urlParams.get('error_code');
-        const errorDescription = urlParams.get('error_description');
+        // Check for Supabase error parameters first (usually in hash)
+        const error = hashParams.get('error') || searchParams.get('error');
+        const errorCode = hashParams.get('error_code') || searchParams.get('error_code');
+        const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
         
         if (error) {
           setIsValidInvitation(false);
