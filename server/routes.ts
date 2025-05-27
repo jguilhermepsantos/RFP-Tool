@@ -1116,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: role,
           access_granted: true 
         },
-        redirectTo: `${req.get('origin')}/auth/callback`
+        redirectTo: `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/signup-complete`
       });
       
       if (error) {
