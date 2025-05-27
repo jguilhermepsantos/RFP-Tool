@@ -1097,6 +1097,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Invite user endpoint
+  apiRouter.post("/admin/invite-user", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { email, role } = req.body;
+      
+      if (!email || !role) {
+        return res.status(400).json({ error: 'Email and role are required' });
+      }
+      
+      if (!['user', 'admin'].includes(role)) {
+        return res.status(400).json({ error: 'Role must be either "user" or "admin"' });
+      }
+      
+      // Use Supabase Auth Admin API to invite the user
+      const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+        data: { 
+          role: role,
+          access_granted: true 
+        },
+        redirectTo: `${req.get('origin')}/auth/callback`
+      });
+      
+      if (error) {
+        console.error('Error inviting user via Supabase Auth:', error);
+        return res.status(400).json({ error: error.message });
+      }
+      
+      // Create user record in our users table
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user?.id,
+            email: email,
+            role: role,
+            access_granted: true,
+            name: null
+          })
+          .select()
+          .single();
+          
+        if (userError) {
+          console.error('Error creating user record:', userError);
+          // Don't fail the invitation if user record creation fails
+        }
+      } catch (userRecordError) {
+        console.error('Error creating user record:', userRecordError);
+        // Continue even if user record creation fails
+      }
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: 'User invitation sent successfully',
+        user: data.user 
+      });
+    } catch (error) {
+      console.error('Error inviting user:', error);
+      return res.status(500).json({ error: 'Failed to send user invitation' });
+    }
+  });
+
   apiRouter.post("/admin/users/:id/access", requireAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

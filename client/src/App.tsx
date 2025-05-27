@@ -12,12 +12,14 @@ import RfpDocument from "@/pages/rfp-document";
 import SuggestDocument from "@/pages/suggest-document";
 import AdminSettings from "@/pages/admin-settings";
 import ProvideFeedback from "@/pages/provide-feedback";
+import SignupComplete from "@/pages/signup-complete";
 import UploadTestPage from "@/pages/upload-test";
 
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/signup-complete" component={SignupComplete} />
       
       <Route path="/projects">
         <RequireAuth>
