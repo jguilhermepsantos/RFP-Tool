@@ -122,6 +122,17 @@ export default function AdminSettings() {
     queryFn: () => apiRequest('/api/admin/users-list', { headers: adminHeaders }),
     enabled: activeSection === 'user-management'
   });
+
+  // Fetch all feedbacks
+  const {
+    data: feedbacksResponse,
+    isLoading: isFeedbacksLoading,
+    error: feedbacksError
+  } = useQuery({
+    queryKey: ['/api/admin/feedback'],
+    queryFn: () => apiRequest('/api/admin/feedback', { headers: adminHeaders }),
+    enabled: activeSection === 'feedbacks'
+  });
   
   // Get ALL project details from the API (as admin, we need access to all projects)
   const {
@@ -148,12 +159,16 @@ export default function AdminSettings() {
     return doc.approval_status === rfpFilterStatus;
   });
 
+  // Process feedbacks data
+  const feedbacks: Feedback[] = Array.isArray(feedbacksResponse) ? feedbacksResponse : [];
+
   // Collect all user IDs that need to be fetched for email display
   const allUserIds = [
     ...documents.map(doc => doc.uploaded_by || doc.uploadedBy),
     ...documents.map(doc => doc.approval_status_modified_by || doc.approvalStatusModifiedBy),
     ...rfpDocuments.map(doc => doc.uploaded_by),
-    ...rfpDocuments.map(doc => doc.approval_status_modified_by)
+    ...rfpDocuments.map(doc => doc.approval_status_modified_by),
+    ...feedbacks.map(feedback => feedback.uploaded_by)
   ].filter((id): id is string => Boolean(id));
 
   // Use the batch user cache hook
@@ -651,6 +666,77 @@ export default function AdminSettings() {
                             </TableCell>
                           </TableRow>
                         ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === 'feedbacks' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Feedbacks</CardTitle>
+                  <CardDescription>
+                    View all feedback submissions from Solution Engineers about the RFP Assistant Tool
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isFeedbacksLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      Loading feedbacks...
+                    </div>
+                  ) : feedbacksError ? (
+                    <div className="text-center py-8 text-red-600">
+                      Error loading feedbacks: {feedbacksError.message}
+                    </div>
+                  ) : feedbacks.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No feedback submissions yet
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>User</TableHead>
+                          <TableHead>Feedback</TableHead>
+                          <TableHead>Submitted</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {feedbacks
+                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                          .map((feedback) => {
+                            const userEmail = getUserEmail(feedback.uploaded_by) || 'Unknown User';
+                            const submittedDate = new Date(feedback.created_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            });
+
+                            return (
+                              <TableRow key={feedback.id}>
+                                <TableCell>
+                                  <div className="font-medium">{userEmail}</div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="max-w-md">
+                                    <p className="text-sm text-gray-900 break-words">
+                                      {feedback.content}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm text-gray-500">
+                                    {submittedDate}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                       </TableBody>
                     </Table>
                   )}
