@@ -84,25 +84,15 @@ export default function SignupComplete() {
     setIsLoading(true);
     
     try {
-      // Get the token from URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
+      // Since the user is already on this page after email verification,
+      // Supabase should have already established a session
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!token) {
-        throw new Error('No invitation token found');
+      if (!session) {
+        throw new Error('No active session found. Please click the invitation link again.');
       }
 
-      // Use Supabase to verify the invitation and set the password
-      const { data: authData, error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: 'invite'
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // Update the user's password
+      // Update the user's password using the active session
       const { error: updateError } = await supabase.auth.updateUser({
         password: data.password
       });
