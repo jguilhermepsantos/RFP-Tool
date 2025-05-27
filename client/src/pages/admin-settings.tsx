@@ -27,7 +27,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import NavHeader from '@/components/nav-header';
-import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User, MessageSquare } from 'lucide-react';
+import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User, MessageSquare, Loader2 } from 'lucide-react';
 
 // Interfaces for the approval data
 interface Document {
