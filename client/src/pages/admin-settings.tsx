@@ -26,8 +26,23 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import NavHeader from '@/components/nav-header';
-import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User, MessageSquare, Loader2 } from 'lucide-react';
+import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User, MessageSquare, Loader2, Plus, Mail } from 'lucide-react';
+
+// Form validation schema for inviting users
+const inviteUserSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  role: z.enum(["user", "admin"], {
+    required_error: "Please select a role"
+  })
+});
+
+type InviteUserForm = z.infer<typeof inviteUserSchema>;
 
 // Interfaces for the approval data
 interface Document {
@@ -77,6 +92,16 @@ export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState<string>('documents');
   const [documentFilterStatus, setDocumentFilterStatus] = useState<string>('all');
   const [rfpFilterStatus, setRfpFilterStatus] = useState<string>('all');
+  const [showInviteForm, setShowInviteForm] = useState<boolean>(false);
+  
+  // Invite user form
+  const inviteForm = useForm<InviteUserForm>({
+    resolver: zodResolver(inviteUserSchema),
+    defaultValues: {
+      email: "",
+      role: "user"
+    }
+  });
   
   // Headers for admin API requests
   const adminHeaders = {
@@ -290,6 +315,37 @@ export default function AdminSettings() {
       toast({
         title: "Error",
         description: "Failed to update user role",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutation for inviting a new user
+  const inviteUser = useMutation({
+    mutationFn: async (data: InviteUserForm) => {
+      return await apiRequest('/api/admin/invite-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': user?.email || ''
+        },
+        body: JSON.stringify(data)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      inviteForm.reset();
+      setShowInviteForm(false);
+      toast({
+        title: "Success",
+        description: "User invitation sent successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error inviting user:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to send user invitation",
         variant: "destructive",
       });
     }
@@ -602,12 +658,91 @@ export default function AdminSettings() {
             {activeSection === 'user-management' && (
               <Card>
                 <CardHeader>
-                  <CardTitle>User Management</CardTitle>
-                  <CardDescription>
-                    Manage user access and roles in the system
-                  </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>User Management</CardTitle>
+                      <CardDescription>
+                        Manage user access and roles in the system
+                      </CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => setShowInviteForm(!showInviteForm)}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Invite User
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Invite User Form */}
+                  {showInviteForm && (
+                    <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+                      <h3 className="text-lg font-medium mb-4">Invite New User</h3>
+                      <form onSubmit={inviteForm.handleSubmit((data) => inviteUser.mutate(data))} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="email">Email Address</Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              placeholder="user@example.com"
+                              {...inviteForm.register("email")}
+                            />
+                            {inviteForm.formState.errors.email && (
+                              <p className="text-sm text-red-600 mt-1">
+                                {inviteForm.formState.errors.email.message}
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <Label htmlFor="role">Role</Label>
+                            <Select 
+                              onValueChange={(value) => inviteForm.setValue("role", value as "user" | "admin")}
+                              defaultValue={inviteForm.getValues("role")}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="user">User</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {inviteForm.formState.errors.role && (
+                              <p className="text-sm text-red-600 mt-1">
+                                {inviteForm.formState.errors.role.message}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            type="submit" 
+                            disabled={inviteUser.isPending}
+                            className="flex items-center gap-2"
+                          >
+                            {inviteUser.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Mail className="h-4 w-4" />
+                            )}
+                            {inviteUser.isPending ? 'Sending...' : 'Send Invitation'}
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => {
+                              setShowInviteForm(false);
+                              inviteForm.reset();
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
                   {isAllUsersLoading ? (
                     <div className="text-center py-4">Loading users...</div>
                   ) : usersError ? (
