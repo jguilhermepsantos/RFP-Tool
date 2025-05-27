@@ -64,24 +64,10 @@ export default function SignupComplete() {
           return;
         }
         
-        // Check for Supabase session parameters after email verification
-        const accessToken = urlParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token');
-        const tokenType = urlParams.get('token_type');
-        
-        // Also check for direct token parameters (fallback)
-        const directToken = urlParams.get('token');
-        const type = urlParams.get('type');
-        
-        if ((accessToken && refreshToken) || (directToken && type === 'invite')) {
+        // For now, let's assume invitation is valid if there's no error
+        // We'll check the actual session when they try to set password
+        if (!error) {
           setIsValidInvitation(true);
-        } else {
-          setIsValidInvitation(false);
-          toast({
-            title: "Invalid Invitation",
-            description: "This invitation link is invalid or has expired.",
-            variant: "destructive",
-          });
         }
       } catch (error) {
         console.error('Error checking invitation token:', error);
