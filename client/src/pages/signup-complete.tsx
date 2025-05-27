@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'wouter';
+import { useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +23,7 @@ const passwordSchema = z.object({
 type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function SignupComplete() {
-  const [, navigate] = useRouter();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
@@ -103,7 +103,7 @@ export default function SignupComplete() {
       });
 
       // Redirect to login page
-      navigate('/login');
+      setLocation('/login');
       
     } catch (error: any) {
       console.error('Error completing signup:', error);
@@ -147,7 +147,7 @@ export default function SignupComplete() {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => navigate('/login')} 
+              onClick={() => setLocation('/login')} 
               className="w-full"
               variant="outline"
             >
