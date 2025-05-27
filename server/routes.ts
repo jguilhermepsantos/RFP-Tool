@@ -1063,6 +1063,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Document not found" });
         }
 
+        // If document was approved, trigger the chunking process
+        if (status === "approved") {
+          try {
+            console.log(
+              `Document ${id} approved. Triggering chunking process...`,
+            );
+
+            // Trigger the chunking process asynchronously (don't await)
+            fetch(
+              `http://localhost:${process.env.PORT || 5000}/api/documents/chunk/${id}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              },
+            ).catch((error) => {
+              console.error(
+                `Error triggering document chunking for ${id}:`,
+                error,
+              );
+            });
+
+            console.log(`Document chunking process triggered for ${id}`);
+          } catch (chunkingError) {
+            console.error(
+              `Error triggering document chunking for ${id}:`,
+              chunkingError,
+            );
+            // We don't fail the approval process if chunking trigger fails
+          }
+        }
+
         return res.status(200).json(document);
       } catch (error) {
         console.error("Error updating document approval status:", error);
