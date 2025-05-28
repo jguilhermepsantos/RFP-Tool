@@ -224,6 +224,17 @@ export default function AdminSettings() {
     error: chunksError
   } = useQuery({
     queryKey: ['/api/documents', selectedDocumentId, 'chunks'],
+    queryFn: async () => {
+      const response = await fetch(`/api/documents/${selectedDocumentId}/chunks`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    },
     enabled: !!selectedDocumentId && chunksModalOpen,
     staleTime: 0,
     gcTime: 0,
