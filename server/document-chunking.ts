@@ -227,19 +227,6 @@ export async function chunkDocument(
     // Update document to mark as chunked
     await storage.updateDocumentChunkStatus(documentId, true);
     
-    // Trigger embedding process for the newly created chunks
-    if (createdChunks > 0) {
-      try {
-        const { embedUnprocessedChunks } = await import('./ai-service');
-        console.log(`🧠 Starting embedding process for ${createdChunks} chunks...`);
-        const embeddingResult = await embedUnprocessedChunks();
-        console.log(`✅ Embedding process completed. Embedded ${embeddingResult.chunksEmbedded} chunks with ${embeddingResult.errors.length} errors.`);
-      } catch (embeddingError) {
-        console.error(`⚠️ Error during embedding process:`, embeddingError);
-        // Continue with success as chunking was successful even if embedding failed
-      }
-    }
-    
     return {
       success: true,
       documentId,
