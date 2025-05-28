@@ -217,6 +217,32 @@ export default function AdminSettings() {
   // Process feedbacks data
   const feedbacks: Feedback[] = Array.isArray(feedbacksResponse) ? feedbacksResponse : [];
 
+  // Fetch document chunks when a document is selected
+  const {
+    data: chunksResponse,
+    isLoading: isChunksLoading,
+    error: chunksError
+  } = useQuery({
+    queryKey: ['/api/documents', selectedDocumentId, 'chunks'],
+    queryFn: () => apiRequest(`/api/documents/${selectedDocumentId}/chunks`),
+    enabled: !!selectedDocumentId && chunksModalOpen
+  });
+
+  // Convert API response to array of chunks
+  const chunks: Chunk[] = chunksResponse?.chunks || [];
+
+  // Handle viewing chunks for a document
+  const handleViewChunks = (documentId: string) => {
+    setSelectedDocumentId(documentId);
+    setChunksModalOpen(true);
+  };
+
+  // Handle closing the chunks modal
+  const handleCloseChunksModal = () => {
+    setChunksModalOpen(false);
+    setSelectedDocumentId(null);
+  };
+
   // Collect all user IDs that need to be fetched for email display
   const allUserIds = [
     ...documents.map(doc => doc.uploaded_by || doc.uploadedBy),
@@ -632,18 +658,37 @@ export default function AdminSettings() {
                                       </Button>
                                     </div>
                                   ) : doc.approval_status === 'approved' ? (
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => embedDocument.mutate(doc.id)}
+                                        disabled={embedDocument.isPending}
+                                      >
+                                        <Zap className="h-4 w-4 mr-1" />
+                                        Process Embedding
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => handleViewChunks(doc.id)}
+                                      >
+                                        <FileText className="h-4 w-4 mr-1" />
+                                        View Chunks
+                                      </Button>
+                                    </div>
+                                  ) : doc.approval_status === 'embedded' ? (
                                     <Button
                                       size="sm"
-                                      variant="outline"
-                                      onClick={() => embedDocument.mutate(doc.id)}
-                                      disabled={embedDocument.isPending}
+                                      variant="secondary"
+                                      onClick={() => handleViewChunks(doc.id)}
                                     >
-                                      <Zap className="h-4 w-4 mr-1" />
-                                      Process Embedding
+                                      <FileText className="h-4 w-4 mr-1" />
+                                      View Chunks
                                     </Button>
                                   ) : (
                                     <span className="text-sm text-gray-500">
-                                      {doc.approval_status === 'embedded' ? 'Fully processed' : 'No actions available'}
+                                      No actions available
                                     </span>
                                   )}
                                 </TableCell>
@@ -979,6 +1024,71 @@ export default function AdminSettings() {
           </div>
         </div>
       </main>
+
+      {/* Chunks Modal Dialog */}
+      <Dialog open={chunksModalOpen} onOpenChange={handleCloseChunksModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Document Chunks</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {isChunksLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                Loading chunks...
+              </div>
+            ) : chunksError ? (
+              <div className="text-center py-8 text-red-600">
+                Error loading chunks: {chunksError.message}
+              </div>
+            ) : chunks.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No chunks found for this document
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-sm text-gray-600 mb-4">
+                  Found {chunks.length} chunks for this document
+                </div>
+                {chunks.map((chunk, index) => (
+                  <div key={chunk.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        Chunk {index + 1}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          chunk.embedded 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {chunk.embedded ? 'Embedded' : 'Not Embedded'}
+                        </span>
+                        {chunk.scope && (
+                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                            {chunk.scope}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-900 whitespace-pre-wrap break-words">
+                      {chunk.content}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      Created: {new Date(chunk.createdAt).toLocaleString()}
+                      {chunk.embeddedAt && (
+                        <span className="ml-4">
+                          Embedded: {new Date(chunk.embeddedAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
