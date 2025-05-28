@@ -355,7 +355,10 @@ export default function AdminSettings() {
       });
     },
     onSuccess: () => {
+      // Force refetch of documents to show updated status
       queryClient.invalidateQueries({ queryKey: ['/api/admin/documents'] });
+      queryClient.refetchQueries({ queryKey: ['/api/admin/documents'] });
+      
       toast({
         title: "Success",
         description: "Document embedding completed successfully",
