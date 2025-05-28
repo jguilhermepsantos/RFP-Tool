@@ -343,6 +343,43 @@ export default function AdminSettings() {
     }
   });
 
+  // Mutation for embedding RFP documents
+  const embedRfpDocument = useMutation({
+    mutationFn: async (documentId: string) => {
+      return await apiRequest(`/api/rfp-documents/${documentId}/embed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': user?.email || ''
+        }
+      });
+    },
+    onSuccess: () => {
+      // Force refetch of RFP documents to show updated status
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/rfp-documents'] });
+      queryClient.refetchQueries({ 
+        queryKey: ['/api/admin/rfp-documents'],
+        type: 'active' 
+      });
+      
+      // Also remove from cache completely to force fresh fetch
+      queryClient.removeQueries({ queryKey: ['/api/admin/rfp-documents'] });
+      
+      toast({
+        title: "Success", 
+        description: "RFP document embedding completed successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error embedding RFP document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to embed RFP document",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Mutation for embedding a single document
   const embedDocument = useMutation({
     mutationFn: async (documentId: string) => {
@@ -819,6 +856,20 @@ export default function AdminSettings() {
                                         Reject
                                       </Button>
                                     </div>
+                                  ) : doc.approval_status === 'approved' ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => embedRfpDocument.mutate(doc.id)}
+                                      disabled={embedRfpDocument.isPending}
+                                    >
+                                      <Zap className="h-4 w-4 mr-1" />
+                                      Process Embedding
+                                    </Button>
+                                  ) : doc.approval_status === 'embedded' ? (
+                                    <span className="text-sm text-green-600 font-medium">
+                                      Embedded Successfully
+                                    </span>
                                   ) : (
                                     <span className="text-sm text-gray-500">No actions available</span>
                                   )}

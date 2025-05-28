@@ -257,6 +257,49 @@ chunkingRouter.post("/documents/:documentId/embed", async (req: Request, res: Re
 });
 
 /**
+ * Process all chunks for a specific RFP document and embed them
+ * POST /rfp-documents/:documentId/embed
+ */
+chunkingRouter.post("/rfp-documents/:documentId/embed", async (req: Request, res: Response) => {
+  try {
+    const { documentId } = req.params;
+    
+    console.log(`Received embedding request for RFP document ${documentId}`);
+    
+    // Check if RFP document exists
+    const rfpDocument = await storage.getRfpDocument(documentId);
+    
+    if (!rfpDocument) {
+      return res.status(404).json({
+        success: false,
+        error: `RFP document not found: ${documentId}`
+      });
+    }
+    
+    // Import and call the embedDocumentChunks function
+    const { embedDocumentChunks } = await import('./ai-service');
+    
+    // Process all chunks for this RFP document
+    const result = await embedDocumentChunks(documentId);
+    
+    // If successful, update the RFP document status to 'embedded'
+    if (result.success && result.chunksEmbedded > 0) {
+      await storage.updateRfpDocumentApprovalStatus(documentId, 'embedded');
+      console.log(`Updated RFP document ${documentId} status to 'embedded'`);
+    }
+    
+    return res.json(result);
+  } catch (error) {
+    console.error('Error in RFP document embedding endpoint:', error);
+    return res.status(500).json({
+      success: false,
+      chunksEmbedded: 0,
+      errors: [error instanceof Error ? error.message : String(error)]
+    });
+  }
+});
+
+/**
  * Process all approved documents and embed their chunks
  * POST /documents/embed-approved
  */
