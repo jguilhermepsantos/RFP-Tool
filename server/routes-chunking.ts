@@ -226,7 +226,6 @@ chunkingRouter.post("/rfp-documents/process-all-unchunked", async (req: Request,
 chunkingRouter.post("/documents/:documentId/embed", async (req: Request, res: Response) => {
   try {
     const { documentId } = req.params;
-    const { forceReembed } = req.body;
     
     console.log(`Received embedding request for document ${documentId}`);
     
@@ -238,22 +237,6 @@ chunkingRouter.post("/documents/:documentId/embed", async (req: Request, res: Re
         success: false,
         error: `Document not found: ${documentId}`
       });
-    }
-    
-    // If forceReembed is true, reset the embedded status of all chunks for this document
-    if (forceReembed) {
-      console.log(`Force re-embedding requested for document ${documentId}`);
-      const chunks = await storage.getChunks(documentId);
-      console.log(`Found ${chunks.length} chunks to reset embedding status for`);
-      
-      // Reset embedded status for all chunks
-      for (const chunk of chunks) {
-        if (chunk.embedded) {
-          console.log(`Resetting embedded status for chunk ${chunk.id}`);
-          // Reset the embedded status by setting embedded to false
-          await storage.markChunkAsEmbedded(chunk.id, false);
-        }
-      }
     }
     
     // Import and call the embedDocumentChunks function
