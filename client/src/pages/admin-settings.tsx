@@ -797,6 +797,7 @@ export default function AdminSettings() {
                             <SelectItem value="all">All Documents</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="embedded">Embedded</SelectItem>
                             <SelectItem value="rejected">Rejected</SelectItem>
                           </SelectContent>
                         </Select>
