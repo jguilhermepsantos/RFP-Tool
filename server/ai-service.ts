@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { supabase } from "./db";
+import { storage } from "./storage";
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -343,6 +344,88 @@ Respond strictly in the following JSON format (and nothing else):
   }
 }
 
+
+/**
+ * Embeds all chunks for a specific document and updates the document status to 'embedded'
+ */
+export async function embedDocumentChunks(documentId: string): Promise<{
+  success: boolean;
+  chunksEmbedded: number;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  let chunksEmbedded = 0;
+
+  try {
+    console.log(`Starting embedding process for document: ${documentId}`);
+
+    // Get all chunks for this specific document that haven't been embedded yet
+    const chunks = await storage.getDocumentChunks(documentId, 'knowledge');
+    const unembeddedChunks = chunks.filter(chunk => !chunk.embedded);
+
+    console.log(`Found ${unembeddedChunks.length} unembedded chunks for document ${documentId}`);
+
+    if (unembeddedChunks.length === 0) {
+      // Document already fully embedded, update status
+      await storage.updateDocumentApprovalStatus(documentId, 'embedded');
+      return {
+        success: true,
+        chunksEmbedded: 0,
+        errors: []
+      };
+    }
+
+    // Process each chunk
+    for (const chunk of unembeddedChunks) {
+      try {
+        console.log(`Embedding chunk ${chunk.id} from document ${documentId}`);
+        
+        // Create embedding for the chunk content
+        const embedding = await createEmbedding(chunk.content);
+        
+        // Index the chunk in Pinecone with document metadata
+        const success = await indexChunk(chunk.id, chunk.content, {
+          documentId: documentId,
+          chunkIndex: chunk.chunkIndex,
+          documentType: 'knowledge'
+        });
+
+        if (success) {
+          // Mark chunk as embedded in the database
+          await storage.markChunkAsEmbedded(chunk.id);
+          chunksEmbedded++;
+          console.log(`Successfully embedded chunk ${chunk.id}`);
+        } else {
+          errors.push(`Failed to index chunk ${chunk.id} in vector database`);
+        }
+      } catch (error) {
+        const errorMessage = `Error embedding chunk ${chunk.id}: ${error instanceof Error ? error.message : String(error)}`;
+        console.error(errorMessage);
+        errors.push(errorMessage);
+      }
+    }
+
+    // If all chunks were successfully embedded, update document status to 'embedded'
+    if (errors.length === 0) {
+      await storage.updateDocumentApprovalStatus(documentId, 'embedded');
+      console.log(`Document ${documentId} fully embedded and status updated`);
+    }
+
+    return {
+      success: errors.length === 0,
+      chunksEmbedded,
+      errors
+    };
+  } catch (error) {
+    const errorMessage = `Error in embedDocumentChunks for ${documentId}: ${error instanceof Error ? error.message : String(error)}`;
+    console.error(errorMessage);
+    return {
+      success: false,
+      chunksEmbedded,
+      errors: [errorMessage, ...errors]
+    };
+  }
+}
 
 /**
  * Create an embedding for a text using OpenAI

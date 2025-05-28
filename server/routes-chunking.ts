@@ -220,6 +220,107 @@ chunkingRouter.post("/rfp-documents/process-all-unchunked", async (req: Request,
 });
 
 /**
+ * Process all chunks for a specific document and embed them
+ * POST /documents/:documentId/embed
+ */
+chunkingRouter.post("/documents/:documentId/embed", async (req: Request, res: Response) => {
+  try {
+    const { documentId } = req.params;
+    
+    console.log(`Received embedding request for document ${documentId}`);
+    
+    // Check if document exists
+    const document = await storage.getDocument(documentId);
+    
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: `Document not found: ${documentId}`
+      });
+    }
+    
+    // Import and call the embedDocumentChunks function
+    const { embedDocumentChunks } = await import('./ai-service');
+    
+    // Process all chunks for this document
+    const result = await embedDocumentChunks(documentId);
+    
+    return res.json(result);
+  } catch (error) {
+    console.error('Error in document embedding endpoint:', error);
+    return res.status(500).json({
+      success: false,
+      chunksEmbedded: 0,
+      errors: [error instanceof Error ? error.message : String(error)]
+    });
+  }
+});
+
+/**
+ * Process all approved documents and embed their chunks
+ * POST /documents/embed-approved
+ */
+chunkingRouter.post("/documents/embed-approved", async (req: Request, res: Response) => {
+  try {
+    console.log(`Received request to embed all approved documents`);
+    
+    // Get all documents with status 'approved'
+    const documents = await storage.getDocuments();
+    const approvedDocuments = documents.filter(doc => doc.approvalStatus === 'approved');
+    
+    console.log(`Found ${approvedDocuments.length} approved documents to embed`);
+    
+    if (approvedDocuments.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No approved documents found for embedding',
+        results: []
+      });
+    }
+    
+    // Import the embedDocumentChunks function
+    const { embedDocumentChunks } = await import('./ai-service');
+    
+    // Process each approved document
+    const results = [];
+    
+    for (const doc of approvedDocuments) {
+      try {
+        console.log(`Embedding document ${doc.id}: ${doc.name}`);
+        const result = await embedDocumentChunks(doc.id);
+        results.push({
+          documentId: doc.id,
+          documentName: doc.name,
+          ...result
+        });
+      } catch (error) {
+        console.error(`Error embedding document ${doc.id}:`, error);
+        results.push({
+          documentId: doc.id,
+          documentName: doc.name,
+          success: false,
+          chunksEmbedded: 0,
+          errors: [error instanceof Error ? error.message : String(error)]
+        });
+      }
+    }
+    
+    return res.json({
+      success: true,
+      message: `Processed ${results.length} approved documents`,
+      results
+    });
+  } catch (error) {
+    console.error('Error in embed approved documents endpoint:', error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : String(error),
+      results: []
+    });
+  }
+});
+
+/**
  * Process all unembedded chunks and embed them into the vector database
  * POST /process-unembedded-chunks
  */
