@@ -507,8 +507,8 @@ export class DatabaseStorage implements IStorage {
     return document;
   }
 
-  async updateDocumentApprovalStatus(id: string, approved: boolean): Promise<Document | undefined> {
-    console.log(`Updating document approval status: ${id} to ${approved ? 'approved' : 'rejected'}`);
+  async updateDocumentApprovalStatus(id: string, status: string): Promise<Document | undefined> {
+    console.log(`Updating document approval status: ${id} to ${status}`);
     
     try {
       // Query the document directly using SQL to bypass schema mismatches
@@ -526,7 +526,7 @@ export class DatabaseStorage implements IStorage {
       
       // Using direct SQL for update to bypass schema mismatches
       const updateResult = await db.execute(
-        sql`UPDATE documents SET approved = ${approved} WHERE id = ${id} RETURNING *`
+        sql`UPDATE documents SET approval_status = ${status} WHERE id = ${id} RETURNING *`
       );
       
       if (updateResult.rows.length === 0) {

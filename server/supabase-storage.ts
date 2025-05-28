@@ -518,12 +518,10 @@ export class SupabaseStorage implements IStorage {
     return data as Document;
   }
 
-  async updateDocumentApprovalStatus(id: string, approved: boolean): Promise<Document | undefined> {
-    // Convert boolean to string status for approval_status column
-    const approval_status = approved ? 'approved' : 'rejected';
+  async updateDocumentApprovalStatus(id: string, status: string): Promise<Document | undefined> {
     const now = new Date().toISOString();
     
-    console.log(`[SupabaseStorage] Updating document ${id} approval_status to: ${approval_status}`);
+    console.log(`[SupabaseStorage] Updating document ${id} approval_status to: ${status}`);
     
     // Get the current authenticated user
     const { data: authData } = await supabase.auth.getUser();
@@ -533,7 +531,7 @@ export class SupabaseStorage implements IStorage {
     
     // Build the update payload
     const updatePayload: any = { 
-      approval_status,
+      approval_status: status,
       approval_status_modified_at: now,
     };
     
@@ -721,7 +719,7 @@ export class SupabaseStorage implements IStorage {
     });
     
     // Then set its approval status
-    return this.updateDocumentApprovalStatus(newDoc.id, true) as Promise<Document>;
+    return this.updateDocumentApprovalStatus(newDoc.id, 'approved') as Promise<Document>;
   }
 
   async getSuggestedDocuments(): Promise<Document[]> {

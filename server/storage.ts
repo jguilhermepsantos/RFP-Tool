@@ -58,7 +58,7 @@ export interface IStorage {
   getDocuments(): Promise<Document[]>;
   getDocument(id: string): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
-  updateDocumentApprovalStatus(id: string, approved: boolean): Promise<Document | undefined>;
+  updateDocumentApprovalStatus(id: string, status: string): Promise<Document | undefined>;
   updateDocumentChunkStatus(id: string, chunked: boolean): Promise<Document | undefined>;
   
   // Chunk operations

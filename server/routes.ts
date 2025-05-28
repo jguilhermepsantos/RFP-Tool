@@ -1056,7 +1056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const document = await storage.updateDocumentApprovalStatus(
           id,
-          status === "approved",
+          status,
         );
 
         if (!document) {
