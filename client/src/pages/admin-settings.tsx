@@ -8,6 +8,7 @@ import { ChunkingService } from '@/lib/chunkingService';
 import { useUserCache } from '@/hooks/use-user-cache';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import {
   Table,
@@ -32,7 +33,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import NavHeader from '@/components/nav-header';
-import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User, MessageSquare, Loader2, Plus, Mail, Zap } from 'lucide-react';
+import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User, MessageSquare, Loader2, Plus, Mail, Zap, Eye } from 'lucide-react';
 
 // Form validation schema for inviting users
 const inviteUserSchema = z.object({
@@ -95,6 +96,16 @@ interface RfpDocument {
   approval_status_modified_by: string | null;
 }
 
+interface Chunk {
+  id: string;
+  content: string;
+  documentId: string;
+  createdAt: string;
+  embedded: boolean;
+  embeddedAt: string | null;
+  scope: string;
+}
+
 interface Feedback {
   id: string;
   content: string;
@@ -110,6 +121,8 @@ export default function AdminSettings() {
   const [documentFilterStatus, setDocumentFilterStatus] = useState<string>('all');
   const [rfpFilterStatus, setRfpFilterStatus] = useState<string>('all');
   const [showInviteForm, setShowInviteForm] = useState<boolean>(false);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [chunksModalOpen, setChunksModalOpen] = useState(false);
   
   // Invite user form
   const inviteForm = useForm<InviteUserForm>({

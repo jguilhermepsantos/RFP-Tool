@@ -321,6 +321,45 @@ chunkingRouter.post("/documents/embed-approved", async (req: Request, res: Respo
 });
 
 /**
+ * Get all chunks for a specific document
+ * GET /documents/:documentId/chunks
+ */
+chunkingRouter.get("/documents/:documentId/chunks", async (req: Request, res: Response) => {
+  try {
+    const { documentId } = req.params;
+    
+    console.log(`Received request to get chunks for document ${documentId}`);
+    
+    // Check if document exists
+    const document = await storage.getDocument(documentId);
+    
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: `Document not found: ${documentId}`
+      });
+    }
+    
+    // Get all chunks for this document
+    const chunks = await storage.getChunks(documentId);
+    
+    console.log(`Found ${chunks.length} chunks for document ${documentId}`);
+    
+    return res.json({
+      success: true,
+      chunks: chunks
+    });
+  } catch (error) {
+    console.error('Error fetching document chunks:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      chunks: []
+    });
+  }
+});
+
+/**
  * Process all unembedded chunks and embed them into the vector database
  * POST /process-unembedded-chunks
  */
