@@ -32,7 +32,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import NavHeader from '@/components/nav-header';
-import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User, MessageSquare, Loader2, Plus, Mail } from 'lucide-react';
+import { Check, X, FileText, Filter, Scissors, Users, Database, Shield, User, MessageSquare, Loader2, Plus, Mail, Zap } from 'lucide-react';
 
 // Form validation schema for inviting users
 const inviteUserSchema = z.object({
@@ -44,6 +44,23 @@ const inviteUserSchema = z.object({
 
 type InviteUserForm = z.infer<typeof inviteUserSchema>;
 
+// Status Badge Component
+const StatusBadge = ({ status }: { status: 'pending' | 'approved' | 'embedded' | 'rejected' }) => {
+  const statusConfig = {
+    pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
+    approved: { color: 'bg-blue-100 text-blue-800', text: 'Approved' },
+    embedded: { color: 'bg-green-100 text-green-800', text: 'Embedded' },
+    rejected: { color: 'bg-red-100 text-red-800', text: 'Rejected' }
+  };
+
+  const config = statusConfig[status];
+  return (
+    <Badge className={`${config.color} border-0`}>
+      {config.text}
+    </Badge>
+  );
+};
+
 // Interfaces for the approval data
 interface Document {
   id: string;
@@ -52,7 +69,7 @@ interface Document {
   uploadedAt?: string;
   createdAt: string;
   fileUrl: string | null;
-  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvalStatus: 'pending' | 'approved' | 'embedded' | 'rejected';
   approvalStatusModifiedAt: string | null;
   approvalStatusModifiedBy: string | null;
   uploaded_by?: string;
@@ -257,6 +274,62 @@ export default function AdminSettings() {
       toast({
         title: "Error",
         description: "Failed to update RFP document status",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutation for embedding a single document
+  const embedDocument = useMutation({
+    mutationFn: async (documentId: string) => {
+      return await apiRequest(`/api/documents/${documentId}/embed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': user?.email || ''
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/documents'] });
+      toast({
+        title: "Success",
+        description: "Document embedding completed successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error embedding document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to embed document",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutation for embedding all approved documents
+  const embedAllApprovedDocuments = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/documents/embed-approved', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': user?.email || ''
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/documents'] });
+      toast({
+        title: "Success",
+        description: "All approved documents are being embedded",
+      });
+    },
+    onError: (error) => {
+      console.error('Error embedding approved documents:', error);
+      toast({
+        title: "Error",
+        description: "Failed to embed approved documents",
         variant: "destructive",
       });
     }
@@ -545,8 +618,20 @@ export default function AdminSettings() {
                                         Reject
                                       </Button>
                                     </div>
+                                  ) : doc.approval_status === 'approved' ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => embedDocument.mutate(doc.id)}
+                                      disabled={embedDocument.isPending}
+                                    >
+                                      <Zap className="h-4 w-4 mr-1" />
+                                      Process Embedding
+                                    </Button>
                                   ) : (
-                                    <span className="text-sm text-gray-500">No actions available</span>
+                                    <span className="text-sm text-gray-500">
+                                      {doc.approval_status === 'embedded' ? 'Fully processed' : 'No actions available'}
+                                    </span>
                                   )}
                                 </TableCell>
                               </TableRow>
