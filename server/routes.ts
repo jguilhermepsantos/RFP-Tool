@@ -22,10 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
   app.use("/api", apiRouter);
 
-  // Register chunking routes
-  apiRouter.use(chunkingRouter);
-
-  // Add chunks endpoint directly to ensure proper routing
+  // Add chunks endpoint FIRST to ensure it takes precedence
   apiRouter.get("/documents/:documentId/chunks", async (req: Request, res: Response) => {
     try {
       const { documentId } = req.params;
@@ -65,6 +62,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Register chunking routes after the specific chunks endpoint
+  apiRouter.use(chunkingRouter);
 
   // Middleware for requiring admin access
   const requireAdmin = async (
