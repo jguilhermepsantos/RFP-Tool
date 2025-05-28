@@ -599,7 +599,17 @@ export class SupabaseStorage implements IStorage {
       .eq('document_id', documentId);
     
     if (error) throw new Error(`Failed to get chunks: ${error.message}`);
-    return data as Chunk[];
+    
+    // Transform snake_case to camelCase to match the Chunk interface
+    return (data || []).map(chunk => ({
+      id: chunk.id,
+      content: chunk.content,
+      documentId: chunk.document_id,
+      createdAt: chunk.created_at,
+      embedded: chunk.embedded || false,
+      embeddedAt: chunk.embedded_at,
+      scope: chunk.scope || 'global'
+    }));
   }
 
   async createChunk(chunk: InsertChunk): Promise<Chunk> {
