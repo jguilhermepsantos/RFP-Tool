@@ -593,15 +593,30 @@ export class SupabaseStorage implements IStorage {
 
   // Chunk operations
   async getChunks(documentId: string): Promise<Chunk[]> {
+    console.log(`[SupabaseStorage] Getting chunks for document: ${documentId}`);
+    
     const { data, error } = await supabase
       .from('chunks')
       .select('*')
       .eq('document_id', documentId);
     
-    if (error) throw new Error(`Failed to get chunks: ${error.message}`);
+    if (error) {
+      console.error(`[SupabaseStorage] Error fetching chunks: ${error.message}`);
+      throw new Error(`Failed to get chunks: ${error.message}`);
+    }
+    
+    console.log(`[SupabaseStorage] Raw Supabase response for chunks:`, data);
+    console.log(`[SupabaseStorage] Found ${data?.length || 0} chunks in database`);
+    
+    if (data && data.length > 0) {
+      // Log details about each chunk's embedding status
+      data.forEach((chunk, index) => {
+        console.log(`[SupabaseStorage] Chunk ${index + 1}: ID=${chunk.id}, embedded=${chunk.embedded}, embedded_at=${chunk.embedded_at}`);
+      });
+    }
     
     // Transform snake_case to camelCase to match the Chunk interface
-    return (data || []).map(chunk => ({
+    const transformedChunks = (data || []).map(chunk => ({
       id: chunk.id,
       content: chunk.content,
       documentId: chunk.document_id,
@@ -610,6 +625,9 @@ export class SupabaseStorage implements IStorage {
       embeddedAt: chunk.embedded_at,
       scope: chunk.scope || 'global'
     }));
+    
+    console.log(`[SupabaseStorage] Returning ${transformedChunks.length} transformed chunks`);
+    return transformedChunks;
   }
 
   async createChunk(chunk: InsertChunk): Promise<Chunk> {
