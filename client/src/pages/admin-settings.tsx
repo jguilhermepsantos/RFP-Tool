@@ -531,7 +531,9 @@ export default function AdminSettings() {
   const StatusBadge = ({ status }: { status: string | undefined }) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800">Approved</Badge>;
+      case 'embedded':
+        return <Badge className="bg-green-100 text-green-800">Embedded</Badge>;
       case 'rejected':
         return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
       case 'pending':
