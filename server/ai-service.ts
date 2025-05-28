@@ -360,7 +360,7 @@ export async function embedDocumentChunks(documentId: string): Promise<{
     console.log(`Starting embedding process for document: ${documentId}`);
 
     // Get all chunks for this specific document that haven't been embedded yet
-    const chunks = await storage.getDocumentChunks(documentId, 'knowledge');
+    const chunks = await storage.getChunks(documentId);
     const unembeddedChunks = chunks.filter(chunk => !chunk.embedded);
 
     console.log(`Found ${unembeddedChunks.length} unembedded chunks for document ${documentId}`);
@@ -386,7 +386,6 @@ export async function embedDocumentChunks(documentId: string): Promise<{
         // Index the chunk in Pinecone with document metadata
         const success = await indexChunk(chunk.id, chunk.content, {
           documentId: documentId,
-          chunkIndex: chunk.chunkIndex,
           documentType: 'knowledge'
         });
 
