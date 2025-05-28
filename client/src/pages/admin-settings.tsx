@@ -230,6 +230,10 @@ export default function AdminSettings() {
 
   // Convert API response to array of chunks
   const chunks: Chunk[] = chunksResponse?.chunks || [];
+  
+  // Debug logging
+  console.log('Chunks response:', chunksResponse);
+  console.log('Chunks array:', chunks);
 
   // Handle viewing chunks for a document
   const handleViewChunks = (documentId: string) => {
