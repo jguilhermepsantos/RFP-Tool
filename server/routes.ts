@@ -30,12 +30,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { documentId } = req.params;
       
-      console.log(`Received request to get chunks for document ${documentId}`);
+      console.log(`[CHUNKS API] Received request to get chunks for document ${documentId}`);
+      
+      // Set JSON response headers to ensure proper response type
+      res.setHeader('Content-Type', 'application/json');
       
       // Check if document exists
       const document = await storage.getDocument(documentId);
       
       if (!document) {
+        console.log(`[CHUNKS API] Document not found: ${documentId}`);
         return res.status(404).json({
           success: false,
           error: `Document not found: ${documentId}`
@@ -45,14 +49,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all chunks for this document
       const chunks = await storage.getChunks(documentId);
       
-      console.log(`Found ${chunks.length} chunks for document ${documentId}`);
+      console.log(`[CHUNKS API] Found ${chunks.length} chunks for document ${documentId}`);
+      console.log(`[CHUNKS API] Sample chunk data:`, chunks.length > 0 ? chunks[0] : 'none');
       
       return res.json({
         success: true,
         chunks: chunks
       });
     } catch (error) {
-      console.error('Error fetching document chunks:', error);
+      console.error('[CHUNKS API] Error fetching document chunks:', error);
       return res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : String(error),
