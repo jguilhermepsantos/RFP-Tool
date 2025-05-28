@@ -664,21 +664,26 @@ export class SupabaseStorage implements IStorage {
     return data as Chunk[];
   }
   
-  async markChunkAsEmbedded(chunkId: string): Promise<boolean> {
-    console.log(`[SupabaseStorage] Marking chunk ${chunkId} as embedded`);
+  async markChunkAsEmbedded(chunkId: string, embedded: boolean = true): Promise<boolean> {
+    console.log(`[SupabaseStorage] Marking chunk ${chunkId} as embedded: ${embedded}`);
     
-    const now = new Date().toISOString();
+    const updateData: any = {
+      embedded: embedded
+    };
+    
+    if (embedded) {
+      updateData.embedded_at = new Date().toISOString();
+    } else {
+      updateData.embedded_at = null;
+    }
     
     const { data, error } = await supabase
       .from('chunks')
-      .update({
-        embedded: true,
-        embedded_at: now
-      })
+      .update(updateData)
       .eq('id', chunkId);
       
     if (error) {
-      console.log(`[SupabaseStorage] Error marking chunk as embedded: ${error.message}`);
+      console.log(`[SupabaseStorage] Error updating chunk embedding status: ${error.message}`);
       return false;
     }
     

@@ -66,7 +66,7 @@ export interface IStorage {
   createChunk(chunk: InsertChunk): Promise<Chunk>;
   getDocumentChunks(documentId: string, documentType: string): Promise<Chunk[]>;
   getUnembeddedChunks(limit?: number): Promise<Chunk[]>;
-  markChunkAsEmbedded(chunkId: string): Promise<boolean>;
+  markChunkAsEmbedded(chunkId: string, embedded?: boolean): Promise<boolean>;
   
   // Compliance Mapping operations
   getComplianceMappings(projectId: string): Promise<ComplianceMapping[]>;
