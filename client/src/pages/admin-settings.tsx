@@ -224,16 +224,18 @@ export default function AdminSettings() {
     error: chunksError
   } = useQuery({
     queryKey: ['/api/documents', selectedDocumentId, 'chunks'],
-    queryFn: () => apiRequest(`/api/documents/${selectedDocumentId}/chunks`),
     enabled: !!selectedDocumentId && chunksModalOpen
   });
 
   // Convert API response to array of chunks
-  const chunks: Chunk[] = chunksResponse?.chunks || [];
+  const chunks: Chunk[] = (chunksResponse as any)?.chunks || [];
   
-  // Debug logging
-  console.log('Chunks response:', chunksResponse);
-  console.log('Chunks array:', chunks);
+  // Add debug logging to see what we're getting
+  if (selectedDocumentId && chunksModalOpen) {
+    console.log('Selected document ID:', selectedDocumentId);
+    console.log('Chunks response:', chunksResponse);
+    console.log('Chunks array:', chunks);
+  }
 
   // Handle viewing chunks for a document
   const handleViewChunks = (documentId: string) => {
