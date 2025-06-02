@@ -868,9 +868,14 @@ export default function AdminSettings() {
                                       Process Embedding
                                     </Button>
                                   ) : doc.approval_status === 'embedded' ? (
-                                    <span className="text-sm text-green-600 font-medium">
-                                      Embedded Successfully
-                                    </span>
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => handleViewChunks(doc.id)}
+                                    >
+                                      <FileText className="h-4 w-4 mr-1" />
+                                      View Chunks
+                                    </Button>
                                   ) : (
                                     <span className="text-sm text-gray-500">No actions available</span>
                                   )}
