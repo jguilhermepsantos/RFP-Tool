@@ -98,8 +98,8 @@ export default function RfpAnswerEditor({
     }
   };
 
-  // Allow editing when document is either 'processed' or 'under review'
-  const isEditable = documentStatus === 'processed' || documentStatus === 'under review';
+  // Allow editing when document is either 'processed' or 'reviewed' (under review)
+  const isEditable = documentStatus === 'processed' || documentStatus === 'reviewed';
   const isReadOnly = documentStatus === 'done';
   const isUnprocessed = documentStatus === 'unprocessed';
 
