@@ -86,11 +86,18 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
 
   const project = projectData?.project;
   const document = data?.document;
-  // Sort the questions by created_at ascending (oldest first)
-  const questionsWithAnswers = [...(data?.questionsWithAnswers || [])].sort((a, b) => {
-    const dateA = a.answer?.createdAt ? new Date(a.answer.createdAt).getTime() : 0;
-    const dateB = b.answer?.createdAt ? new Date(b.answer.createdAt).getTime() : 0;
+  
+  // Sort and filter the questions
+  const allQuestionsWithAnswers = [...(data?.questionsWithAnswers || [])].sort((a, b) => {
+    const dateA = a.answer?.lastReviewedAt ? new Date(a.answer.lastReviewedAt).getTime() : 0;
+    const dateB = b.answer?.lastReviewedAt ? new Date(b.answer.lastReviewedAt).getTime() : 0;
     return dateA - dateB;
+  });
+
+  // Apply confidence level filter
+  const questionsWithAnswers = allQuestionsWithAnswers.filter((item) => {
+    if (confidenceFilter === "all") return true;
+    return item.answer?.confidenceLevel === confidenceFilter;
   });
 
   const handleProcessDocument = async () => {
@@ -345,6 +352,28 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
               </Card>
             ) : (
               <div className="space-y-6">
+                {/* Confidence Level Filter - Only show for processed documents with answers */}
+                {document.status !== 'unprocessed' && allQuestionsWithAnswers.some(item => item.answer?.confidenceLevel) && (
+                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
+                    <Filter className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">Filter by confidence level:</span>
+                    <Select value={confidenceFilter} onValueChange={setConfidenceFilter}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="All answers" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Answers</SelectItem>
+                        <SelectItem value="low">Low Confidence</SelectItem>
+                        <SelectItem value="medium">Medium Confidence</SelectItem>
+                        <SelectItem value="high">High Confidence</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-xs text-gray-500">
+                      Showing {questionsWithAnswers.length} of {allQuestionsWithAnswers.length} answers
+                    </span>
+                  </div>
+                )}
+                
                 {document.status === 'unprocessed' ? (
                   <>
                     <Card className="bg-amber-50 border-amber-200 mb-4">
