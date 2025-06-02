@@ -102,7 +102,7 @@ function SourceChunkDisplay({ chunk, index }: SourceChunkDisplayProps) {
         </Button>
       </div>
       
-      <Progress value={chunk.similarity * 100} className="h-1 mb-2" />
+
       
       {isExpanded && (
         <div className="mt-3 pt-3 border-t">
