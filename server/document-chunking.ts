@@ -326,18 +326,8 @@ export async function chunkRfpDocument(
     // Update RFP document to mark as chunked - using a status update
     // await storage.updateRfpDocumentStatus(rfpDocumentId, 'chunked');
     
-    // Trigger embedding process for the newly created chunks
-    if (createdChunks > 0) {
-      try {
-        const { embedUnprocessedChunks } = await import('./ai-service');
-        console.log(`🧠 Starting embedding process for ${createdChunks} RFP chunks...`);
-        const embeddingResult = await embedUnprocessedChunks();
-        console.log(`✅ Embedding process completed. Embedded ${embeddingResult.chunksEmbedded} chunks with ${embeddingResult.errors.length} errors.`);
-      } catch (embeddingError) {
-        console.error(`⚠️ Error during embedding process:`, embeddingError);
-        // Continue with success as chunking was successful even if embedding failed
-      }
-    }
+    console.log(`📝 Chunking completed for RFP document ${rfpDocumentId}. Created ${createdChunks} chunks.`);
+    console.log(`ℹ️ Embedding can be triggered manually from the admin interface.`);
     
     return {
       success: true,
