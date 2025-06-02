@@ -783,7 +783,7 @@ export async function processDocumentQuestions(documentId: string): Promise<{
           }
           
           // Generate answer using RAG
-          const { compliance, answer, sourceChunks } = await answerQuestion(question.question_text);
+          const { compliance, answer, sourceChunks, averageSimilarity, confidenceLevel } = await answerQuestion(question.question_text);
           
           // Create answer in database
           const { data: newAnswer, error: answerError } = await supabase
@@ -794,7 +794,9 @@ export async function processDocumentQuestions(documentId: string): Promise<{
               question_text: question.question_text,
               compliance_answer: compliance,
               generated_answer: answer,
-              source_chunks: JSON.stringify(sourceChunks)
+              source_chunks: JSON.stringify(sourceChunks),
+              average_similarity: averageSimilarity,
+              confidence_level: confidenceLevel
             })
             .select()
             .single();

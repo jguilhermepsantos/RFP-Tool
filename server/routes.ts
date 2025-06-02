@@ -539,6 +539,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 complianceAnswer: dbAnswer.compliance_answer,
                 generatedAnswer: dbAnswer.generated_answer,
                 sourceChunks: sourceChunks,
+                averageSimilarity: dbAnswer.average_similarity,
+                confidenceLevel: dbAnswer.confidence_level,
                 lastReviewedBy: dbAnswer.last_reviewed_by,
                 lastReviewedAt: dbAnswer.last_reviewed_at,
               },

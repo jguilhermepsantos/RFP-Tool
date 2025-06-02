@@ -24,6 +24,8 @@ interface Answer {
   complianceAnswer: string | null;
   generatedAnswer: string | null;
   sourceChunks?: SourceChunk[];
+  averageSimilarity?: number;
+  confidenceLevel?: 'low' | 'medium' | 'high';
   // finalAnswer removed as it doesn't exist in the database
   lastReviewedBy: string | null;
   lastReviewedAt: string | null;
@@ -204,11 +206,21 @@ export default function RfpAnswerEditor({
     return "Low";
   };
 
+  // Helper functions for confidence levels
+  const getConfidenceColor = (level: 'low' | 'medium' | 'high') => {
+    switch (level) {
+      case 'high': return "bg-green-100 text-green-800 border-green-300";
+      case 'medium': return "bg-yellow-100 text-yellow-800 border-yellow-300";
+      case 'low': return "bg-red-100 text-red-800 border-red-300";
+      default: return "bg-gray-100 text-gray-800 border-gray-300";
+    }
+  };
+
   return (
     <Card className={isUnprocessed ? "border-amber-200" : ""}>
       <CardHeader>
         <div className="flex justify-between items-start">
-          <div>
+          <div className="flex-1">
             <CardTitle className="text-base font-medium flex items-center gap-2">
               <span className="text-muted-foreground">{question.questionNumber}</span>
               {question.questionText}
@@ -219,6 +231,18 @@ export default function RfpAnswerEditor({
               </CardDescription>
             )}
           </div>
+          
+          {/* Confidence level badge */}
+          {question.answer?.confidenceLevel && (
+            <Badge variant="outline" className={`ml-4 ${getConfidenceColor(question.answer.confidenceLevel)}`}>
+              {question.answer.confidenceLevel.toUpperCase()} CONFIDENCE
+              {question.answer.averageSimilarity && (
+                <span className="ml-1 text-xs">
+                  ({Math.round(question.answer.averageSimilarity * 100)}%)
+                </span>
+              )}
+            </Badge>
+          )}
           
           {/* Only show edit button for processed or under review documents */}
           {isEditable && !isReadOnly && (
