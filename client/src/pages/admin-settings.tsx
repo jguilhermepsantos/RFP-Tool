@@ -858,15 +858,25 @@ export default function AdminSettings() {
                                       </Button>
                                     </div>
                                   ) : doc.approval_status === 'approved' ? (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => embedRfpDocument.mutate(doc.id)}
-                                      disabled={embedRfpDocument.isPending}
-                                    >
-                                      <Zap className="h-4 w-4 mr-1" />
-                                      Process Embedding
-                                    </Button>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => embedRfpDocument.mutate(doc.id)}
+                                        disabled={embedRfpDocument.isPending}
+                                      >
+                                        <Zap className="h-4 w-4 mr-1" />
+                                        Process Embedding
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => handleViewChunks(doc.id)}
+                                      >
+                                        <FileText className="h-4 w-4 mr-1" />
+                                        View Chunks
+                                      </Button>
+                                    </div>
                                   ) : doc.approval_status === 'embedded' ? (
                                     <Button
                                       size="sm"
