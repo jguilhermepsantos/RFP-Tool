@@ -276,11 +276,11 @@ chunkingRouter.post("/rfp-documents/:documentId/embed", async (req: Request, res
       });
     }
     
-    // Import and call the embedDocumentChunks function
-    const { embedDocumentChunks } = await import('./ai-service');
+    // Import and call the indexDocumentChunks function
+    const { indexDocumentChunks } = await import('./ai-service');
     
     // Process all chunks for this RFP document
-    const result = await embedDocumentChunks(documentId);
+    const result = await indexDocumentChunks(documentId);
     
     // If successful, update the RFP document status to 'embedded'
     if (result.success && result.chunksEmbedded > 0) {
