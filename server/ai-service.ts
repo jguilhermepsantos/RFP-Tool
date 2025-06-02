@@ -262,10 +262,37 @@ async function searchChunks(query: string, nResults: number = 3): Promise<{
 //   }
 // }
 
+/**
+ * Calculate similarity metrics from source chunks
+ */
+function calculateSimilarityMetrics(chunks: { chunkId: string; similarity: number; source: 'document' | 'rfp' }[]): {
+  averageSimilarity: number;
+  confidenceLevel: 'low' | 'medium' | 'high';
+} {
+  if (chunks.length === 0) {
+    return { averageSimilarity: 0, confidenceLevel: 'low' };
+  }
+
+  const averageSimilarity = chunks.reduce((sum, chunk) => sum + chunk.similarity, 0) / chunks.length;
+  
+  let confidenceLevel: 'low' | 'medium' | 'high';
+  if (averageSimilarity >= 0.7) {
+    confidenceLevel = 'high';
+  } else if (averageSimilarity >= 0.5) {
+    confidenceLevel = 'medium';
+  } else {
+    confidenceLevel = 'low';
+  }
+
+  return { averageSimilarity, confidenceLevel };
+}
+
 export async function answerQuestion(question: string, nResults: number = 3): Promise<{
   compliance: string;
   answer: string;
   sourceChunks: { chunkId: string; similarity: number; source: 'document' | 'rfp' }[];
+  averageSimilarity: number;
+  confidenceLevel: 'low' | 'medium' | 'high';
 }> {
   try {
     console.log(`💬 Processing question: ${question}`);
@@ -280,6 +307,9 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
     // Step 2: Generate both compliance + elaborate answer in a single LLM call
     const { compliance, answer } = await generateAnswer(documents, question);
 
+    // Step 3: Calculate similarity metrics
+    const { averageSimilarity, confidenceLevel } = calculateSimilarityMetrics(metadata);
+
     // Log result
     console.log("\n🧠 Top Matches:");
     documents.forEach((doc: string, i: number) => {
@@ -288,15 +318,24 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
 
     console.log("\n✅ Final Answer:");
     console.log(answer);
+    console.log(`\n📊 Confidence: ${confidenceLevel} (avg similarity: ${averageSimilarity.toFixed(3)})`);
 
-    return { compliance, answer, sourceChunks: metadata };
+    return { 
+      compliance, 
+      answer, 
+      sourceChunks: metadata,
+      averageSimilarity,
+      confidenceLevel
+    };
 
   } catch (error) {
     console.error("Error answering question:", error);
     return {
       compliance: "Error",
       answer: "An error occurred while processing your question.",
-      sourceChunks: []
+      sourceChunks: [],
+      averageSimilarity: 0,
+      confidenceLevel: 'low'
     };
   }
 }

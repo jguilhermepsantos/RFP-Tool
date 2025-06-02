@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, boolean, timestamp, pgEnum, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -94,6 +94,8 @@ export const rfpAnswers = pgTable("rfp_answers", {
   generatedAnswer: text("generated_answer"),
   complianceAnswer: text("compliance_answer"),
   sourceChunks: text("source_chunks"),
+  averageSimilarity: real("average_similarity"),
+  confidenceLevel: text("confidence_level"),
   // finalAnswer field removed as it doesn't exist in the database
   createdAt: timestamp("created_at").defaultNow(),
   lastReviewedBy: uuid("last_reviewed_by").references(() => users.id),
