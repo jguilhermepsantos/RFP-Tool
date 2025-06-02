@@ -6,13 +6,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Pencil, Save } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare } from "lucide-react";
+
+interface SourceChunk {
+  chunkId: string;
+  similarity: number;
+  source: 'document' | 'rfp';
+}
 
 interface Answer {
   id: string;
   rfpQuestionId: string | null;
   complianceAnswer: string | null;
   generatedAnswer: string | null;
+  sourceChunks?: SourceChunk[];
   // finalAnswer removed as it doesn't exist in the database
   lastReviewedBy: string | null;
   lastReviewedAt: string | null;
@@ -56,6 +66,7 @@ export default function RfpAnswerEditor({
   // Remove the final answer state since we no longer need it
   const [isSaving, setIsSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSourcesOpen, setIsSourcesOpen] = useState(false);
 
   const handleSaveChanges = async () => {
     if (!question.answer?.id || !user?.id) return;
@@ -102,6 +113,19 @@ export default function RfpAnswerEditor({
   const isEditable = documentStatus === 'processed' || documentStatus === 'under review';
   const isReadOnly = documentStatus === 'done';
   const isUnprocessed = documentStatus === 'unprocessed';
+
+  // Helper functions for source chunks
+  const getSimilarityColor = (similarity: number) => {
+    if (similarity >= 0.7) return "bg-green-500";
+    if (similarity >= 0.5) return "bg-yellow-500";
+    return "bg-orange-500";
+  };
+
+  const getSimilarityLabel = (similarity: number) => {
+    if (similarity >= 0.7) return "High";
+    if (similarity >= 0.5) return "Medium";
+    return "Low";
+  };
 
   return (
     <Card className={isUnprocessed ? "border-amber-200" : ""}>

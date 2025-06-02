@@ -23,6 +23,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", apiRouter);
 
   // Add chunks endpoint FIRST to ensure it takes precedence
+  // Get individual chunk by ID
+  apiRouter.get("/chunks/:chunkId", async (req: Request, res: Response) => {
+    try {
+      const { chunkId } = req.params;
+      
+      // Query Supabase directly for the specific chunk
+      const { data: chunk, error } = await supabase
+        .from('chunks')
+        .select('*')
+        .eq('id', chunkId)
+        .single();
+      
+      if (error || !chunk) {
+        return res.status(404).json({ error: "Chunk not found" });
+      }
+      
+      // Transform to camelCase to match frontend expectations
+      const transformedChunk = {
+        id: chunk.id,
+        content: chunk.content,
+        documentId: chunk.document_id,
+        createdAt: chunk.created_at,
+        embedded: chunk.embedded || false,
+        embeddedAt: chunk.embedded_at,
+        scope: chunk.scope || 'global',
+        source: chunk.source || 'document'
+      };
+      
+      return res.json(transformedChunk);
+    } catch (error) {
+      console.error("Error fetching chunk:", error);
+      return res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
   apiRouter.get("/documents/:documentId/chunks", async (req: Request, res: Response) => {
     try {
       const { documentId } = req.params;
@@ -482,6 +519,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Transform the answers into the expected format for the frontend
           questionsWithAnswers = (answersData || []).map((dbAnswer: any) => {
+            // Parse source chunks if they exist
+            let sourceChunks = [];
+            if (dbAnswer.source_chunks) {
+              try {
+                sourceChunks = JSON.parse(dbAnswer.source_chunks);
+              } catch (e) {
+                console.log(`Failed to parse source chunks for answer ${dbAnswer.id}:`, e);
+              }
+            }
+
             return {
               id: dbAnswer.rfp_question_id,
               rfpDocumentId: dbAnswer.rfp_document_id,
@@ -491,6 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 rfpQuestionId: dbAnswer.rfp_question_id,
                 complianceAnswer: dbAnswer.compliance_answer,
                 generatedAnswer: dbAnswer.generated_answer,
+                sourceChunks: sourceChunks,
                 lastReviewedBy: dbAnswer.last_reviewed_by,
                 lastReviewedAt: dbAnswer.last_reviewed_at,
               },
