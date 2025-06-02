@@ -283,7 +283,7 @@ chunkingRouter.post("/rfp-documents/:documentId/embed", async (req: Request, res
     const result = await indexDocumentChunks(documentId);
     
     // If successful, update the RFP document status to 'embedded'
-    if (result.success && result.chunksEmbedded > 0) {
+    if (result.success && result.indexedCount > 0) {
       await storage.updateRfpDocumentApprovalStatus(documentId, 'embedded');
       console.log(`Updated RFP document ${documentId} status to 'embedded'`);
     }
