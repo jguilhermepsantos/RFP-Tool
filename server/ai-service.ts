@@ -481,19 +481,7 @@ export async function indexDocumentChunks(documentId: string): Promise<{
     // Ensure Pinecone index exists
     await initializePineconeIndex();
     
-    // Get document details
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('id', documentId)
-      .single();
-      
-    if (documentError) {
-      console.error(`Error fetching document:`, documentError);
-      throw new Error(`Failed to fetch document: ${documentError.message}`);
-    }
-    
-    // Get chunks for this document
+    // Get chunks for this document directly - no document validation needed
     const { data: chunks, error: chunksError } = await supabase
       .from('chunks')
       .select('*')
@@ -514,10 +502,8 @@ export async function indexDocumentChunks(documentId: string): Promise<{
       for (const chunk of chunks) {
         try {
           const metadata = {
-            documentId: document.id,
-            documentName: document.name,
-            documentType: document.type,
-            chunkIndex: chunk.chunk_index
+            documentId: documentId,
+            scope: chunk.scope || 'global'
           };
           
           const success = await indexChunk(chunk.id, chunk.content, metadata);
