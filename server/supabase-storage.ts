@@ -623,7 +623,8 @@ export class SupabaseStorage implements IStorage {
       createdAt: chunk.created_at,
       embedded: chunk.embedded || false,
       embeddedAt: chunk.embedded_at,
-      scope: chunk.scope || 'global'
+      scope: chunk.scope || 'global',
+      source: chunk.source || 'document'
     }));
     
     console.log(`[SupabaseStorage] Returning ${transformedChunks.length} transformed chunks`);

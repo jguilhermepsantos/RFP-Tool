@@ -282,7 +282,7 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
 
     // Log result
     console.log("\n🧠 Top Matches:");
-    documents.forEach((doc, i) => {
+    documents.forEach((doc: string, i: number) => {
       console.log(`🔹 ${doc.substring(0, 100)}...`);
     });
 
@@ -744,7 +744,7 @@ export async function processDocumentQuestions(documentId: string): Promise<{
           }
           
           // Generate answer using RAG
-          const { compliance, answer } = await answerQuestion(question.question_text);
+          const { compliance, answer, sourceChunks } = await answerQuestion(question.question_text);
           
           // Create answer in database
           const { data: newAnswer, error: answerError } = await supabase
@@ -754,7 +754,8 @@ export async function processDocumentQuestions(documentId: string): Promise<{
               rfp_question_id: question.id,
               question_text: question.question_text,
               compliance_answer: compliance,
-              generated_answer: answer
+              generated_answer: answer,
+              source_chunks: JSON.stringify(sourceChunks)
             })
             .select()
             .single();
