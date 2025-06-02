@@ -93,6 +93,7 @@ export const rfpAnswers = pgTable("rfp_answers", {
   questionText: text("question_text").notNull(),
   generatedAnswer: text("generated_answer"),
   complianceAnswer: text("compliance_answer"),
+  sourceChunks: text("source_chunks"),
   // finalAnswer field removed as it doesn't exist in the database
   createdAt: timestamp("created_at").defaultNow(),
   lastReviewedBy: uuid("last_reviewed_by").references(() => users.id),
@@ -242,3 +243,10 @@ export type LoginCredentials = z.infer<typeof loginSchema>;
 export type UpdateRfpAnswer = z.infer<typeof updateRfpAnswerSchema>;
 export type UpdateDocumentApproval = z.infer<typeof updateDocumentApprovalSchema>;
 export type UpdateRfpDocumentApproval = z.infer<typeof updateRfpDocumentApprovalSchema>;
+
+// Source chunk metadata type
+export interface SourceChunk {
+  chunkId: string;
+  similarity: number;
+  source: 'document' | 'rfp';
+}

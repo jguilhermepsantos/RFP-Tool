@@ -84,7 +84,10 @@ export async function initializePineconeIndex(): Promise<boolean> {
 /**
  * Search for relevant chunks in Pinecone based on a question
  */
-async function searchChunks(query: string, nResults: number = 3): Promise<string[]> {
+async function searchChunks(query: string, nResults: number = 3): Promise<{
+  content: string[];
+  metadata: { chunkId: string; similarity: number; source: 'document' | 'rfp' }[];
+}> {
   try {
     console.log(`🔎 Searching chunks for: ${query}`);
     
@@ -106,7 +109,7 @@ async function searchChunks(query: string, nResults: number = 3): Promise<string
     // Step 3: Fetch chunk contents from Supabase using the chunk IDs from Pinecone
     if (!searchResponse.matches || searchResponse.matches.length === 0) {
       console.log("No matches found in Pinecone");
-      return [];
+      return { content: [], metadata: [] };
     }
     
     const chunkIds = searchResponse.matches.map((match: any) => match.id);
@@ -118,14 +121,26 @@ async function searchChunks(query: string, nResults: number = 3): Promise<string
       
     if (error) {
       console.error("Error fetching chunks from Supabase:", error);
-      return [];
+      return { content: [], metadata: [] };
     }
     
-    // Return the actual chunk contents
-    return (chunkData || []).map(row => row.content);
+    // Create metadata array with similarity scores and source info
+    const metadata = searchResponse.matches.map((match: any) => {
+      const chunkInfo = chunkData?.find(chunk => chunk.id === match.id);
+      return {
+        chunkId: match.id,
+        similarity: match.score || 0,
+        source: chunkInfo?.source || 'document' as 'document' | 'rfp'
+      };
+    });
+    
+    // Return both content and metadata
+    const content = (chunkData || []).map(row => row.content);
+    
+    return { content, metadata };
   } catch (error) {
     console.error("Error searching chunks:", error);
-    return [];
+    return { content: [], metadata: [] };
   }
 }
 
@@ -250,12 +265,13 @@ async function searchChunks(query: string, nResults: number = 3): Promise<string
 export async function answerQuestion(question: string, nResults: number = 3): Promise<{
   compliance: string;
   answer: string;
+  sourceChunks: { chunkId: string; similarity: number; source: 'document' | 'rfp' }[];
 }> {
   try {
     console.log(`💬 Processing question: ${question}`);
 
-    // Step 1: Retrieve relevant chunks
-    const documents = await searchChunks(question, nResults);
+    // Step 1: Retrieve relevant chunks with metadata
+    const { content: documents, metadata } = await searchChunks(question, nResults);
 
     if (documents.length === 0) {
       console.log("No relevant documents found. Generating fallback answer.");
@@ -273,13 +289,14 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
     console.log("\n✅ Final Answer:");
     console.log(answer);
 
-    return { compliance, answer };
+    return { compliance, answer, sourceChunks: metadata };
 
   } catch (error) {
     console.error("Error answering question:", error);
     return {
       compliance: "Error",
-      answer: "An error occurred while processing your question."
+      answer: "An error occurred while processing your question.",
+      sourceChunks: []
     };
   }
 }
