@@ -218,7 +218,8 @@ export async function chunkDocument(
       await storage.createChunk({
         documentId,
         content: chunkText,
-        scope: "global"
+        scope: "global",
+        source: "document"
       });
       
       createdChunks++;

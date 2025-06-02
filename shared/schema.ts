@@ -45,6 +45,9 @@ export const projectPermissions = pgTable("project_permissions", {
 // Define approval status enum
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
 
+// Define chunk source enum
+export const chunkSourceEnum = pgEnum('chunk_source', ['document', 'rfp']);
+
 // Documents table
 export const documents = pgTable("documents", {
   id: uuid("id").primaryKey(),
@@ -105,6 +108,7 @@ export const chunks = pgTable("chunks", {
   scope: text("scope"),
   embedded: boolean("embedded").notNull().default(false),
   embeddedAt: timestamp("embedded_at"),
+  source: chunkSourceEnum("source").notNull(),
 });
 
 // Compliance Mappings table
