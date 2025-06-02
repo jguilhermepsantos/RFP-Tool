@@ -232,27 +232,29 @@ export default function RfpAnswerEditor({
             )}
           </div>
           
-          {/* Confidence level badge */}
-          {question.answer?.confidenceLevel && (
-            <Badge variant="outline" className={`ml-4 ${getConfidenceColor(question.answer.confidenceLevel)}`}>
-              {question.answer.confidenceLevel.toUpperCase()} CONFIDENCE
-              {question.answer.averageSimilarity && (
-                <span className="ml-1 text-xs">
-                  ({Math.round(question.answer.averageSimilarity * 100)}%)
-                </span>
-              )}
-            </Badge>
-          )}
-          
-          {/* Only show edit button for processed or under review documents */}
-          {isEditable && !isReadOnly && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Pencil className="mr-2 h-3 w-3" />
-                  Edit
-                </Button>
-              </DialogTrigger>
+          {/* Right side buttons and badges */}
+          <div className="flex flex-col items-end gap-2 ml-4">
+            {/* Confidence level badge */}
+            {question.answer?.confidenceLevel && (
+              <Badge variant="outline" className={getConfidenceColor(question.answer.confidenceLevel)}>
+                {question.answer.confidenceLevel.toUpperCase()} CONFIDENCE
+                {question.answer.averageSimilarity && (
+                  <span className="ml-1 text-xs">
+                    ({Math.round(question.answer.averageSimilarity * 100)}%)
+                  </span>
+                )}
+              </Badge>
+            )}
+            
+            {/* Only show edit button for processed or under review documents */}
+            {isEditable && !isReadOnly && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Pencil className="mr-2 h-3 w-3" />
+                    Edit
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>Edit Answer</DialogTitle>
@@ -296,7 +298,8 @@ export default function RfpAnswerEditor({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          )}
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>

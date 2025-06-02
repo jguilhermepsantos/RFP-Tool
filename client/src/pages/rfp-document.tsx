@@ -9,8 +9,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle, PlayCircle, ChevronRight } from "lucide-react";
+import { AlertCircle, CheckCircle, PlayCircle, ChevronRight, Filter } from "lucide-react";
 
 interface RfpDocumentProps {
   projectId: string;
@@ -22,6 +23,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isDownloading, setIsDownloading] = useState(false);
+  const [confidenceFilter, setConfidenceFilter] = useState<string>("all");
 
   interface ProjectResponse {
     project: {
