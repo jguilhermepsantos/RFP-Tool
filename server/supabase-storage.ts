@@ -636,6 +636,7 @@ export class SupabaseStorage implements IStorage {
       document_id: chunk.documentId,
       content: chunk.content,
       scope: chunk.scope,
+      source: chunk.source,
       // Add any additional fields as needed
       created_at: new Date().toISOString()
     };

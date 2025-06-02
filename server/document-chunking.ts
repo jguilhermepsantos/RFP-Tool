@@ -318,7 +318,8 @@ export async function chunkRfpDocument(
       await storage.createChunk({
         documentId: rfpDocumentId,
         content: chunkContent,
-        scope: "global"
+        scope: "global",
+        source: "rfp"
       });
       
       createdChunks++;
