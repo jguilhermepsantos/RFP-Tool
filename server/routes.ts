@@ -32,18 +32,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set JSON response headers to ensure proper response type
       res.setHeader('Content-Type', 'application/json');
       
-      // Check if document exists
-      const document = await storage.getDocument(documentId);
-      
-      if (!document) {
-        console.log(`[CHUNKS API] Document not found: ${documentId}`);
-        return res.status(404).json({
-          success: false,
-          error: `Document not found: ${documentId}`
-        });
-      }
-      
-      // Get all chunks for this document
+      // No validation needed - just get chunks directly by document_id
+      // This works for both regular documents and RFP documents
       const chunks = await storage.getChunks(documentId);
       
       console.log(`[CHUNKS API] Found ${chunks.length} chunks for document ${documentId}`);
