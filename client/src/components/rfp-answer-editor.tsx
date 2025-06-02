@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 interface SourceChunk {
   chunkId: string;
@@ -42,6 +43,82 @@ interface RfpAnswerEditorProps {
   documentStatus: string;
   projectId: string;
   documentId: string;
+}
+
+interface SourceChunkDisplayProps {
+  chunk: SourceChunk;
+  index: number;
+}
+
+function SourceChunkDisplay({ chunk, index }: SourceChunkDisplayProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const { data: chunkData, isLoading } = useQuery({
+    queryKey: ['/api/chunks', chunk.chunkId],
+    queryFn: () => fetch(`/api/chunks/${chunk.chunkId}`).then(res => res.json()),
+    enabled: isExpanded
+  });
+
+  const getSimilarityColor = (similarity: number) => {
+    if (similarity >= 0.7) return "bg-green-500";
+    if (similarity >= 0.5) return "bg-yellow-500";
+    return "bg-orange-500";
+  };
+
+  const getSimilarityLabel = (similarity: number) => {
+    if (similarity >= 0.7) return "High";
+    if (similarity >= 0.5) return "Medium";
+    return "Low";
+  };
+
+  return (
+    <div className="border rounded-lg p-3 bg-slate-50">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          {chunk.source === 'rfp' ? (
+            <MessageSquare className="h-4 w-4 text-blue-600" />
+          ) : (
+            <FileText className="h-4 w-4 text-green-600" />
+          )}
+          <span className="text-sm font-medium">
+            Source {index + 1} ({chunk.source === 'rfp' ? 'RFP Document' : 'Knowledge Base'})
+          </span>
+          <Badge variant="outline" className="text-xs">
+            <div className={`w-2 h-2 rounded-full ${getSimilarityColor(chunk.similarity)} mr-1`} />
+            {getSimilarityLabel(chunk.similarity)} ({Math.round(chunk.similarity * 100)}%)
+          </Badge>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="h-6 w-6 p-0"
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </Button>
+      </div>
+      
+      <Progress value={chunk.similarity * 100} className="h-1 mb-2" />
+      
+      {isExpanded && (
+        <div className="mt-3 pt-3 border-t">
+          {isLoading ? (
+            <div className="text-sm text-gray-500">Loading content...</div>
+          ) : chunkData?.content ? (
+            <div className="text-sm text-gray-700 bg-white p-3 rounded border">
+              <p className="whitespace-pre-line">{chunkData.content}</p>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">Content not available</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function RfpAnswerEditor({ 
@@ -230,6 +307,32 @@ export default function RfpAnswerEditor({
                 )}
               </div>
             </div>
+
+            {/* Source chunks section */}
+            {question.answer.sourceChunks && question.answer.sourceChunks.length > 0 && (
+              <div>
+                <Collapsible open={isSourcesOpen} onOpenChange={setIsSourcesOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                      <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Source Information ({question.answer.sourceChunks.length} sources)
+                      </h4>
+                      {isSourcesOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-3 mt-3">
+                    {question.answer.sourceChunks.map((chunk: SourceChunk, index: number) => (
+                      <SourceChunkDisplay key={chunk.chunkId} chunk={chunk} index={index} />
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            )}
           </div>
         ) : (
           <p className="italic text-muted-foreground">No answer available yet.</p>
