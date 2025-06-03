@@ -910,7 +910,7 @@ export default function AdminSettings() {
                                   )}
                                 </TableCell>
                               </TableRow>
-                            ))}
+                            )) : null}
                           </TableBody>
                         </Table>
                       )}
