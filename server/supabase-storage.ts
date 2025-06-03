@@ -489,6 +489,7 @@ export class SupabaseStorage implements IStorage {
       id: data.id,
       rfpDocumentId: data.rfp_document_id,
       rfpQuestionId: data.rfp_question_id,
+      questionText: data.question_text,
       generatedAnswer: data.generated_answer,
       complianceAnswer: data.compliance_answer,
       createdAt: data.created_at,
