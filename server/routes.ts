@@ -317,11 +317,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user has owner role for this project
       const projectMembers = await storage.getProjectMembers(projectId);
-      console.log("Project members:", projectMembers);
-      console.log("User ID checking:", userId);
-      
-      const userMembership = projectMembers.find(member => member.user_id === userId);
-      console.log("User membership found:", userMembership);
+      const userMembership = projectMembers.find(member => 
+        (member.userId || member.user_id) === userId
+      );
       
       if (!userMembership || userMembership.role !== 'owner') {
         return res.status(403).json({ 
