@@ -315,8 +315,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      // Check if user is the project owner
-      if (project.createdBy !== userId) {
+      // Check if user has owner role for this project
+      const projectMembers = await storage.getProjectMembers(projectId);
+      const userMembership = projectMembers.find(member => member.userId === userId);
+      
+      if (!userMembership || userMembership.role !== 'owner') {
         return res.status(403).json({ 
           message: "Only the project owner can delete this project" 
         });
