@@ -773,19 +773,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Auto-change document status from "processed" to "under review" when answer is edited
+        console.log(`[STATUS-CHANGE] Checking automatic status change for answer:`, {
+          answerId: updatedAnswer.id,
+          rfpDocumentId: updatedAnswer.rfpDocumentId
+        });
+        
         if (updatedAnswer.rfpDocumentId) {
           try {
+            console.log(`[STATUS-CHANGE] Fetching document with ID: ${updatedAnswer.rfpDocumentId}`);
             const document = await storage.getRfpDocument(updatedAnswer.rfpDocumentId);
-            console.log(`Current document status: ${document?.status}`);
+            console.log(`[STATUS-CHANGE] Current document status: ${document?.status}`);
             
             if (document?.status === 'processed') {
-              console.log(`Auto-changing document status from 'processed' to 'under review' due to answer edit`);
-              await storage.updateRfpDocumentStatus(document.id, 'under review');
+              console.log(`[STATUS-CHANGE] Auto-changing document status from 'processed' to 'under review' due to answer edit`);
+              const statusUpdateResult = await storage.updateRfpDocumentStatus(document.id, 'under review');
+              console.log(`[STATUS-CHANGE] Status update result:`, statusUpdateResult);
+            } else {
+              console.log(`[STATUS-CHANGE] No status change needed. Current status: ${document?.status}`);
             }
           } catch (statusError) {
-            console.error(`Error updating document status after answer edit:`, statusError);
+            console.error(`[STATUS-CHANGE] Error updating document status after answer edit:`, statusError);
             // Don't fail the answer update if status change fails
           }
+        } else {
+          console.log(`[STATUS-CHANGE] No rfpDocumentId found in updated answer`);
         }
 
         return res.status(200).json({ answer: updatedAnswer });
