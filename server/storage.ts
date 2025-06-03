@@ -12,6 +12,7 @@ import {
   Chunk, InsertChunk,
   ComplianceMapping, InsertComplianceMapping,
   Feedback, InsertFeedback,
+  AnswerFeedback, InsertAnswerFeedback, UpdateAnswerFeedback,
   UpdateRfpAnswer
 } from "@shared/schema";
 
@@ -82,6 +83,12 @@ export interface IStorage {
   // Feedback operations
   createFeedback(feedback: InsertFeedback): Promise<Feedback>;
   getFeedbacks(): Promise<Feedback[]>;
+  
+  // Answer Feedback operations
+  getAnswerFeedback(rfpAnswerId: string): Promise<AnswerFeedback | undefined>;
+  createAnswerFeedback(feedback: InsertAnswerFeedback): Promise<AnswerFeedback>;
+  updateAnswerFeedback(feedback: UpdateAnswerFeedback): Promise<AnswerFeedback | undefined>;
+  deleteAnswerFeedback(id: string): Promise<boolean>;
 }
 
 // Import the SupabaseStorage implementation

@@ -129,6 +129,17 @@ export const feedbacks = pgTable("feedbacks", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Answer Feedbacks table
+export const answerFeedbacks = pgTable("answer_feedbacks", {
+  id: uuid("id").primaryKey(),
+  rfpAnswerId: uuid("rfp_answer_id").references(() => rfpAnswers.id).notNull(),
+  rating: text("rating").notNull(), // 'good' or 'bad'
+  feedbackText: text("feedback_text"),
+  createdBy: uuid("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Define insert schemas using drizzle-zod
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true, 
@@ -189,6 +200,20 @@ export const insertFeedbackSchema = createInsertSchema(feedbacks).omit({
   createdAt: true
 });
 
+export const insertAnswerFeedbackSchema = createInsertSchema(answerFeedbacks).omit({
+  id: true, 
+  createdAt: true,
+  updatedAt: true
+});
+
+// Update schema for answer feedback
+export const updateAnswerFeedbackSchema = insertAnswerFeedbackSchema.omit({
+  rfpAnswerId: true,
+  createdBy: true
+}).extend({
+  id: z.string()
+});
+
 // Define types using z.infer
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
@@ -200,6 +225,8 @@ export type InsertRfpAnswer = z.infer<typeof insertRfpAnswerSchema>;
 export type InsertChunk = z.infer<typeof insertChunkSchema>;
 export type InsertComplianceMapping = z.infer<typeof insertComplianceMappingSchema>;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+export type InsertAnswerFeedback = z.infer<typeof insertAnswerFeedbackSchema>;
+export type UpdateAnswerFeedback = z.infer<typeof updateAnswerFeedbackSchema>;
 
 // Define select types
 export type User = typeof users.$inferSelect;
@@ -212,6 +239,7 @@ export type RfpAnswer = typeof rfpAnswers.$inferSelect;
 export type Chunk = typeof chunks.$inferSelect;
 export type ComplianceMapping = typeof complianceMappings.$inferSelect;
 export type Feedback = typeof feedbacks.$inferSelect;
+export type AnswerFeedback = typeof answerFeedbacks.$inferSelect;
 
 // Extended schemas for form validation
 export const loginSchema = z.object({
