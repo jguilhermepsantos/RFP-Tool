@@ -1294,6 +1294,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Answer Feedback routes
+  apiRouter.get("/rfp-answers/:answerId/feedback", async (req: Request, res: Response) => {
+    try {
+      const { answerId } = req.params;
+      
+      if (!answerId) {
+        return res.status(400).json({ message: "Valid answer ID is required" });
+      }
+      
+      const feedback = await storage.getAnswerFeedback(answerId);
+      return res.status(200).json({ feedback });
+    } catch (error) {
+      console.error("Error getting answer feedback:", error);
+      return res.status(500).json({
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  apiRouter.post("/rfp-answers/:answerId/feedback", async (req: Request, res: Response) => {
+    try {
+      const { answerId } = req.params;
+      const { rating, feedbackText } = req.body;
+      
+      if (!answerId) {
+        return res.status(400).json({ message: "Valid answer ID is required" });
+      }
+      
+      if (!rating || !["good", "bad"].includes(rating)) {
+        return res.status(400).json({ message: "Rating must be either 'good' or 'bad'" });
+      }
+      
+      // Get current user from session/auth context
+      // For now, we'll use a placeholder user ID - this should be from auth
+      const userId = req.session?.user?.id || "placeholder-user-id";
+      
+      const feedbackData = {
+        rfpAnswerId: answerId,
+        rating,
+        feedbackText: feedbackText || null,
+        createdBy: userId
+      };
+      
+      const feedback = await storage.createAnswerFeedback(feedbackData);
+      return res.status(201).json({ feedback });
+    } catch (error) {
+      console.error("Error creating answer feedback:", error);
+      return res.status(500).json({
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  apiRouter.patch("/rfp-answers/:answerId/feedback/:feedbackId", async (req: Request, res: Response) => {
+    try {
+      const { feedbackId } = req.params;
+      const { rating, feedbackText } = req.body;
+      
+      if (!feedbackId) {
+        return res.status(400).json({ message: "Valid feedback ID is required" });
+      }
+      
+      if (rating && !["good", "bad"].includes(rating)) {
+        return res.status(400).json({ message: "Rating must be either 'good' or 'bad'" });
+      }
+      
+      const updateData: any = { id: feedbackId };
+      if (rating !== undefined) updateData.rating = rating;
+      if (feedbackText !== undefined) updateData.feedbackText = feedbackText;
+      
+      const feedback = await storage.updateAnswerFeedback(updateData);
+      
+      if (!feedback) {
+        return res.status(404).json({ message: "Feedback not found" });
+      }
+      
+      return res.status(200).json({ feedback });
+    } catch (error) {
+      console.error("Error updating answer feedback:", error);
+      return res.status(500).json({
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  apiRouter.delete("/rfp-answers/:answerId/feedback/:feedbackId", async (req: Request, res: Response) => {
+    try {
+      const { feedbackId } = req.params;
+      
+      if (!feedbackId) {
+        return res.status(400).json({ message: "Valid feedback ID is required" });
+      }
+      
+      const success = await storage.deleteAnswerFeedback(feedbackId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Feedback not found" });
+      }
+      
+      return res.status(200).json({ message: "Feedback deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting answer feedback:", error);
+      return res.status(500).json({
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
   // User management endpoints - direct Supabase query
   apiRouter.get("/admin/users-list", async (req: Request, res: Response) => {
     try {

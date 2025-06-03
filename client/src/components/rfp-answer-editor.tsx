@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import AnswerFeedback from "./answer-feedback";
 
 interface SourceChunk {
   chunkId: string;

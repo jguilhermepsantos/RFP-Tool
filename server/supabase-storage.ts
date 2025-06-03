@@ -11,6 +11,7 @@ import {
   Chunk, InsertChunk,
   ComplianceMapping, InsertComplianceMapping,
   Feedback, InsertFeedback,
+  AnswerFeedback, InsertAnswerFeedback, UpdateAnswerFeedback,
   UpdateRfpAnswer
 } from '@shared/schema';
 
@@ -854,6 +855,110 @@ export class SupabaseStorage implements IStorage {
     
     if (error) throw new Error(`Failed to get feedbacks: ${error.message}`);
     return data as Feedback[];
+  }
+
+  // Answer Feedback operations
+  async getAnswerFeedback(rfpAnswerId: string): Promise<AnswerFeedback | undefined> {
+    const { data, error } = await supabase
+      .from('answer_feedbacks')
+      .select('*')
+      .eq('rfp_answer_id', rfpAnswerId)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found
+        return undefined;
+      }
+      throw new Error(`Failed to get answer feedback: ${error.message}`);
+    }
+    
+    // Transform snake_case to camelCase
+    return {
+      id: data.id,
+      rfpAnswerId: data.rfp_answer_id,
+      rating: data.rating,
+      feedbackText: data.feedback_text,
+      createdBy: data.created_by,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    } as AnswerFeedback;
+  }
+
+  async createAnswerFeedback(feedback: InsertAnswerFeedback): Promise<AnswerFeedback> {
+    // Transform camelCase to snake_case for database
+    const insertData = {
+      rfp_answer_id: feedback.rfpAnswerId,
+      rating: feedback.rating,
+      feedback_text: feedback.feedbackText,
+      created_by: feedback.createdBy
+    };
+
+    const { data, error } = await supabase
+      .from('answer_feedbacks')
+      .insert(insertData)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create answer feedback: ${error.message}`);
+    
+    // Transform snake_case to camelCase
+    return {
+      id: data.id,
+      rfpAnswerId: data.rfp_answer_id,
+      rating: data.rating,
+      feedbackText: data.feedback_text,
+      createdBy: data.created_by,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    } as AnswerFeedback;
+  }
+
+  async updateAnswerFeedback(feedback: UpdateAnswerFeedback): Promise<AnswerFeedback | undefined> {
+    // Transform camelCase to snake_case for database
+    const updateData: any = {};
+    
+    if (feedback.rating !== undefined) {
+      updateData.rating = feedback.rating;
+    }
+    if (feedback.feedbackText !== undefined) {
+      updateData.feedback_text = feedback.feedbackText;
+    }
+
+    const { data, error } = await supabase
+      .from('answer_feedbacks')
+      .update(updateData)
+      .eq('id', feedback.id)
+      .select()
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return undefined;
+      }
+      throw new Error(`Failed to update answer feedback: ${error.message}`);
+    }
+    
+    // Transform snake_case to camelCase
+    return {
+      id: data.id,
+      rfpAnswerId: data.rfp_answer_id,
+      rating: data.rating,
+      feedbackText: data.feedback_text,
+      createdBy: data.created_by,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    } as AnswerFeedback;
+  }
+
+  async deleteAnswerFeedback(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('answer_feedbacks')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw new Error(`Failed to delete answer feedback: ${error.message}`);
+    return true;
   }
 }
 
