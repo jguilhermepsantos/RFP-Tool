@@ -482,8 +482,25 @@ export class SupabaseStorage implements IStorage {
       return undefined;
     }
     
-    console.log("[SupabaseStorage] Updated answer:", data);
-    return data as RfpAnswer;
+    console.log("[SupabaseStorage] Raw updated answer from DB:", data);
+    
+    // Transform snake_case to camelCase to match RfpAnswer interface
+    const transformedAnswer: RfpAnswer = {
+      id: data.id,
+      rfpDocumentId: data.rfp_document_id,
+      rfpQuestionId: data.rfp_question_id,
+      generatedAnswer: data.generated_answer,
+      complianceAnswer: data.compliance_answer,
+      createdAt: data.created_at,
+      lastReviewedBy: data.last_reviewed_by,
+      lastReviewedAt: data.last_reviewed_at,
+      sourceChunks: data.source_chunks,
+      averageSimilarity: data.average_similarity,
+      confidenceLevel: data.confidence_level
+    };
+    
+    console.log("[SupabaseStorage] Transformed answer:", transformedAnswer);
+    return transformedAnswer;
   }
 
   // Document operations
