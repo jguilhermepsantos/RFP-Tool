@@ -87,10 +87,16 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const project = projectData?.project;
   const document = data?.document;
   
-  // Sort and filter the questions
+  // Sort and filter the questions - maintain stable order by sortOrder (creation time)
   const allQuestionsWithAnswers = [...(data?.questionsWithAnswers || [])].sort((a, b) => {
-    const dateA = a.answer?.lastReviewedAt ? new Date(a.answer.lastReviewedAt).getTime() : 0;
-    const dateB = b.answer?.lastReviewedAt ? new Date(b.answer.lastReviewedAt).getTime() : 0;
+    // Use sortOrder if available (backend provides this based on created_at), otherwise fallback to creation time
+    if (a.sortOrder !== undefined && b.sortOrder !== undefined) {
+      return a.sortOrder - b.sortOrder;
+    }
+    
+    // Fallback to creation time comparison
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return dateA - dateB;
   });
 

@@ -518,7 +518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Transform the answers into the expected format for the frontend
-          questionsWithAnswers = (answersData || []).map((dbAnswer: any) => {
+          questionsWithAnswers = (answersData || []).map((dbAnswer: any, index: number) => {
             // Parse source chunks if they exist
             let sourceChunks = [];
             if (dbAnswer.source_chunks) {
@@ -533,6 +533,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: dbAnswer.rfp_question_id,
               rfpDocumentId: dbAnswer.rfp_document_id,
               questionText: dbAnswer.question_text,
+              sortOrder: index, // Add stable sort order based on original created_at ordering
+              createdAt: dbAnswer.created_at, // Include created_at for debugging
               answer: {
                 id: dbAnswer.id,
                 rfpQuestionId: dbAnswer.rfp_question_id,
