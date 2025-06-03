@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Project members:", projectMembers);
       console.log("User ID checking:", userId);
       
-      const userMembership = projectMembers.find(member => member.userId === userId);
+      const userMembership = projectMembers.find(member => member.user_id === userId);
       console.log("User membership found:", userMembership);
       
       if (!userMembership || userMembership.role !== 'owner') {
