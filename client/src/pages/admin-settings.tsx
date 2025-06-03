@@ -151,11 +151,18 @@ export default function AdminSettings() {
   // Convert API response to array of documents
   const allDocuments: Document[] = Array.isArray(documentsResponse) ? documentsResponse : [];
   
-  // Filter documents based on selected status
-  const documents = allDocuments.filter(doc => {
-    if (documentFilterStatus === 'all') return true;
-    return doc.approval_status === documentFilterStatus;
-  });
+  // Filter and sort documents based on selected status
+  const documents = allDocuments
+    .filter(doc => {
+      if (documentFilterStatus === 'all') return true;
+      return doc.approval_status === documentFilterStatus;
+    })
+    .sort((a, b) => {
+      // Sort by creation date (newest first)
+      const dateA = new Date(a.created_at || a.createdAt || 0);
+      const dateB = new Date(b.created_at || b.createdAt || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
 
   // Fetch RFP documents that need approval
   const {
@@ -166,6 +173,8 @@ export default function AdminSettings() {
     queryKey: ['/api/admin/rfp-documents'],
     queryFn: () => apiRequest('/api/admin/rfp-documents', { headers: adminHeaders })
   });
+
+
 
   // Fetch all users for user management
   const {
@@ -820,7 +829,17 @@ export default function AdminSettings() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {rfpDocuments.map((doc: RfpDocument) => (
+                            {Array.isArray(rfpDocumentsResponse) ? rfpDocumentsResponse
+                              .filter((doc: any) => {
+                                if (rfpFilterStatus === 'all') return true;
+                                return doc.approval_status === rfpFilterStatus;
+                              })
+                              .sort((a: any, b: any) => {
+                                const dateA = new Date(a.uploaded_at || 0);
+                                const dateB = new Date(b.uploaded_at || 0);
+                                return dateB.getTime() - dateA.getTime();
+                              })
+                              .map((doc: RfpDocument) => (
                               <TableRow key={doc.id}>
                                 <TableCell>
                                   <a
