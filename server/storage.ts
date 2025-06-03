@@ -30,6 +30,7 @@ export interface IStorage {
   getProjects(): Promise<Project[]>;
   getProject(id: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
+  deleteProject(id: string): Promise<void>;
   getProjectsByUserId(userId: string): Promise<Project[]>;
   
   // Project Permission operations

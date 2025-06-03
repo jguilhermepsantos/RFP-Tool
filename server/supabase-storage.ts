@@ -136,6 +136,15 @@ export class SupabaseStorage implements IStorage {
     return data as Project;
   }
 
+  async deleteProject(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw new Error(`Failed to delete project: ${error.message}`);
+  }
+
   async getProjectsByUserId(userId: string): Promise<Project[]> {
     // Get projects through project permissions
     const { data: permissions, error: permissionsError } = await supabase

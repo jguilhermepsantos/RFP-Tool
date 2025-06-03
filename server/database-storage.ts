@@ -149,6 +149,15 @@ export class DatabaseStorage implements IStorage {
     return project;
   }
 
+  async deleteProject(id: string): Promise<void> {
+    try {
+      await db.execute(sql`DELETE FROM projects WHERE id = ${id}`);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      throw new Error(`Failed to delete project: ${error}`);
+    }
+  }
+
   async getProjectsByUserId(userId: string): Promise<Project[]> {
     try {
       const permissions = await db

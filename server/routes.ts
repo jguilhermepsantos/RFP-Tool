@@ -299,6 +299,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Delete project (only owner can delete)
+  apiRouter.delete("/projects/:id", async (req: Request, res: Response) => {
+    try {
+      const projectId = req.params.id;
+      const userId = "feb8dcbc-7ec6-4eed-884e-f3136665eed6"; // This should come from auth context
+
+      if (!projectId) {
+        return res.status(400).json({ message: "Valid project ID is required" });
+      }
+
+      // Check if project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Check if user is the project owner
+      if (project.createdBy !== userId) {
+        return res.status(403).json({ 
+          message: "Only the project owner can delete this project" 
+        });
+      }
+
+      // Delete the project (cascading deletes will handle related data)
+      await storage.deleteProject(projectId);
+
+      return res.status(200).json({ 
+        message: "Project deleted successfully" 
+      });
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      return res.status(500).json({ 
+        message: "Failed to delete project. Please try again." 
+      });
+    }
+  });
+
   // RFP Document routes
   apiRouter.get(
     "/projects/:projectId/rfp-documents",
