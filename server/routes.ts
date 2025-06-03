@@ -1327,9 +1327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Rating must be either 'good' or 'bad'" });
       }
       
-      // Get current user from session/auth context
-      // For now, we'll use a placeholder user ID - this should be from auth
-      const userId = req.session?.user?.id || "placeholder-user-id";
+      // Get current user ID - using a placeholder for now since we don't have session middleware
+      const userId = "feb8dcbc-7ec6-4eed-884e-f3136665eed6"; // This should come from auth context
       
       const feedbackData = {
         rfpAnswerId: answerId,

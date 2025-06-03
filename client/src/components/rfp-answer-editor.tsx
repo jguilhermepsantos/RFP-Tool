@@ -361,6 +361,15 @@ export default function RfpAnswerEditor({
                 </Collapsible>
               </div>
             )}
+
+            {/* Add feedback component for processed answers */}
+            {question.answer && question.answer.generatedAnswer && (
+              <AnswerFeedback 
+                answerId={question.answer.id}
+                projectId={projectId}
+                documentId={documentId}
+              />
+            )}
           </div>
         ) : (
           <p className="italic text-muted-foreground">No answer available yet.</p>
