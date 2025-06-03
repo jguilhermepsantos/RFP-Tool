@@ -772,6 +772,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: "Answer not found" });
         }
 
+        // Auto-change document status from "processed" to "under review" when answer is edited
+        if (updatedAnswer.rfpDocumentId) {
+          try {
+            const document = await storage.getRfpDocument(updatedAnswer.rfpDocumentId);
+            console.log(`Current document status: ${document?.status}`);
+            
+            if (document?.status === 'processed') {
+              console.log(`Auto-changing document status from 'processed' to 'under review' due to answer edit`);
+              await storage.updateRfpDocumentStatus(document.id, 'under review');
+            }
+          } catch (statusError) {
+            console.error(`Error updating document status after answer edit:`, statusError);
+            // Don't fail the answer update if status change fails
+          }
+        }
+
         return res.status(200).json({ answer: updatedAnswer });
       } catch (error) {
         if (error instanceof z.ZodError) {
