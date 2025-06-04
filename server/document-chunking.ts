@@ -167,7 +167,6 @@ function splitOnSentenceBoundaries(text: string): string[] {
     }
   }
   
-  console.log(`Sentence splitting result: ${sentences.length} sentences from ${text.length} chars`);
   return sentences;
 }
 
@@ -189,19 +188,13 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
     const sentence = sentences[i];
     const sentenceTokens = countTokens(sentence);
     
-    console.log(`Sentence ${i+1}: ${sentenceTokens} tokens, total would be: ${currentTokens + sentenceTokens}, max: ${maxChunkTokens}, min: ${minChunkTokens}`);
-    
     // If adding this sentence would exceed max tokens, finalize current chunk
     if (currentTokens + sentenceTokens > maxChunkTokens && currentTokens >= minChunkTokens) {
-      console.log(`=== CHUNK BOUNDARY ===`);
-      console.log(`Finalizing chunk ${chunks.length + 1} with ${currentTokens} tokens`);
-      console.log(`Last 100 chars of chunk: "${currentChunk.slice(-100)}"`);
       chunks.push(currentChunk.trim());
       
       // Start new chunk with overlap
       if (overlapTokens > 0) {
         const overlapText = getOverlapText(currentChunk, overlapTokens);
-        console.log(`Generated overlap text (${countTokens(overlapText)} tokens): "${overlapText.slice(0, 200)}..."`);
         currentChunk = overlapText;
         currentTokens = countTokens(currentChunk);
         
@@ -211,7 +204,6 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
         }
         currentChunk += sentence;
         currentTokens = countTokens(currentChunk); // Recalculate total tokens
-        console.log(`New chunk starts with (${currentTokens} tokens): "${currentChunk.slice(0, 200)}..."`);
       } else {
         currentChunk = sentence;
         currentTokens = sentenceTokens;
@@ -238,9 +230,7 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
  * Get overlap text from the end of a chunk
  */
 function getOverlapText(text: string, targetTokens: number): string {
-  console.log(`Getting overlap from text (${text.length} chars) with target ${targetTokens} tokens`);
   const sentences = splitOnSentenceBoundaries(text);
-  console.log(`Split into ${sentences.length} sentences for overlap`);
   
   const overlapSentences: string[] = [];
   let overlapTokens = 0;
@@ -249,22 +239,17 @@ function getOverlapText(text: string, targetTokens: number): string {
   for (let i = sentences.length - 1; i >= 0; i--) {
     const sentence = sentences[i];
     const sentenceTokens = countTokens(sentence);
-    console.log(`Overlap sentence ${i}: ${sentenceTokens} tokens - "${sentence.slice(0, 50)}..."`);
     
     if (overlapTokens + sentenceTokens <= targetTokens) {
       overlapSentences.unshift(sentence); // Add to beginning to maintain order
       overlapTokens += sentenceTokens;
-      console.log(`Added to overlap, total now: ${overlapTokens} tokens`);
     } else {
-      console.log(`Skipping sentence - would exceed target tokens`);
       break;
     }
   }
   
   // If we didn't get enough overlap from sentences, try word-level extraction
   if (overlapTokens < targetTokens * 0.5) { // Less than 50% of target
-    console.log(`Sentence-level overlap insufficient (${overlapTokens}), trying word-level extraction`);
-    
     // Extract words from the end of the text
     const words = text.trim().split(/\s+/);
     const overlapWords: string[] = [];
@@ -282,14 +267,10 @@ function getOverlapText(text: string, targetTokens: number): string {
       }
     }
     
-    const wordResult = overlapWords.join(' ');
-    console.log(`Word-level overlap result: ${overlapTokens} tokens, ${wordResult.length} chars`);
-    return wordResult;
+    return overlapWords.join(' ');
   }
   
-  const result = overlapSentences.join(' ');
-  console.log(`Final overlap result: ${overlapTokens} tokens, ${result.length} chars`);
-  return result;
+  return overlapSentences.join(' ');
 }
 
 /**
