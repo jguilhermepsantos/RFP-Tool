@@ -130,18 +130,44 @@ function splitOnStructuralBoundaries(text: string): string[] {
  * Split text on sentence boundaries
  */
 function splitOnSentenceBoundaries(text: string): string[] {
-  // Simple sentence detection - split on periods followed by space and capital letter
-  const sentences = text.split(/\.\s+(?=[A-Z])/)
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
+  // Enhanced sentence detection with multiple patterns
+  // 1. Period followed by space and capital letter
+  // 2. Period at end of line
+  // 3. Exclamation or question marks
+  // 4. Colon followed by space and capital (for lists/headings)
   
-  // If sentence splitting didn't work well, fall back to splitting on periods
-  if (sentences.length < 2) {
-    return text.split(/\.\s+/)
+  let sentences = text.split(/[.!?]+\s+(?=[A-Z])|[.!?]+\s*\n+|:\s+(?=[A-Z][a-z])/)
+    .map(s => s.trim())
+    .filter(s => s.length > 10); // Filter out very short fragments
+  
+  // If we still don't have good sentence splitting, try more aggressive patterns
+  if (sentences.length < 3) {
+    sentences = text.split(/[.!?]+\s+|[.!?]+\s*$/)
       .map(s => s.trim())
-      .filter(s => s.length > 0);
+      .filter(s => s.length > 10);
   }
   
+  // Final fallback: split on any punctuation + whitespace
+  if (sentences.length < 3) {
+    sentences = text.split(/[.!?;:]+\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 15);
+  }
+  
+  // Ultimate fallback: split into smaller chunks by word count
+  if (sentences.length < 2) {
+    const words = text.split(/\s+/);
+    const chunkSize = Math.max(20, Math.floor(words.length / 4)); // Aim for 4 chunks minimum
+    sentences = [];
+    for (let i = 0; i < words.length; i += chunkSize) {
+      const chunk = words.slice(i, i + chunkSize).join(' ');
+      if (chunk.trim().length > 0) {
+        sentences.push(chunk.trim());
+      }
+    }
+  }
+  
+  console.log(`Sentence splitting result: ${sentences.length} sentences from ${text.length} chars`);
   return sentences;
 }
 
