@@ -961,47 +961,73 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getAllAnswerFeedbacks(): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('answer_feedbacks')
-      .select(`
-        *,
-        rfp_answers!inner(
-          generated_answer,
-          compliance_answer,
-          rfp_questions!inner(
-            question,
-            rfp_documents!inner(
-              name,
-              projects!inner(
-                name
-              )
-            )
-          )
-        ),
-        users!inner(
-          email
-        )
-      `)
-      .order('created_at', { ascending: false });
+    // Use raw SQL query to avoid Supabase relationship conflicts
+    const { data, error } = await supabase.rpc('get_answer_feedbacks_with_details');
     
-    if (error) throw new Error(`Failed to get answer feedbacks: ${error.message}`);
+    if (error) {
+      // Fallback to simpler query if RPC doesn't exist
+      console.log("RPC not found, using fallback query");
+      const { data: feedbacks, error: feedbackError } = await supabase
+        .from('answer_feedbacks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (feedbackError) throw new Error(`Failed to get answer feedbacks: ${feedbackError.message}`);
+      
+      // Get additional data for each feedback
+      const enrichedFeedbacks = await Promise.all(
+        feedbacks.map(async (feedback: any) => {
+          // Get answer details
+          const { data: answer } = await supabase
+            .from('rfp_answers')
+            .select('generated_answer, compliance_answer, question_id')
+            .eq('id', feedback.rfp_answer_id)
+            .single();
+          
+          // Get question details
+          const { data: question } = answer ? await supabase
+            .from('rfp_questions')
+            .select('question, rfp_document_id')
+            .eq('id', answer.question_id)
+            .single() : { data: null };
+          
+          // Get document details
+          const { data: document } = question ? await supabase
+            .from('rfp_documents')
+            .select('name, project_id')
+            .eq('id', question.rfp_document_id)
+            .single() : { data: null };
+          
+          // Get project details
+          const { data: project } = document ? await supabase
+            .from('projects')
+            .select('name')
+            .eq('id', document.project_id)
+            .single() : { data: null };
+          
+          // Get user details
+          const { data: user } = await supabase
+            .from('users')
+            .select('email')
+            .eq('id', feedback.created_by)
+            .single();
+          
+          return {
+            ...feedback,
+            generated_answer: answer?.generated_answer,
+            compliance_answer: answer?.compliance_answer,
+            question: question?.question,
+            document_name: document?.name,
+            project_name: project?.name,
+            user_email: user?.email
+          };
+        })
+      );
+      
+      return enrichedFeedbacks;
+    }
     
-    // Transform the nested data structure
-    return data.map((feedback: any) => ({
-      id: feedback.id,
-      rfp_answer_id: feedback.rfp_answer_id,
-      rating: feedback.rating,
-      feedback_text: feedback.feedback_text,
-      created_by: feedback.created_by,
-      created_at: feedback.created_at,
-      updated_at: feedback.updated_at,
-      generated_answer: feedback.rfp_answers.generated_answer,
-      compliance_answer: feedback.rfp_answers.compliance_answer,
-      question: feedback.rfp_answers.rfp_questions.question,
-      document_name: feedback.rfp_answers.rfp_questions.rfp_documents.name,
-      project_name: feedback.rfp_answers.rfp_questions.rfp_documents.projects.name,
-      user_email: feedback.users.email
-    }));
+    return data || [];
   }
 
   async deleteAnswerFeedback(id: string): Promise<boolean> {
