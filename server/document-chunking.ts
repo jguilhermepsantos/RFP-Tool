@@ -155,6 +155,8 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
     overlapTokens = 100
   } = options;
   
+  console.log(`Token chunking config: min=${minChunkTokens}, max=${maxChunkTokens}, overlap=${overlapTokens}`);
+  
   const chunks: string[] = [];
   let currentChunk = '';
   let currentTokens = 0;
@@ -191,7 +193,10 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
   
   // Add final chunk if it meets minimum requirements
   if (currentTokens >= minChunkTokens || chunks.length === 0) {
+    console.log(`Adding final chunk with ${currentTokens} tokens`);
     chunks.push(currentChunk.trim());
+  } else {
+    console.log(`Skipping final chunk with only ${currentTokens} tokens (below minimum ${minChunkTokens})`);
   }
   
   return chunks.filter(chunk => chunk.trim().length > 0);
