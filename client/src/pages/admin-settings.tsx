@@ -186,7 +186,10 @@ export default function AdminSettings() {
     error: rfpDocumentsError
   } = useQuery({
     queryKey: ['/api/admin/rfp-documents'],
-    queryFn: () => apiRequest('/api/admin/rfp-documents', { headers: adminHeaders })
+    queryFn: () => apiRequest('/api/admin/rfp-documents', { headers: adminHeaders }),
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true
   });
 
 
