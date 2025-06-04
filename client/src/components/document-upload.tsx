@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileUpIcon } from "lucide-react";
+import { FileUpIcon, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Papa from "papaparse";
 
@@ -238,6 +238,12 @@ export default function DocumentUpload({
 
     setIsUploading(true);
 
+    // Show upload start notification
+    toast({
+      title: "Uploading Document",
+      description: "Document upload started. Please wait...",
+    });
+
     try {
       // Parse CSV data
       const csvData = await parseCSV(file);
@@ -296,8 +302,8 @@ export default function DocumentUpload({
       await processCSVData(csvData, document.id, isPastRfp);
 
       toast({
-        title: "Success",
-        description: "Document uploaded and processed successfully",
+        title: "Upload Complete",
+        description: `Document "${documentName}" uploaded successfully! ${isPastRfp ? 'Past RFP data has been processed.' : 'Questions are ready for processing.'}`,
       });
 
       // Reset form
@@ -387,7 +393,11 @@ export default function DocumentUpload({
               className="w-full"
               disabled={isUploading || !file}
             >
-              <FileUpIcon className="mr-2 h-4 w-4" />
+              {isUploading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileUpIcon className="mr-2 h-4 w-4" />
+              )}
               {isUploading ? "Uploading..." : "Upload Document"}
             </Button>
           </div>
