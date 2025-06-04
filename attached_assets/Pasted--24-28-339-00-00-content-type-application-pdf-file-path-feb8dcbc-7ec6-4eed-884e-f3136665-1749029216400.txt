@@ -1,0 +1,66 @@
+:24:28.339+00:00',
+  content_type: 'application/pdf',
+  file_path: 'feb8dcbc-7ec6-4eed-884e-f3136665eed6/1749029059060_Master_Data_infrastructure.pdf',
+  description: ''
+}
+Document 63835b80-314c-4b87-9f3b-f39106f1b057 approved. Triggering chunking process...
+Document chunking process triggered for 63835b80-314c-4b87-9f3b-f39106f1b057
+9:24:28 AM [express] POST /api/admin/documents/63835b80-314c-4b87-9f3b-f39106f1b057/approve 200 in 1…
+Received chunking request for document 63835b80-314c-4b87-9f3b-f39106f1b057 with options: {}
+Starting chunking for document 63835b80-314c-4b87-9f3b-f39106f1b057 with options: {}
+Admin authorization attempted with email: joao.guilherme@vtex.com
+Development mode: bypassing admin check
+Processing document: Master Data infrastructure.pdf
+Using file URL: https://txgrhpmthibqetiephzp.supabase.co/storage/v1/object/public/vtex-files/feb8dcbc-7ec6-4eed-884e-f3136665eed6/1749029059060_Master_Data_infrastructure.pdf
+9:24:28 AM [express] GET /api/admin/documents 200 in 345ms :: [{"id":"5d923e6d-8731-4db4-95d6-7065ff…
+Extracting text from application/pdf document
+Extracted 5032 characters, splitting into chunks...
+Found 4 structural chunks
+Found 41 sentences total
+Token chunking config: min=300, max=800, overlap=100
+Processing sentence 1/41, tokens: 40, current total: 0
+Processing sentence 2/41, tokens: 15, current total: 40
+Processing sentence 3/41, tokens: 26, current total: 55
+Processing sentence 4/41, tokens: 28, current total: 81
+Processing sentence 5/41, tokens: 26, current total: 109
+Processing sentence 6/41, tokens: 15, current total: 135
+Processing sentence 7/41, tokens: 13, current total: 150
+Processing sentence 8/41, tokens: 10, current total: 163
+Processing sentence 9/41, tokens: 18, current total: 173
+Processing sentence 10/41, tokens: 12, current total: 191
+Processing sentence 11/41, tokens: 17, current total: 203
+Processing sentence 12/41, tokens: 13, current total: 220
+Processing sentence 13/41, tokens: 10, current total: 233
+Processing sentence 14/41, tokens: 54, current total: 243
+Processing sentence 15/41, tokens: 15, current total: 297
+Processing sentence 16/41, tokens: 11, current total: 312
+Processing sentence 17/41, tokens: 16, current total: 323
+Processing sentence 18/41, tokens: 26, current total: 339
+Processing sentence 19/41, tokens: 25, current total: 365
+Processing sentence 20/41, tokens: 15, current total: 390
+Processing sentence 21/41, tokens: 26, current total: 405
+Processing sentence 22/41, tokens: 26, current total: 431
+Processing sentence 23/41, tokens: 24, current total: 457
+Processing sentence 24/41, tokens: 15, current total: 481
+Processing sentence 25/41, tokens: 19, current total: 496
+Processing sentence 26/41, tokens: 14, current total: 515
+Processing sentence 27/41, tokens: 21, current total: 529
+Processing sentence 28/41, tokens: 10, current total: 550
+Processing sentence 29/41, tokens: 23, current total: 560
+Processing sentence 30/41, tokens: 44, current total: 583
+Processing sentence 31/41, tokens: 20, current total: 627
+Processing sentence 32/41, tokens: 20, current total: 647
+Processing sentence 33/41, tokens: 19, current total: 667
+Processing sentence 34/41, tokens: 26, current total: 686
+Processing sentence 35/41, tokens: 19, current total: 712
+Processing sentence 36/41, tokens: 13, current total: 731
+Processing sentence 37/41, tokens: 115, current total: 744
+Finalizing chunk 1 with 744 tokens
+Starting new chunk with 58 overlap tokens
+Processing sentence 38/41, tokens: 23, current total: 173
+Processing sentence 39/41, tokens: 10, current total: 196
+Processing sentence 40/41, tokens: 8, current total: 206
+Processing sentence 41/41, tokens: 51, current total: 214
+Skipping final chunk with only 265 tokens (below minimum 300)
+Created 1 token-based chunks
+Created 1 chunks using enhanced strategy

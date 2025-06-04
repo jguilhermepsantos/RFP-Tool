@@ -155,8 +155,6 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
     overlapTokens = 100
   } = options;
   
-  console.log(`Token chunking config: min=${minChunkTokens}, max=${maxChunkTokens}, overlap=${overlapTokens}`);
-  
   const chunks: string[] = [];
   let currentChunk = '';
   let currentTokens = 0;
@@ -165,18 +163,14 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
     const sentence = sentences[i];
     const sentenceTokens = countTokens(sentence);
     
-    console.log(`Processing sentence ${i+1}/${sentences.length}, tokens: ${sentenceTokens}, current total: ${currentTokens}`);
-    
     // If adding this sentence would exceed max tokens, finalize current chunk
     if (currentTokens + sentenceTokens > maxChunkTokens && currentTokens >= minChunkTokens) {
-      console.log(`Finalizing chunk ${chunks.length + 1} with ${currentTokens} tokens`);
       chunks.push(currentChunk.trim());
       
       // Start new chunk with overlap
       if (overlapTokens > 0) {
         currentChunk = getOverlapText(currentChunk, overlapTokens);
         currentTokens = countTokens(currentChunk);
-        console.log(`Starting new chunk with ${currentTokens} overlap tokens`);
       } else {
         currentChunk = '';
         currentTokens = 0;
@@ -191,12 +185,9 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
     currentTokens += sentenceTokens;
   }
   
-  // Add final chunk if it meets minimum requirements
-  if (currentTokens >= minChunkTokens || chunks.length === 0) {
-    console.log(`Adding final chunk with ${currentTokens} tokens`);
+  // Add final chunk if it meets minimum requirements or if we have content to preserve
+  if (currentTokens >= minChunkTokens || chunks.length === 0 || currentTokens > 100) {
     chunks.push(currentChunk.trim());
-  } else {
-    console.log(`Skipping final chunk with only ${currentTokens} tokens (below minimum ${minChunkTokens})`);
   }
   
   return chunks.filter(chunk => chunk.trim().length > 0);
@@ -248,19 +239,15 @@ function enhancedSplitTextIntoChunks(
   try {
     // 1. Split on structural boundaries first
     const structuralChunks = splitOnStructuralBoundaries(text);
-    console.log(`Found ${structuralChunks.length} structural chunks`);
-    
     // 2. For each structural chunk, apply sentence detection
     const allSentences: string[] = [];
     for (const chunk of structuralChunks) {
       const sentences = splitOnSentenceBoundaries(chunk);
       allSentences.push(...sentences);
     }
-    console.log(`Found ${allSentences.length} sentences total`);
     
     // 3. Combine sentences into token-sized chunks
     const tokenizedChunks = combineIntoTokenChunks(allSentences, options);
-    console.log(`Created ${tokenizedChunks.length} token-based chunks`);
     
     return tokenizedChunks;
   } catch (error) {
