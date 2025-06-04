@@ -115,38 +115,32 @@ function countTokens(text: string): number {
  * Split text on structural boundaries (paragraphs, headers, sections)
  */
 function splitOnStructuralBoundaries(text: string): string[] {
-  // Split on double line breaks (paragraphs) and section markers
-  const structuralSeparators = [
-    /\n\s*\n/g,  // Double line breaks (paragraphs)
-    /\n#{1,6}\s+/g,  // Markdown headers
-    /\n\d+\.\s+/g,  // Numbered lists
-    /\n[•\-\*]\s+/g,  // Bullet points
-  ];
+  // Start with simple paragraph splitting on double line breaks
+  let chunks = text.split(/\n\s*\n/).filter(chunk => chunk.trim().length > 0);
   
-  let chunks = [text];
-  
-  // Apply each separator in sequence
-  for (const separator of structuralSeparators) {
-    const newChunks: string[] = [];
-    for (const chunk of chunks) {
-      const parts = chunk.split(separator);
-      newChunks.push(...parts.filter(part => part.trim().length > 0));
-    }
-    chunks = newChunks;
+  // If we don't find enough structural boundaries, fall back to single line breaks
+  if (chunks.length < 2) {
+    chunks = text.split(/\n/).filter(chunk => chunk.trim().length > 0);
   }
   
-  return chunks.filter(chunk => chunk.trim().length > 0);
+  return chunks;
 }
 
 /**
  * Split text on sentence boundaries
  */
 function splitOnSentenceBoundaries(text: string): string[] {
-  // Enhanced sentence detection that preserves context
-  const sentencePattern = /(?<=[.!?])\s+(?=[A-Z])/g;
-  const sentences = text.split(sentencePattern)
+  // Simple sentence detection - split on periods followed by space and capital letter
+  const sentences = text.split(/\.\s+(?=[A-Z])/)
     .map(s => s.trim())
     .filter(s => s.length > 0);
+  
+  // If sentence splitting didn't work well, fall back to splitting on periods
+  if (sentences.length < 2) {
+    return text.split(/\.\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
   
   return sentences;
 }
@@ -169,14 +163,18 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
     const sentence = sentences[i];
     const sentenceTokens = countTokens(sentence);
     
+    console.log(`Processing sentence ${i+1}/${sentences.length}, tokens: ${sentenceTokens}, current total: ${currentTokens}`);
+    
     // If adding this sentence would exceed max tokens, finalize current chunk
     if (currentTokens + sentenceTokens > maxChunkTokens && currentTokens >= minChunkTokens) {
+      console.log(`Finalizing chunk ${chunks.length + 1} with ${currentTokens} tokens`);
       chunks.push(currentChunk.trim());
       
       // Start new chunk with overlap
       if (overlapTokens > 0) {
         currentChunk = getOverlapText(currentChunk, overlapTokens);
         currentTokens = countTokens(currentChunk);
+        console.log(`Starting new chunk with ${currentTokens} overlap tokens`);
       } else {
         currentChunk = '';
         currentTokens = 0;
