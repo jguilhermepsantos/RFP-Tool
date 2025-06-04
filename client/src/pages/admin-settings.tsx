@@ -123,6 +123,20 @@ export default function AdminSettings() {
   const [showInviteForm, setShowInviteForm] = useState<boolean>(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [chunksModalOpen, setChunksModalOpen] = useState(false);
+  const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
+  
+  // Toggle expanded answer state
+  const toggleAnswerExpanded = (feedbackId: string) => {
+    setExpandedAnswers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(feedbackId)) {
+        newSet.delete(feedbackId);
+      } else {
+        newSet.add(feedbackId);
+      }
+      return newSet;
+    });
+  };
   
   // Invite user form
   const inviteForm = useForm<InviteUserForm>({
@@ -1219,6 +1233,11 @@ export default function AdminSettings() {
                                       minute: '2-digit'
                                     });
 
+                                    const answerText = feedback.generated_answer || feedback.compliance_answer || 'No answer available';
+                                    const isExpanded = expandedAnswers.has(feedback.id);
+                                    const shouldTruncate = answerText.length > 100;
+                                    const displayText = shouldTruncate && !isExpanded ? answerText.substring(0, 100) + '...' : answerText;
+
                                     return (
                                       <TableRow key={feedback.id}>
                                         <TableCell>
@@ -1230,9 +1249,17 @@ export default function AdminSettings() {
                                         </TableCell>
                                         <TableCell>
                                           <div className="max-w-md">
-                                            <p className="text-sm text-gray-700 break-words line-clamp-3">
-                                              {feedback.generated_answer || feedback.compliance_answer || 'No answer available'}
+                                            <p className="text-sm text-gray-700 break-words whitespace-pre-wrap">
+                                              {displayText}
                                             </p>
+                                            {shouldTruncate && (
+                                              <button
+                                                onClick={() => toggleAnswerExpanded(feedback.id)}
+                                                className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+                                              >
+                                                {isExpanded ? 'Show less' : 'Show more'}
+                                              </button>
+                                            )}
                                           </div>
                                         </TableCell>
                                         <TableCell>
