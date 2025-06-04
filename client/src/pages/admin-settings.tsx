@@ -197,6 +197,17 @@ export default function AdminSettings() {
     queryFn: () => apiRequest('/api/admin/feedback', { headers: adminHeaders }),
     enabled: activeSection === 'feedbacks'
   });
+
+  // Fetch all answer feedbacks
+  const {
+    data: answerFeedbacksResponse,
+    isLoading: isAnswerFeedbacksLoading,
+    error: answerFeedbacksError
+  } = useQuery({
+    queryKey: ['/api/admin/answer-feedbacks'],
+    queryFn: () => apiRequest('/api/admin/answer-feedbacks', { headers: adminHeaders }),
+    enabled: activeSection === 'feedbacks'
+  });
   
   // Get ALL project details from the API (as admin, we need access to all projects)
   const {
@@ -225,6 +236,9 @@ export default function AdminSettings() {
 
   // Process feedbacks data
   const feedbacks: Feedback[] = Array.isArray(feedbacksResponse) ? feedbacksResponse : [];
+  
+  // Process answer feedbacks data
+  const answerFeedbacks: any[] = Array.isArray(answerFeedbacksResponse) ? answerFeedbacksResponse : [];
 
   // Fetch document chunks when a document is selected
   const {
@@ -1076,70 +1090,189 @@ export default function AdminSettings() {
             {activeSection === 'feedbacks' && (
               <Card>
                 <CardHeader>
-                  <CardTitle>User Feedbacks</CardTitle>
+                  <CardTitle>Feedback Management</CardTitle>
                   <CardDescription>
-                    View all feedback submissions from Solution Engineers about the RFP Assistant Tool
+                    View all feedback submissions from Solution Engineers
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {isFeedbacksLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      Loading feedbacks...
-                    </div>
-                  ) : feedbacksError ? (
-                    <div className="text-center py-8 text-red-600">
-                      Error loading feedbacks: {feedbacksError.message}
-                    </div>
-                  ) : feedbacks.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      No feedback submissions yet
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>User</TableHead>
-                          <TableHead>Feedback</TableHead>
-                          <TableHead>Submitted</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {feedbacks
-                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                          .map((feedback) => {
-                            const userEmail = getUserEmail(feedback.uploaded_by) || 'Unknown User';
-                            const submittedDate = new Date(feedback.created_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            });
+                  <Tabs defaultValue="tool-feedback" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="tool-feedback">Tool Feedback</TabsTrigger>
+                      <TabsTrigger value="answer-feedback">Answer Feedback</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="tool-feedback" className="mt-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">General Tool Feedback</CardTitle>
+                          <CardDescription>
+                            Feedback about the RFP Assistant Tool features and usability
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {isFeedbacksLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                              Loading feedbacks...
+                            </div>
+                          ) : feedbacksError ? (
+                            <div className="text-center py-8 text-red-600">
+                              Error loading feedbacks: {feedbacksError.message}
+                            </div>
+                          ) : feedbacks.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                              No tool feedback submissions yet
+                            </div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>User</TableHead>
+                                  <TableHead>Feedback</TableHead>
+                                  <TableHead>Submitted</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {feedbacks
+                                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                  .map((feedback) => {
+                                    const userEmail = getUserEmail(feedback.uploaded_by) || 'Unknown User';
+                                    const submittedDate = new Date(feedback.created_at).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    });
 
-                            return (
-                              <TableRow key={feedback.id}>
-                                <TableCell>
-                                  <div className="font-medium">{userEmail}</div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="max-w-md">
-                                    <p className="text-sm text-gray-900 break-words">
-                                      {feedback.content}
-                                    </p>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="text-sm text-gray-500">
-                                    {submittedDate}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                      </TableBody>
-                    </Table>
-                  )}
+                                    return (
+                                      <TableRow key={feedback.id}>
+                                        <TableCell>
+                                          <div className="font-medium">{userEmail}</div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="max-w-md">
+                                            <p className="text-sm text-gray-900 break-words">
+                                              {feedback.content}
+                                            </p>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="text-sm text-gray-500">
+                                            {submittedDate}
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                              </TableBody>
+                            </Table>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    <TabsContent value="answer-feedback" className="mt-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">AI Answer Feedback</CardTitle>
+                          <CardDescription>
+                            Feedback on AI-generated answers and their quality
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {isAnswerFeedbacksLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                              Loading answer feedbacks...
+                            </div>
+                          ) : answerFeedbacksError ? (
+                            <div className="text-center py-8 text-red-600">
+                              Error loading answer feedbacks: {answerFeedbacksError.message}
+                            </div>
+                          ) : answerFeedbacks.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                              No answer feedback submissions yet
+                            </div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Question</TableHead>
+                                  <TableHead>Generated Answer</TableHead>
+                                  <TableHead>Rating</TableHead>
+                                  <TableHead>Feedback</TableHead>
+                                  <TableHead>User</TableHead>
+                                  <TableHead>Project</TableHead>
+                                  <TableHead>Submitted</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {answerFeedbacks
+                                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                  .map((feedback) => {
+                                    const submittedDate = new Date(feedback.created_at).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    });
+
+                                    return (
+                                      <TableRow key={feedback.id}>
+                                        <TableCell>
+                                          <div className="max-w-sm">
+                                            <p className="text-sm text-gray-900 break-words">
+                                              {feedback.question}
+                                            </p>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="max-w-md">
+                                            <p className="text-sm text-gray-700 break-words line-clamp-3">
+                                              {feedback.generated_answer || feedback.compliance_answer || 'No answer available'}
+                                            </p>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Badge variant={feedback.rating === 'good' ? 'default' : 'destructive'}>
+                                            {feedback.rating === 'good' ? '👍 Good' : '👎 Bad'}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="max-w-sm">
+                                            <p className="text-sm text-gray-700 break-words">
+                                              {feedback.feedback_text || 'No written feedback'}
+                                            </p>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="font-medium text-sm">
+                                            {feedback.user_email || 'Unknown User'}
+                                          </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="text-sm text-gray-600">
+                                            {feedback.project_name || 'Unknown Project'}
+                                          </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="text-sm text-gray-500">
+                                            {submittedDate}
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                              </TableBody>
+                            </Table>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               </Card>
             )}

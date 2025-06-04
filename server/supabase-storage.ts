@@ -960,6 +960,50 @@ export class SupabaseStorage implements IStorage {
     } as AnswerFeedback;
   }
 
+  async getAllAnswerFeedbacks(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('answer_feedbacks')
+      .select(`
+        *,
+        rfp_answers!inner(
+          generated_answer,
+          compliance_answer,
+          rfp_questions!inner(
+            question,
+            rfp_documents!inner(
+              name,
+              projects!inner(
+                name
+              )
+            )
+          )
+        ),
+        users!inner(
+          email
+        )
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw new Error(`Failed to get answer feedbacks: ${error.message}`);
+    
+    // Transform the nested data structure
+    return data.map((feedback: any) => ({
+      id: feedback.id,
+      rfp_answer_id: feedback.rfp_answer_id,
+      rating: feedback.rating,
+      feedback_text: feedback.feedback_text,
+      created_by: feedback.created_by,
+      created_at: feedback.created_at,
+      updated_at: feedback.updated_at,
+      generated_answer: feedback.rfp_answers.generated_answer,
+      compliance_answer: feedback.rfp_answers.compliance_answer,
+      question: feedback.rfp_answers.rfp_questions.question,
+      document_name: feedback.rfp_answers.rfp_questions.rfp_documents.name,
+      project_name: feedback.rfp_answers.rfp_questions.rfp_documents.projects.name,
+      user_email: feedback.users.email
+    }));
+  }
+
   async deleteAnswerFeedback(id: string): Promise<boolean> {
     const { error } = await supabase
       .from('answer_feedbacks')

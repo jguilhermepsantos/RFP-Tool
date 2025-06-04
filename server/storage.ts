@@ -87,6 +87,7 @@ export interface IStorage {
   
   // Answer Feedback operations
   getAnswerFeedback(rfpAnswerId: string): Promise<AnswerFeedback | undefined>;
+  getAllAnswerFeedbacks(): Promise<any[]>;
   createAnswerFeedback(feedback: InsertAnswerFeedback): Promise<AnswerFeedback>;
   updateAnswerFeedback(feedback: UpdateAnswerFeedback): Promise<AnswerFeedback | undefined>;
   deleteAnswerFeedback(id: string): Promise<boolean>;
