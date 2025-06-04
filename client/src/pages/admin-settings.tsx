@@ -625,18 +625,21 @@ export default function AdminSettings() {
   };
 
   // Status badge component
-  const StatusBadge = ({ status }: { status: string | undefined }) => {
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-blue-100 text-blue-800">Approved</Badge>;
-      case 'embedded':
-        return <Badge className="bg-green-100 text-green-800">Embedded</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
-      case 'pending':
-      default:
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-    }
+  const StatusBadge = ({ status }: { status: 'pending' | 'approved' | 'chunked' | 'embedded' | 'rejected' | undefined }) => {
+    const statusConfig = {
+      pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
+      approved: { color: 'bg-orange-100 text-orange-800', text: 'Chunking...' },
+      chunked: { color: 'bg-blue-100 text-blue-800', text: 'Chunked' },
+      embedded: { color: 'bg-green-100 text-green-800', text: 'Embedded' },
+      rejected: { color: 'bg-red-100 text-red-800', text: 'Rejected' }
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    return (
+      <Badge className={`${config.color} border-0`}>
+        {config.text}
+      </Badge>
+    );
   };
 
   return (
