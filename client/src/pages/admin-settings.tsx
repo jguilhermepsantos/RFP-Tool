@@ -342,7 +342,7 @@ export default function AdminSettings() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/documents'] });
       toast({
         title: "Success",
-        description: "Document status updated successfully",
+        description: "Document approved and processed successfully",
       });
     },
     onError: (error) => {

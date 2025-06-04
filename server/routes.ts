@@ -1215,36 +1215,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Document not found" });
         }
 
-        // If document was approved, trigger the chunking process
+        // If document was approved, trigger the chunking process directly
         if (status === "approved") {
           try {
             console.log(
-              `Document ${id} approved. Triggering chunking process...`,
+              `Document ${id} approved. Starting chunking process...`,
             );
 
-            // Trigger the chunking process asynchronously (don't await)
-            fetch(
-              `http://localhost:${process.env.PORT || 5000}/api/documents/chunk/${id}`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              },
-            ).catch((error) => {
-              console.error(
-                `Error triggering document chunking for ${id}:`,
-                error,
-              );
-            });
+            // Import chunking function and process directly
+            const { chunkDocument } = await import('./document-chunking');
+            const chunkingResult = await chunkDocument(id);
 
-            console.log(`Document chunking process triggered for ${id}`);
+            if (chunkingResult.success) {
+              // Update status to 'chunked' after successful chunking
+              const updatedDocument = await storage.updateDocumentApprovalStatus(id, 'chunked');
+              console.log(`Document ${id} successfully chunked and status updated`);
+              
+              // Return the updated document with 'chunked' status
+              return res.status(200).json(updatedDocument);
+            } else {
+              console.error(`Chunking failed for document ${id}:`, chunkingResult.error);
+              // Return the approved document even if chunking fails
+              return res.status(200).json(document);
+            }
           } catch (chunkingError) {
             console.error(
-              `Error triggering document chunking for ${id}:`,
+              `Error during document chunking for ${id}:`,
               chunkingError,
             );
-            // We don't fail the approval process if chunking trigger fails
+            // Return the approved document even if chunking fails
+            return res.status(200).json(document);
           }
         }
 
