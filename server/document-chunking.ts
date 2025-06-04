@@ -261,6 +261,32 @@ function getOverlapText(text: string, targetTokens: number): string {
     }
   }
   
+  // If we didn't get enough overlap from sentences, try word-level extraction
+  if (overlapTokens < targetTokens * 0.5) { // Less than 50% of target
+    console.log(`Sentence-level overlap insufficient (${overlapTokens}), trying word-level extraction`);
+    
+    // Extract words from the end of the text
+    const words = text.trim().split(/\s+/);
+    const overlapWords: string[] = [];
+    overlapTokens = 0;
+    
+    for (let i = words.length - 1; i >= 0; i--) {
+      const word = words[i];
+      const wordTokens = countTokens(word);
+      
+      if (overlapTokens + wordTokens <= targetTokens) {
+        overlapWords.unshift(word);
+        overlapTokens += wordTokens;
+      } else {
+        break;
+      }
+    }
+    
+    const wordResult = overlapWords.join(' ');
+    console.log(`Word-level overlap result: ${overlapTokens} tokens, ${wordResult.length} chars`);
+    return wordResult;
+  }
+  
   const result = overlapSentences.join(' ');
   console.log(`Final overlap result: ${overlapTokens} tokens, ${result.length} chars`);
   return result;

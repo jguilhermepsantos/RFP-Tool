@@ -1,0 +1,134 @@
+Extracting text from application/pdf document
+Extracted 8713 characters, splitting into chunks...
+Sentence splitting result: 8 sentences from 1190 chars
+Sentence splitting result: 8 sentences from 960 chars
+Sentence splitting result: 6 sentences from 1137 chars
+Sentence splitting result: 8 sentences from 1438 chars
+Sentence splitting result: 24 sentences from 2101 chars
+Sentence splitting result: 22 sentences from 1609 chars
+Sentence splitting result: 2 sentences from 264 chars
+Sentence 1: 44 tokens, total would be: 44, max: 800, min: 300
+Sentence 2: 30 tokens, total would be: 74, max: 800, min: 300
+Sentence 3: 16 tokens, total would be: 90, max: 800, min: 300
+Sentence 4: 21 tokens, total would be: 111, max: 800, min: 300
+Sentence 5: 17 tokens, total would be: 128, max: 800, min: 300
+Sentence 6: 14 tokens, total would be: 142, max: 800, min: 300
+Sentence 7: 10 tokens, total would be: 152, max: 800, min: 300
+Sentence 8: 96 tokens, total would be: 248, max: 800, min: 300
+Sentence 9: 47 tokens, total would be: 295, max: 800, min: 300
+Sentence 10: 24 tokens, total would be: 319, max: 800, min: 300
+Sentence 11: 8 tokens, total would be: 327, max: 800, min: 300
+Sentence 12: 15 tokens, total would be: 342, max: 800, min: 300
+Sentence 13: 21 tokens, total would be: 363, max: 800, min: 300
+Sentence 14: 30 tokens, total would be: 393, max: 800, min: 300
+Sentence 15: 4 tokens, total would be: 397, max: 800, min: 300
+Sentence 16: 51 tokens, total would be: 448, max: 800, min: 300
+Sentence 17: 112 tokens, total would be: 560, max: 800, min: 300
+Sentence 18: 9 tokens, total would be: 569, max: 800, min: 300
+Sentence 19: 31 tokens, total would be: 600, max: 800, min: 300
+Sentence 20: 21 tokens, total would be: 621, max: 800, min: 300
+Sentence 21: 22 tokens, total would be: 643, max: 800, min: 300
+Sentence 22: 52 tokens, total would be: 695, max: 800, min: 300
+Sentence 23: 67 tokens, total would be: 762, max: 800, min: 300
+Sentence 24: 21 tokens, total would be: 783, max: 800, min: 300
+Sentence 25: 9 tokens, total would be: 792, max: 800, min: 300
+Sentence 26: 24 tokens, total would be: 816, max: 800, min: 300
+=== CHUNK BOUNDARY ===
+Finalizing chunk 1 with 792 tokens
+Last 100 chars of chunk: "hnical team must decide what processes suit your needs Solutions can be divided into two main groups"
+Getting overlap from text (3733 chars) with target 100 tokens
+Sentence splitting result: 5 sentences from 3733 chars
+Split into 5 sentences for overlap
+Overlap sentence 4: 3 tokens - "two main groups..."
+Added to overlap, total now: 3 tokens
+Overlap sentence 3: 181 tokens - "from other systems, such as Customer Relationship ..."
+Skipping sentence - would exceed target tokens
+Final overlap result: 3 tokens, 15 chars
+Generated overlap text (3 tokens): "two main groups..."
+New chunk starts with (27 tokens): "two main groups Integration platforms: third-party Platform as a Service companies whose product allows you to create VTEX integrations with minimal development effort..."
+Sentence 27: 27 tokens, total would be: 54, max: 800, min: 300
+Sentence 28: 26 tokens, total would be: 80, max: 800, min: 300
+Sentence 29: 28 tokens, total would be: 108, max: 800, min: 300
+Sentence 30: 96 tokens, total would be: 204, max: 800, min: 300
+Sentence 31: 30 tokens, total would be: 234, max: 800, min: 300
+Sentence 32: 6 tokens, total would be: 240, max: 800, min: 300
+Sentence 33: 5 tokens, total would be: 245, max: 800, min: 300
+Sentence 34: 11 tokens, total would be: 256, max: 800, min: 300
+Sentence 35: 32 tokens, total would be: 288, max: 800, min: 300
+Sentence 36: 23 tokens, total would be: 311, max: 800, min: 300
+Sentence 37: 14 tokens, total would be: 325, max: 800, min: 300
+Sentence 38: 5 tokens, total would be: 330, max: 800, min: 300
+Sentence 39: 11 tokens, total would be: 341, max: 800, min: 300
+Sentence 40: 16 tokens, total would be: 357, max: 800, min: 300
+Sentence 41: 31 tokens, total would be: 388, max: 800, min: 300
+Sentence 42: 8 tokens, total would be: 396, max: 800, min: 300
+Sentence 43: 6 tokens, total would be: 402, max: 800, min: 300
+Sentence 44: 12 tokens, total would be: 414, max: 800, min: 300
+Sentence 45: 18 tokens, total would be: 432, max: 800, min: 300
+Sentence 46: 24 tokens, total would be: 456, max: 800, min: 300
+Sentence 47: 26 tokens, total would be: 482, max: 800, min: 300
+Sentence 48: 18 tokens, total would be: 500, max: 800, min: 300
+Sentence 49: 9 tokens, total would be: 509, max: 800, min: 300
+Sentence 50: 5 tokens, total would be: 514, max: 800, min: 300
+Sentence 51: 11 tokens, total would be: 525, max: 800, min: 300
+Sentence 52: 19 tokens, total would be: 544, max: 800, min: 300
+Sentence 53: 20 tokens, total would be: 564, max: 800, min: 300
+Sentence 54: 49 tokens, total would be: 613, max: 800, min: 300
+Sentence 55: 21 tokens, total would be: 634, max: 800, min: 300
+Sentence 56: 22 tokens, total would be: 656, max: 800, min: 300
+Sentence 57: 9 tokens, total would be: 665, max: 800, min: 300
+Sentence 58: 5 tokens, total would be: 670, max: 800, min: 300
+Sentence 59: 10 tokens, total would be: 680, max: 800, min: 300
+Sentence 60: 7 tokens, total would be: 687, max: 800, min: 300
+Sentence 61: 5 tokens, total would be: 692, max: 800, min: 300
+Sentence 62: 12 tokens, total would be: 704, max: 800, min: 300
+Sentence 63: 15 tokens, total would be: 719, max: 800, min: 300
+Sentence 64: 6 tokens, total would be: 725, max: 800, min: 300
+Sentence 65: 5 tokens, total would be: 730, max: 800, min: 300
+Sentence 66: 13 tokens, total would be: 743, max: 800, min: 300
+Sentence 67: 22 tokens, total would be: 765, max: 800, min: 300
+Sentence 68: 7 tokens, total would be: 772, max: 800, min: 300
+Sentence 69: 14 tokens, total would be: 786, max: 800, min: 300
+Sentence 70: 15 tokens, total would be: 801, max: 800, min: 300
+=== CHUNK BOUNDARY ===
+Finalizing chunk 2 with 786 tokens
+Last 100 chars of chunk: "arn more see   Change order For marketplaces, it may also be necessary to perform changes in sellers"
+Getting overlap from text (3944 chars) with target 100 tokens
+Sentence splitting result: 3 sentences from 3944 chars
+Split into 3 sentences for overlap
+Overlap sentence 2: 755 tokens - "when choosing this path, keep in mind that that yo..."
+Skipping sentence - would exceed target tokens
+Final overlap result: 0 tokens, 0 chars
+Generated overlap text (0 tokens): "..."
+New chunk starts with (15 tokens): "Learn more with our   Change seller guide  Send order cancelations  Trigger..."
+Sentence 71: 8 tokens, total would be: 23, max: 800, min: 300
+Sentence 72: 7 tokens, total would be: 30, max: 800, min: 300
+Sentence 73: 34 tokens, total would be: 64, max: 800, min: 300
+Sentence 74: 35 tokens, total would be: 99, max: 800, min: 300
+Sentence 75: 3 tokens, total would be: 102, max: 800, min: 300
+Sentence 76: 53 tokens, total would be: 155, max: 800, min: 300
+Sentence 77: 32 tokens, total would be: 187, max: 800, min: 300
+Sentence 78: 33 tokens, total would be: 220, max: 800, min: 300
+Created 3 chunks using enhanced strategy
+Creating chunk with data: {
+  document_id: 'd3923f79-12d3-4814-9221-e173ca5808cf',
+  content: "Integration Guides   Back office integration guide (ERP/PIM/WMS)  Back office integration guide (ERP/PIM/WMS)  Use our APIs to build a complete back-office integration This guide refers mostly to ERPs But keep in mind that integrating PIMs and WMSs basically follows the same principles and the content will point out whenever that is not the case An ecommerce operation may use a range of software to better manage its resources and information In this guide, we take a look at the best ways to integrate these systems with your VTEX store This allows your store to optimize operations by creating efficient communications between VTEX and other software Each operation has its specific needs and we do not recommend any particular software However, here are some examples used by different operations Enterprise Resource Planning (ERP) and Warehouse Management System (WMS) Aquilon Aptean Catalyst Brightpearl ECI Software Solutions IBM Sterling WMS JDA Microsoft Oracle Netsuite Sage SAP Manhattan Product Information Manager (PIM)   On this page  06/03/2025, 09:56   Back office integration guide (ERP/PIM/WMS)  https://developers.vtex.com/docs/guides/erp-integration-guide   1/7 Akeneo Simplus IBM Product Master Informatica inRiver Widen Collective For a complete back-office integration, you should use our APIs to send your Products, Pricing, and Inventory to VTEX and to receive your Orders from VTEX In order to provide more detail on this data flow, this overview is split into the initial setup and the ongoing integration flow Check the new   Catalog onboarding guide We created this guide to improve the onboarding experience for developers at VTEX It assembles all documentation on our Developer Portal about Catalog and is organized by focusing on the developer's journey Initial setup  To get your integration up and running, you need to perform some configuration steps and then set up the middleware that will handle the ongoing flow See the steps below Configuration  On this page  06/03/2025, 09:56   Back office integration guide (ERP/PIM/WMS)  https://developers.vtex.com/docs/guides/erp-integration-guide   2/7 Import prices  -   Set base price  -   Set fixed prices for specific contexts  Set up catalog  -   Category tree  -   Brands  -   Specifications  -   Groups  -   Fields  -   Values  Import products -   Import product  -   Import product specifications  -   Add product to trade policy  -   Import SKU  -   Import SKU specifications  -   Import SKU image  Import inventory  -   Create warehouses  -   Update SKU inventory  Note that some of these steps are also used in the ongoing integration For example, the registering of products and inventory Import customer data  When implementing an ecommerce project, it may be necessary to import customer data from other systems, such as Customer Relationship Management (CRM) applications Unlike the processes shown in the image above, this import does not require a specific order relative to other processes See the   Import customer data integration guide   to learn how to perform this process using  Master Data v2 Middleware setup  On this page  06/03/2025, 09:56   Back office integration guide (ERP/PIM/WMS)  https://developers.vtex.com/docs/guides/erp-integration-guide   3/7 Set up order processing  -   Change order  -   Cancellation  -   Invoicing  -   Tracking  Set up order integration  -   Configure feed or hook  After the configuration, you must set up your middleware to be able to send and receive information from VTEX according to events in the routine of your operation There are many different ways to do this and your store’s technical team must decide what processes suit your needs Solutions can be divided into two main groups",
+  scope: 'global',
+  source: 'document',
+  created_at: '2025-06-04T10:01:28.741Z'
+}
+Creating chunk with data: {
+  document_id: 'd3923f79-12d3-4814-9221-e173ca5808cf',
+  content: 'two main groups Integration platforms: third-party Platform as a Service companies whose product allows you to create VTEX integrations with minimal development effort In-house developing: when choosing this path, keep in mind that that you must not only build the software, but maintain the ongoing integration For example, the middleware must be able to handle scalability issues that come with sales peaks such as may occur in a black friday event Ongoing middleware flow  Once you have configurated your store and set up the middleware, the general flow of information will look something like this Store backoffice   VTEX  Catalog  Pricing  Logistics  ERP  WMS  Product updates  Order flow notification  Orders  Pricing updates  Tracking information  Inventory updates  Invoice  Order information  Cancelation  Order change  On this page  06/03/2025, 09:56   Back office integration guide (ERP/PIM/WMS)  https://developers.vtex.com/docs/guides/erp-integration-guide   4/7 Each of the requests or processes represented by the arrows in the diagram above, is triggered by a different event in the day-to-day operation of an ecommerce See details on the following sessions Send product updates  Trigger Whenever there are product updates in your ERP or PIM There are many business reasons that may lead to product updates to your store, be it adding new SKUs, editing existing ones, or removing them from your store The goal here is for your integration to automatically pick up product updates from the ERP and send them to VTEX APIs Learn more about how to implement this in our   Product updates   guide Send pricing updates  Trigger Whenever there are price changes in your ERP or PIM Similar to product updates, there are different reasons as to why stores change their prices In any case, whenever you decide to change your store’s prices, you should set up the integration to automatically send these updates from the ERP to VTEX Learn more in our guide   Pricing updates Receive order flow notification  Trigger Whenever any order gets to one of the statuses predetermined by you In VTEX’s Order Management System (OMS) orders go through a   predetermined flow By setting up your order integration, you ensure your ERP gets notified whenever any order reaches some specific stages in its life cycle For example, the status   ready-for-handling   tells you that the order has been paid for and the grace period has expired On the other hand,   request-cancel   means your customer wishes that the order be canceled To learn more see   Set up order integration Get order information  Trigger When your store needs to take action regarding a specific order When setting up order integration you may configure variate notifications for different stages that an order goes through Some or all of these stages may prompt your store to take action based on the order’s specific information On this page  06/03/2025, 09:56   Back office integration guide (ERP/PIM/WMS)  https://developers.vtex.com/docs/guides/erp-integration-guide   5/7 For instance, when an order gets to   ready-for-handling   it is time to pick and pack For an order that got to   request-cancel   , you should assess the order’s situation and take action accordingly To learn more check   Set up order integration Send invoice information  Trigger When your ERP has generated the invoice for the order To learn more see   Invoice order Send tracking information  Trigger When the assigned carrier makes tracking information available for a given order In VTEX order management, tracking information is tied to the order’s invoice Learn more in  Order tracking Send order changes  Trigger When the store needs to change items or values of an existing order Order changes may be needed in various scenarios, such as when an item in the order is actually out of stock To learn more see   Change order For marketplaces, it may also be necessary to perform changes in sellers',
+  scope: 'global',
+  source: 'document',
+  created_at: '2025-06-04T10:01:29.093Z'
+}
+Creating chunk with data: {
+  document_id: 'd3923f79-12d3-4814-9221-e173ca5808cf',
+  content: "Learn more with our   Change seller guide  Send order cancelations  Trigger When your store needs to cancel an order To learn more see   Cancel order Make sure you have gone through our   Platform Overview guides   and have   create d the appKey and appToken   for the system you want to integrate with VTEX You can find the Application Keys page by clicking on your   profile's avatar , which is marked with the initial from your email, then going to   Account settings > Application keys Was this helpful Yes   No   On this page  06/03/2025, 09:56   Back office integration guide (ERP/PIM/WMS)  https://developers.vtex.com/docs/guides/erp-integration-guide   6/7 Suggest Edits (GitHub) Subscriptions « Previous Set up catalog Next » Github Help Center Community Feedback On this page 06/03/2025, 09:56 Back office integration guide (ERP/PIM/WMS) https://developers.vtex.com/docs/guides/erp-integration-guide 7/7",
+  scope: 'global',
+  source: 'document',
+  created_at: '2025-06-04T10:01:29.438Z'
+}
+[SupabaseStorage] Updating document d3923f79-12d3-4814-9221-e173ca5808cf chunked status to: true
