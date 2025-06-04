@@ -368,29 +368,13 @@ export default function AdminSettings() {
         body: JSON.stringify({ status })
       });
 
-      // If approved, automatically trigger chunking
-      if (status === 'approved') {
-        try {
-          await apiRequest(`/api/rfp-documents/chunk/${id}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': user?.email || ''
-            }
-          });
-        } catch (chunkError) {
-          console.error('Error during automatic chunking:', chunkError);
-          // Don't fail the approval if chunking fails
-        }
-      }
-
       return approvalResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/rfp-documents'] });
       toast({
         title: "Success",
-        description: "RFP document approved and chunking initiated",
+        description: "RFP document approved and processed successfully",
       });
     },
     onError: (error) => {

@@ -1307,36 +1307,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "RFP Document not found" });
         }
 
-        // If document was approved, trigger the chunking process
+        // If document was approved, trigger the chunking process directly
         if (status === "approved") {
           try {
             console.log(
-              `RFP document ${id} approved. Triggering chunking process...`,
+              `RFP document ${id} approved. Starting chunking process...`,
             );
 
-            // Trigger the chunking process asynchronously (don't await)
-            fetch(
-              `http://localhost:${process.env.PORT || 5000}/api/rfp-documents/chunk/${id}`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              },
-            ).catch((error) => {
-              console.error(
-                `Error triggering RFP document chunking for ${id}:`,
-                error,
-              );
-            });
+            // Import chunking function and process directly
+            const { chunkRfpDocument } = await import('./document-chunking');
+            const chunkingResult = await chunkRfpDocument(id);
 
-            console.log(`RFP document chunking process triggered for ${id}`);
+            if (chunkingResult.success) {
+              // Update status to 'chunked' after successful chunking
+              const updatedDocument = await storage.updateRfpDocumentApprovalStatus(id, 'chunked');
+              console.log(`RFP document ${id} successfully chunked and status updated`);
+              
+              // Return the updated document with 'chunked' status
+              return res.status(200).json(updatedDocument);
+            } else {
+              console.error(`Chunking failed for RFP document ${id}:`, chunkingResult.error);
+              // Return the approved document even if chunking fails
+              return res.status(200).json(rfpDocument);
+            }
           } catch (chunkingError) {
             console.error(
-              `Error triggering RFP document chunking for ${id}:`,
+              `Error during RFP document chunking for ${id}:`,
               chunkingError,
             );
-            // We don't fail the approval process if chunking trigger fails
+            // Return the approved document even if chunking fails
+            return res.status(200).json(rfpDocument);
           }
         }
 
