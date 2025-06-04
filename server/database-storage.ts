@@ -11,12 +11,15 @@ import {
   Document, InsertDocument, 
   Chunk, InsertChunk,
   ComplianceMapping, InsertComplianceMapping,
-  UpdateRfpAnswer,
+  Feedback, InsertFeedback,
+  AnswerFeedback, InsertAnswerFeedback,
+  UpdateRfpAnswer, UpdateAnswerFeedback,
   users, projects, projectPermissions, rfpDocuments, 
-  rfpQuestions, rfpAnswers, documents, chunks, complianceMappings
+  rfpQuestions, rfpAnswers, documents, chunks, complianceMappings,
+  feedbacks, answerFeedbacks
 } from "@shared/schema";
 import { db, supabase } from './db';
-import { eq, and, or, sql } from 'drizzle-orm';
+import { eq, and, or, sql, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { IStorage } from './storage';
 
@@ -686,6 +689,75 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error updating suggested document status:', error);
       throw error;
+    }
+  }
+
+  // Feedback operations
+  async createFeedback(feedback: InsertFeedback): Promise<Feedback> {
+    const result = await db.insert(feedbacks).values({
+      id: uuidv4(),
+      ...feedback
+    }).returning();
+    return result[0];
+  }
+
+  async getFeedbacks(): Promise<Feedback[]> {
+    return await db.select().from(feedbacks).orderBy(sql`${feedbacks.createdAt} DESC`);
+  }
+
+  // Answer Feedback operations
+  async getAnswerFeedback(rfpAnswerId: string): Promise<AnswerFeedback | undefined> {
+    const result = await db.select().from(answerFeedbacks).where(eq(answerFeedbacks.rfpAnswerId, rfpAnswerId));
+    return result[0];
+  }
+
+  async getAllAnswerFeedbacks(): Promise<any[]> {
+    // Join answer feedbacks with rfp answers, questions, and users to get complete data
+    const result = await db.execute(sql`
+      SELECT 
+        af.*,
+        ra.generated_answer,
+        ra.compliance_answer,
+        rq.question,
+        u.email as user_email,
+        rd.name as document_name,
+        p.name as project_name
+      FROM answer_feedbacks af
+      JOIN rfp_answers ra ON af.rfp_answer_id = ra.id
+      JOIN rfp_questions rq ON ra.question_id = rq.id
+      JOIN rfp_documents rd ON rq.rfp_document_id = rd.id
+      JOIN projects p ON rd.project_id = p.id
+      JOIN users u ON af.created_by = u.id
+      ORDER BY af.created_at DESC
+    `);
+    
+    return result.rows;
+  }
+
+  async createAnswerFeedback(feedback: InsertAnswerFeedback): Promise<AnswerFeedback> {
+    const result = await db.insert(answerFeedbacks).values({
+      id: uuidv4(),
+      ...feedback
+    }).returning();
+    return result[0];
+  }
+
+  async updateAnswerFeedback(feedback: UpdateAnswerFeedback): Promise<AnswerFeedback | undefined> {
+    const { id, ...updateData } = feedback;
+    const result = await db.update(answerFeedbacks)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(answerFeedbacks.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteAnswerFeedback(id: string): Promise<boolean> {
+    try {
+      const result = await db.delete(answerFeedbacks).where(eq(answerFeedbacks.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting answer feedback:', error);
+      return false;
     }
   }
 }

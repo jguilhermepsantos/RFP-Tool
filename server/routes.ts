@@ -1667,6 +1667,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  apiRouter.get(
+    "/admin/answer-feedbacks",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const answerFeedbacks = await storage.getAllAnswerFeedbacks();
+        return res.status(200).json(answerFeedbacks);
+      } catch (error) {
+        console.error("Error fetching answer feedbacks:", error);
+        return res.status(500).json({ error: "Failed to fetch answer feedbacks" });
+      }
+    },
+  );
+
   // Create the HTTP server
   const httpServer = createServer(app);
   return httpServer;
