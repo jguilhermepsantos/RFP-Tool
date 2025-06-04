@@ -446,10 +446,22 @@ export async function embedDocumentChunks(documentId: string): Promise<{
         });
 
         if (success) {
-          // Mark chunk as embedded in the database
-          await storage.markChunkAsEmbedded(chunk.id);
-          chunksEmbedded++;
-          console.log(`Successfully embedded chunk ${chunk.id}`);
+          // Mark chunk as embedded directly in Supabase
+          const { error: updateError } = await supabase
+            .from('chunks')
+            .update({ 
+              embedded: true, 
+              embedded_at: new Date().toISOString() 
+            })
+            .eq('id', chunk.id);
+            
+          if (updateError) {
+            console.error(`Error updating chunk ${chunk.id} embedding status:`, updateError);
+            errors.push(`Failed to update embedding status for chunk ${chunk.id}: ${updateError.message}`);
+          } else {
+            chunksEmbedded++;
+            console.log(`Successfully embedded chunk ${chunk.id} and updated status in Supabase`);
+          }
         } else {
           errors.push(`Failed to index chunk ${chunk.id} in vector database`);
         }
@@ -704,10 +716,25 @@ export async function embedUnprocessedChunks(limit: number = 100): Promise<{
         const success = await indexChunk(chunk.id, chunk.content, metadata);
         
         if (success) {
-          // Mark as embedded in database
-          await storage.markChunkAsEmbedded(chunk.id);
-          embeddedCount++;
-          console.log(`✅ Embedded chunk ${chunk.id}`);
+          // Mark as embedded directly in Supabase
+          const { error: updateError } = await supabase
+            .from('chunks')
+            .update({ 
+              embedded: true, 
+              embedded_at: new Date().toISOString() 
+            })
+            .eq('id', chunk.id);
+            
+          if (updateError) {
+            console.error(`Error updating chunk ${chunk.id} embedding status:`, updateError);
+            errors.push({
+              chunkId: chunk.id,
+              error: `Failed to update embedding status: ${updateError.message}`
+            });
+          } else {
+            embeddedCount++;
+            console.log(`✅ Embedded chunk ${chunk.id} and updated status in Supabase`);
+          }
         } else {
           errors.push({
             chunkId: chunk.id,

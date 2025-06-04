@@ -666,11 +666,12 @@ export class SupabaseStorage implements IStorage {
       content: chunk.content,
       scope: chunk.scope,
       source: chunk.source,
-      // Add any additional fields as needed
+      embedded: false,
+      embedded_at: null,
       created_at: new Date().toISOString()
     };
     
-    console.log('Creating chunk with data:', supabaseChunk);
+    console.log('[SupabaseStorage] Creating chunk with data:', supabaseChunk);
     
     const { data, error } = await supabase
       .from('chunks')
@@ -678,7 +679,17 @@ export class SupabaseStorage implements IStorage {
       .select()
       .single();
     
-    if (error) throw new Error(`Failed to create chunk: ${error.message}`);
+    if (error) {
+      console.error('[SupabaseStorage] Error creating chunk:', error);
+      throw new Error(`Failed to create chunk: ${error.message}`);
+    }
+    
+    if (!data) {
+      console.error('[SupabaseStorage] No data returned from chunk creation');
+      throw new Error('No data returned from chunk creation');
+    }
+    
+    console.log('[SupabaseStorage] Successfully created chunk:', data.id);
     return data as Chunk;
   }
 
