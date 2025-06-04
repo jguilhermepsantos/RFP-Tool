@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle, PlayCircle, ChevronRight, Filter } from "lucide-react";
+import { AlertCircle, CheckCircle, PlayCircle, ChevronRight, Filter, Loader2 } from "lucide-react";
 
 interface RfpDocumentProps {
   projectId: string;
@@ -24,6 +24,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const [, setLocation] = useLocation();
   const [isDownloading, setIsDownloading] = useState(false);
   const [confidenceFilter, setConfidenceFilter] = useState<string>("all");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   interface ProjectResponse {
     project: {
@@ -107,7 +108,17 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   });
 
   const handleProcessDocument = async () => {
+    if (isProcessing) return; // Prevent multiple clicks
+    
     try {
+      setIsProcessing(true);
+      
+      // Show initial processing notification
+      toast({
+        title: "Processing Started",
+        description: "AI is now processing the questions. This may take a few minutes...",
+      });
+      
       await apiRequest(`/api/projects/${projectId}/rfp-documents/${documentId}/process`, {
         method: "POST",
         headers: {
@@ -117,7 +128,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
       
       toast({
         title: "Success",
-        description: "Document processed successfully",
+        description: "Questions processed successfully! AI-generated answers are now available.",
       });
       
       // Refresh the data
@@ -127,9 +138,11 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: (error as Error).message || "Failed to process document",
+        title: "Processing Failed",
+        description: (error as Error).message || "Failed to process questions. Please try again.",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -230,9 +243,16 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     switch (status) {
       case "unprocessed":
         return (
-          <Button onClick={handleProcessDocument}>
-            <PlayCircle className="mr-2 h-4 w-4" />
-            Process Questions
+          <Button 
+            onClick={handleProcessDocument}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <PlayCircle className="mr-2 h-4 w-4" />
+            )}
+            {isProcessing ? "Processing Questions..." : "Process Questions"}
           </Button>
         );
       case "processed":
@@ -382,14 +402,28 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                 
                 {document.status === 'unprocessed' ? (
                   <>
-                    <Card className="bg-amber-50 border-amber-200 mb-4">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-amber-700 text-base">Ready for Processing</CardTitle>
-                        <CardDescription>
-                          These questions are ready to be processed. Click the "Process Questions" button to generate AI-assisted answers.
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
+                    {isProcessing ? (
+                      <Card className="bg-blue-50 border-blue-200 mb-4">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-blue-700 text-base flex items-center">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing Questions
+                          </CardTitle>
+                          <CardDescription>
+                            AI is analyzing the questions and generating answers. This may take a few minutes depending on the number of questions.
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                    ) : (
+                      <Card className="bg-amber-50 border-amber-200 mb-4">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-amber-700 text-base">Ready for Processing</CardTitle>
+                          <CardDescription>
+                            These questions are ready to be processed. Click the "Process Questions" button to generate AI-assisted answers.
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                    )}
                     <div className="space-y-6">
                       {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
                         <RfpAnswerEditor 
