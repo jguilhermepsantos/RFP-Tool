@@ -1204,7 +1204,6 @@ export default function AdminSettings() {
                                   <TableHead>Rating</TableHead>
                                   <TableHead>Feedback</TableHead>
                                   <TableHead>User</TableHead>
-                                  <TableHead>Project</TableHead>
                                   <TableHead>Submitted</TableHead>
                                 </TableRow>
                               </TableHeader>
@@ -1251,11 +1250,6 @@ export default function AdminSettings() {
                                         <TableCell>
                                           <div className="font-medium text-sm">
                                             {feedback.user_email || 'Unknown User'}
-                                          </div>
-                                        </TableCell>
-                                        <TableCell>
-                                          <div className="text-sm text-gray-600">
-                                            {feedback.project_name || 'Unknown Project'}
                                           </div>
                                         </TableCell>
                                         <TableCell>

@@ -980,30 +980,9 @@ export class SupabaseStorage implements IStorage {
           // Get answer details
           const { data: answer } = await supabase
             .from('rfp_answers')
-            .select('generated_answer, compliance_answer, question_id')
+            .select('generated_answer, compliance_answer, question_text')
             .eq('id', feedback.rfp_answer_id)
             .single();
-          
-          // Get question details
-          const { data: question } = answer ? await supabase
-            .from('rfp_questions')
-            .select('question, rfp_document_id')
-            .eq('id', answer.question_id)
-            .single() : { data: null };
-          
-          // Get document details
-          const { data: document } = question ? await supabase
-            .from('rfp_documents')
-            .select('name, project_id')
-            .eq('id', question.rfp_document_id)
-            .single() : { data: null };
-          
-          // Get project details
-          const { data: project } = document ? await supabase
-            .from('projects')
-            .select('name')
-            .eq('id', document.project_id)
-            .single() : { data: null };
           
           // Get user details
           const { data: user } = await supabase
@@ -1016,9 +995,7 @@ export class SupabaseStorage implements IStorage {
             ...feedback,
             generated_answer: answer?.generated_answer,
             compliance_answer: answer?.compliance_answer,
-            question: question?.question,
-            document_name: document?.name,
-            project_name: project?.name,
+            question: answer?.question_text,
             user_email: user?.email
           };
         })
