@@ -245,6 +245,7 @@ function enhancedSplitTextIntoChunks(
   try {
     // 1. Split on structural boundaries first
     const structuralChunks = splitOnStructuralBoundaries(text);
+    console.log(`Found ${structuralChunks.length} structural chunks`);
     
     // 2. For each structural chunk, apply sentence detection
     const allSentences: string[] = [];
@@ -252,9 +253,11 @@ function enhancedSplitTextIntoChunks(
       const sentences = splitOnSentenceBoundaries(chunk);
       allSentences.push(...sentences);
     }
+    console.log(`Found ${allSentences.length} sentences total`);
     
     // 3. Combine sentences into token-sized chunks
     const tokenizedChunks = combineIntoTokenChunks(allSentences, options);
+    console.log(`Created ${tokenizedChunks.length} token-based chunks`);
     
     return tokenizedChunks;
   } catch (error) {
