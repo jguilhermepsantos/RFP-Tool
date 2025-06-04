@@ -46,15 +46,16 @@ const inviteUserSchema = z.object({
 type InviteUserForm = z.infer<typeof inviteUserSchema>;
 
 // Status Badge Component
-const StatusBadge = ({ status }: { status: 'pending' | 'approved' | 'embedded' | 'rejected' }) => {
+const StatusBadge = ({ status }: { status: 'pending' | 'approved' | 'chunked' | 'embedded' | 'rejected' }) => {
   const statusConfig = {
     pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
-    approved: { color: 'bg-blue-100 text-blue-800', text: 'Approved' },
+    approved: { color: 'bg-orange-100 text-orange-800', text: 'Chunking...' },
+    chunked: { color: 'bg-blue-100 text-blue-800', text: 'Chunked' },
     embedded: { color: 'bg-green-100 text-green-800', text: 'Embedded' },
     rejected: { color: 'bg-red-100 text-red-800', text: 'Rejected' }
   };
 
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.pending;
   return (
     <Badge className={`${config.color} border-0`}>
       {config.text}
@@ -91,7 +92,7 @@ interface RfpDocument {
   status: string | null;
   file_url: string | null;
   is_past_rfp: boolean | null;
-  approval_status: 'pending' | 'approved' | 'rejected';
+  approval_status: 'pending' | 'approved' | 'chunked' | 'rejected';
   approval_status_modified_at: string | null;
   approval_status_modified_by: string | null;
 }
@@ -354,7 +355,8 @@ export default function AdminSettings() {
   // Mutation for updating RFP document approval status
   const updateRfpDocumentApproval = useMutation({
     mutationFn: async ({id, status}: {id: string, status: 'approved' | 'rejected'}) => {
-      return await apiRequest(`/api/admin/rfp-documents/${id}/approve`, {
+      // First, update the approval status
+      const approvalResult = await apiRequest(`/api/admin/rfp-documents/${id}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -362,12 +364,30 @@ export default function AdminSettings() {
         },
         body: JSON.stringify({ status })
       });
+
+      // If approved, automatically trigger chunking
+      if (status === 'approved') {
+        try {
+          await apiRequest(`/api/rfp-documents/chunk/${id}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': user?.email || ''
+            }
+          });
+        } catch (chunkError) {
+          console.error('Error during automatic chunking:', chunkError);
+          // Don't fail the approval if chunking fails
+        }
+      }
+
+      return approvalResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/rfp-documents'] });
       toast({
         title: "Success",
-        description: "RFP document status updated successfully",
+        description: "RFP document approved and chunking initiated",
       });
     },
     onError: (error) => {
@@ -834,7 +854,7 @@ export default function AdminSettings() {
                             <SelectItem value="all">All Documents</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="approved">Approved</SelectItem>
-                            <SelectItem value="embedded">Embedded</SelectItem>
+                            <SelectItem value="chunked">Chunked</SelectItem>
                             <SelectItem value="rejected">Rejected</SelectItem>
                           </SelectContent>
                         </Select>
@@ -905,6 +925,13 @@ export default function AdminSettings() {
                                       </Button>
                                     </div>
                                   ) : doc.approval_status === 'approved' ? (
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-1 text-sm text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Chunking in progress...
+                                      </div>
+                                    </div>
+                                  ) : doc.approval_status === 'chunked' ? (
                                     <div className="flex gap-2">
                                       <Button
                                         size="sm"
