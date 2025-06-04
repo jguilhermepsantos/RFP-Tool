@@ -504,8 +504,8 @@ export async function chunkRfpDocument(
     if (!answers || answers.length === 0) {
       console.log(`WARNING: No answers found for RFP document: ${rfpDocumentId}`);
       
-      // Still update the status to indicate it was processed
-      await storage.updateRfpDocumentStatus(rfpDocumentId, 'chunked');
+      // Still update the approval status to indicate it was processed
+      await storage.updateRfpDocumentApprovalStatus(rfpDocumentId, 'chunked');
       
       // Return success but with 0 chunks created
       return {
@@ -557,8 +557,8 @@ export async function chunkRfpDocument(
       createdChunks++;
     }
     
-    // Update RFP document to mark as chunked - using a status update
-    // await storage.updateRfpDocumentStatus(rfpDocumentId, 'chunked');
+    // Update RFP document approval status to 'chunked'
+    await storage.updateRfpDocumentApprovalStatus(rfpDocumentId, 'chunked');
     
     console.log(`📝 Chunking completed for RFP document ${rfpDocumentId}. Created ${createdChunks} chunks.`);
     console.log(`ℹ️ Embedding can be triggered manually from the admin interface.`);

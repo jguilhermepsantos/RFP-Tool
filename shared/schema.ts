@@ -43,7 +43,7 @@ export const projectPermissions = pgTable("project_permissions", {
 });
 
 // Define approval status enum
-export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
+export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected', 'chunked']);
 
 // Define chunk source enum
 export const chunkSourceEnum = pgEnum('chunk_source', ['document', 'rfp']);
