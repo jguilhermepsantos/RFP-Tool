@@ -1150,6 +1150,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireAdmin,
     async (req: Request, res: Response) => {
       try {
+        // Add cache-busting headers
+        res.set({
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        });
+        
         const documents = await storage.getDocuments();
         return res.status(200).json(documents);
       } catch (error) {
@@ -1164,6 +1171,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireAdmin,
     async (req: Request, res: Response) => {
       try {
+        // Add cache-busting headers
+        res.set({
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        });
+        
         // Get all RFP documents across all projects
         const documents = await storage.getAllRfpDocuments();
         return res.status(200).json(documents);
