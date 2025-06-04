@@ -716,25 +716,10 @@ export async function embedUnprocessedChunks(limit: number = 100): Promise<{
         const success = await indexChunk(chunk.id, chunk.content, metadata);
         
         if (success) {
-          // Mark as embedded directly in Supabase
-          const { error: updateError } = await supabase
-            .from('chunks')
-            .update({ 
-              embedded: true, 
-              embedded_at: new Date().toISOString() 
-            })
-            .eq('id', chunk.id);
-            
-          if (updateError) {
-            console.error(`Error updating chunk ${chunk.id} embedding status:`, updateError);
-            errors.push({
-              chunkId: chunk.id,
-              error: `Failed to update embedding status: ${updateError.message}`
-            });
-          } else {
-            embeddedCount++;
-            console.log(`✅ Embedded chunk ${chunk.id} and updated status in Supabase`);
-          }
+          // Mark as embedded in database (keeping original implementation since this function isn't used)
+          await storage.markChunkAsEmbedded(chunk.id);
+          embeddedCount++;
+          console.log(`✅ Embedded chunk ${chunk.id}`);
         } else {
           errors.push({
             chunkId: chunk.id,
