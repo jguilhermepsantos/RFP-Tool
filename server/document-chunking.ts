@@ -169,20 +169,28 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
       
       // Start new chunk with overlap
       if (overlapTokens > 0) {
-        currentChunk = getOverlapText(currentChunk, overlapTokens);
+        const overlapText = getOverlapText(currentChunk, overlapTokens);
+        currentChunk = overlapText;
         currentTokens = countTokens(currentChunk);
+        
+        // Add the current sentence to the overlap
+        if (currentChunk.length > 0) {
+          currentChunk += ' ';
+        }
+        currentChunk += sentence;
+        currentTokens = countTokens(currentChunk); // Recalculate total tokens
       } else {
-        currentChunk = '';
-        currentTokens = 0;
+        currentChunk = sentence;
+        currentTokens = sentenceTokens;
       }
+    } else {
+      // Add sentence to current chunk
+      if (currentChunk.length > 0) {
+        currentChunk += ' ';
+      }
+      currentChunk += sentence;
+      currentTokens += sentenceTokens;
     }
-    
-    // Add sentence to current chunk
-    if (currentChunk.length > 0) {
-      currentChunk += ' ';
-    }
-    currentChunk += sentence;
-    currentTokens += sentenceTokens;
   }
   
   // Add final chunk if it meets minimum requirements or if we have content to preserve
