@@ -163,6 +163,8 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
     const sentence = sentences[i];
     const sentenceTokens = countTokens(sentence);
     
+    console.log(`Sentence ${i+1}: ${sentenceTokens} tokens, total would be: ${currentTokens + sentenceTokens}, max: ${maxChunkTokens}, min: ${minChunkTokens}`);
+    
     // If adding this sentence would exceed max tokens, finalize current chunk
     if (currentTokens + sentenceTokens > maxChunkTokens && currentTokens >= minChunkTokens) {
       console.log(`=== CHUNK BOUNDARY ===`);
