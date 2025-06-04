@@ -198,7 +198,7 @@ function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions):
  */
 function getOverlapText(text: string, targetTokens: number): string {
   const sentences = splitOnSentenceBoundaries(text);
-  let overlapText = '';
+  const overlapSentences: string[] = [];
   let overlapTokens = 0;
   
   // Add sentences from the end until we reach target tokens
@@ -207,14 +207,14 @@ function getOverlapText(text: string, targetTokens: number): string {
     const sentenceTokens = countTokens(sentence);
     
     if (overlapTokens + sentenceTokens <= targetTokens) {
-      overlapText = sentence + (overlapText.length > 0 ? ' ' + overlapText : '');
+      overlapSentences.unshift(sentence); // Add to beginning to maintain order
       overlapTokens += sentenceTokens;
     } else {
       break;
     }
   }
   
-  return overlapText;
+  return overlapSentences.join(' ');
 }
 
 /**
