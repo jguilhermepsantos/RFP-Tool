@@ -4,6 +4,7 @@
 import { storage } from './storage';
 import { v4 as uuidv4 } from 'uuid';
 import { PDFExtract } from 'pdf.js-extract';
+import { encoding_for_model } from 'tiktoken';
 
 /**
  * Options for text splitting
@@ -12,6 +13,11 @@ interface TextSplitOptions {
   chunkSize?: number;
   chunkOverlap?: number;
   separator?: string;
+  // Enhanced options for token-based chunking
+  minChunkTokens?: number;
+  maxChunkTokens?: number;
+  overlapTokens?: number;
+  preserveStructure?: boolean;
 }
 
 /**
@@ -89,7 +95,176 @@ async function extractText(buffer: Buffer, contentType: string): Promise<string>
 }
 
 /**
- * Split text into chunks
+ * Get tiktoken encoder for accurate token counting
+ */
+function getTokenEncoder() {
+  return encoding_for_model('text-embedding-3-small');
+}
+
+/**
+ * Count tokens in text using tiktoken
+ */
+function countTokens(text: string): number {
+  const encoder = getTokenEncoder();
+  const tokens = encoder.encode(text);
+  encoder.free();
+  return tokens.length;
+}
+
+/**
+ * Split text on structural boundaries (paragraphs, headers, sections)
+ */
+function splitOnStructuralBoundaries(text: string): string[] {
+  // Split on double line breaks (paragraphs) and section markers
+  const structuralSeparators = [
+    /\n\s*\n/g,  // Double line breaks (paragraphs)
+    /\n#{1,6}\s+/g,  // Markdown headers
+    /\n\d+\.\s+/g,  // Numbered lists
+    /\n[•\-\*]\s+/g,  // Bullet points
+  ];
+  
+  let chunks = [text];
+  
+  // Apply each separator in sequence
+  for (const separator of structuralSeparators) {
+    const newChunks: string[] = [];
+    for (const chunk of chunks) {
+      const parts = chunk.split(separator);
+      newChunks.push(...parts.filter(part => part.trim().length > 0));
+    }
+    chunks = newChunks;
+  }
+  
+  return chunks.filter(chunk => chunk.trim().length > 0);
+}
+
+/**
+ * Split text on sentence boundaries
+ */
+function splitOnSentenceBoundaries(text: string): string[] {
+  // Enhanced sentence detection that preserves context
+  const sentencePattern = /(?<=[.!?])\s+(?=[A-Z])/g;
+  const sentences = text.split(sentencePattern)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  
+  return sentences;
+}
+
+/**
+ * Combine sentences into token-sized chunks
+ */
+function combineIntoTokenChunks(sentences: string[], options: TextSplitOptions): string[] {
+  const {
+    minChunkTokens = 300,
+    maxChunkTokens = 800,
+    overlapTokens = 100
+  } = options;
+  
+  const chunks: string[] = [];
+  let currentChunk = '';
+  let currentTokens = 0;
+  
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i];
+    const sentenceTokens = countTokens(sentence);
+    
+    // If adding this sentence would exceed max tokens, finalize current chunk
+    if (currentTokens + sentenceTokens > maxChunkTokens && currentTokens >= minChunkTokens) {
+      chunks.push(currentChunk.trim());
+      
+      // Start new chunk with overlap
+      if (overlapTokens > 0) {
+        currentChunk = getOverlapText(currentChunk, overlapTokens);
+        currentTokens = countTokens(currentChunk);
+      } else {
+        currentChunk = '';
+        currentTokens = 0;
+      }
+    }
+    
+    // Add sentence to current chunk
+    if (currentChunk.length > 0) {
+      currentChunk += ' ';
+    }
+    currentChunk += sentence;
+    currentTokens += sentenceTokens;
+  }
+  
+  // Add final chunk if it meets minimum requirements
+  if (currentTokens >= minChunkTokens || chunks.length === 0) {
+    chunks.push(currentChunk.trim());
+  }
+  
+  return chunks.filter(chunk => chunk.trim().length > 0);
+}
+
+/**
+ * Get overlap text from the end of a chunk
+ */
+function getOverlapText(text: string, targetTokens: number): string {
+  const sentences = splitOnSentenceBoundaries(text);
+  let overlapText = '';
+  let overlapTokens = 0;
+  
+  // Add sentences from the end until we reach target tokens
+  for (let i = sentences.length - 1; i >= 0; i--) {
+    const sentence = sentences[i];
+    const sentenceTokens = countTokens(sentence);
+    
+    if (overlapTokens + sentenceTokens <= targetTokens) {
+      overlapText = sentence + (overlapText.length > 0 ? ' ' + overlapText : '');
+      overlapTokens += sentenceTokens;
+    } else {
+      break;
+    }
+  }
+  
+  return overlapText;
+}
+
+/**
+ * Enhanced text splitting with structural boundaries and token limits
+ */
+function enhancedSplitTextIntoChunks(
+  text: string,
+  options: TextSplitOptions = {}
+): string[] {
+  const {
+    preserveStructure = true,
+    minChunkTokens = 300,
+    maxChunkTokens = 800,
+    overlapTokens = 100
+  } = options;
+  
+  if (!preserveStructure) {
+    // Fall back to legacy chunking if structure preservation is disabled
+    return splitTextIntoChunks(text, options);
+  }
+  
+  try {
+    // 1. Split on structural boundaries first
+    const structuralChunks = splitOnStructuralBoundaries(text);
+    
+    // 2. For each structural chunk, apply sentence detection
+    const allSentences: string[] = [];
+    for (const chunk of structuralChunks) {
+      const sentences = splitOnSentenceBoundaries(chunk);
+      allSentences.push(...sentences);
+    }
+    
+    // 3. Combine sentences into token-sized chunks
+    const tokenizedChunks = combineIntoTokenChunks(allSentences, options);
+    
+    return tokenizedChunks;
+  } catch (error) {
+    console.warn('Enhanced chunking failed, falling back to legacy method:', error);
+    return splitTextIntoChunks(text, options);
+  }
+}
+
+/**
+ * Split text into chunks (legacy method for backward compatibility)
  * @param text Text to split into chunks
  * @param options Splitting options
  * @returns Array of text chunks
@@ -204,9 +379,17 @@ export async function chunkDocument(
     
     console.log(`Extracted ${text.length} characters, splitting into chunks...`);
     
-    // Split text into chunks
-    const chunks = splitTextIntoChunks(text, options);
-    console.log(`Created ${chunks.length} chunks`);
+    // Split text into chunks using enhanced chunking strategy
+    const enhancedOptions = {
+      ...options,
+      preserveStructure: true,
+      minChunkTokens: 300,
+      maxChunkTokens: 800,
+      overlapTokens: 100
+    };
+    
+    const chunks = enhancedSplitTextIntoChunks(text, enhancedOptions);
+    console.log(`Created ${chunks.length} chunks using enhanced strategy`);
     
     // Store chunks
     let createdChunks = 0;
