@@ -778,6 +778,13 @@ export default function AdminSettings() {
                                       </Button>
                                     </div>
                                   ) : doc.approval_status === 'approved' ? (
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-1 text-sm text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Chunking in progress...
+                                      </div>
+                                    </div>
+                                  ) : doc.approval_status === 'chunked' ? (
                                     <div className="flex gap-2">
                                       <Button
                                         size="sm"
