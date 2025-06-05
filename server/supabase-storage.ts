@@ -273,7 +273,8 @@ export class SupabaseStorage implements IStorage {
   async getAllRfpDocuments(): Promise<RfpDocument[]> {
     const { data, error } = await supabase
       .from('rfp_documents')
-      .select('*');
+      .select('*')
+      .eq('status', 'done');
     
     if (error) throw new Error(`Failed to get all RFP documents: ${error.message}`);
     return data as RfpDocument[];
