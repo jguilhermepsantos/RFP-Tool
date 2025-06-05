@@ -1523,7 +1523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               role: role,
               access_granted: true,
             },
-            redirectTo: `https://f402b1cf-2835-446b-9514-edec5b65cdec-00-39q8okukjdr9q.worf.replit.dev/signup-complete`,
+            redirectTo: `${process.env.FRONTEND_URL || 'https://rfp-tool-vtex.replit.app'}/signup-complete`,
           },
         );
 
