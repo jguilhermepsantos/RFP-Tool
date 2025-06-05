@@ -361,7 +361,7 @@ ${context}
 Question:
 ${question}
 
-Respond strictly in the following JSON format (and nothing else): It is important that the entire answer is provided in the same language as the question.
+Respond strictly in the following JSON format (and nothing else): Please make sure that the answer is provided in the same language as the question. For example, if you identify that the question is in English, the answer should be in English, even if some pieces of context are in another language.
 
 {
   "compliance": "<one of: Yes, natively | Yes, with customization | Yes, with 3rd party integration | No, not provided | Unknown>",
