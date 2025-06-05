@@ -407,6 +407,14 @@ Respond strictly in the following JSON format (and nothing else): Please make su
 
     console.log(`🧠 Sending prompt to LLM...`);
 
+    if (!openai) {
+      console.log("OpenAI client not available - cannot generate answer");
+      return {
+        compliance: "Unknown",
+        answer: "AI service is not available. Please configure OpenAI API key."
+      };
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
@@ -535,7 +543,11 @@ export async function embedDocumentChunks(documentId: string): Promise<{
  */
 async function createEmbedding(text: string): Promise<number[]> {
   try {
-    const embeddingResponse = await openai.embeddings.create({
+    if (!openai) {
+      throw new Error("OpenAI client not available - cannot create embedding");
+    }
+
+    const embeddingResponse = await openai!.embeddings.create({
       model: EMBEDDING_MODEL,
       input: [text]
     });
