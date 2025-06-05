@@ -3,21 +3,38 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import { supabase } from "./db";
 import { storage } from "./storage";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// Initialize OpenAI client (with error handling)
+let openai: OpenAI | null = null;
+try {
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+    console.log("OpenAI client initialized successfully");
+  } else {
+    console.log("OpenAI API key not provided - AI features will be disabled");
+  }
+} catch (error) {
+  console.error("Error initializing OpenAI client:", error);
+}
 
-// Initialize Pinecone client
-const pc = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY as string
-});
+// Initialize Pinecone client (with error handling)
+let pc: Pinecone | null = null;
+try {
+  if (process.env.PINECONE_API_KEY) {
+    pc = new Pinecone({
+      apiKey: process.env.PINECONE_API_KEY as string
+    });
+    console.log("Pinecone client initialized successfully");
+  } else {
+    console.log("Pinecone API key not provided - vector search will be disabled");
+  }
+} catch (error) {
+  console.error("Error initializing Pinecone client:", error);
+}
 
 // Configuration for Pinecone
 const DEFAULT_INDEX_NAME = "rfp-assistant";
-// Log to check what value is actually being read from environment
-console.log(`Environment PINECONE_INDEX_NAME is: "${process.env.PINECONE_INDEX_NAME}"`);
-
 const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME || DEFAULT_INDEX_NAME;
 const EMBEDDING_DIMENSION = 1536; // Dimension for text-embedding-3-small
 const EMBEDDING_MODEL = "text-embedding-3-small";
@@ -25,15 +42,17 @@ const EMBEDDING_MODEL = "text-embedding-3-small";
 console.log(`Using Pinecone index: ${PINECONE_INDEX_NAME}`);
 
 // Initialize Pinecone index
-let index: any;
+let index: any = null;
 
-try {
-  // Try to get the index
-  index = pc.index(PINECONE_INDEX_NAME);
-  console.log(`Connected to Pinecone index: ${PINECONE_INDEX_NAME}`);
-} catch (error) {
-  console.error(`Error connecting to Pinecone index: ${error}`);
-  throw error;
+if (pc) {
+  try {
+    // Try to get the index
+    index = pc.index(PINECONE_INDEX_NAME);
+    console.log(`Connected to Pinecone index: ${PINECONE_INDEX_NAME}`);
+  } catch (error) {
+    console.error(`Error connecting to Pinecone index: ${error}`);
+    // Don't throw here - allow server to start without Pinecone
+  }
 }
 
 /**
@@ -41,6 +60,12 @@ try {
  */
 export async function initializePineconeIndex(): Promise<boolean> {
   try {
+    // Check if Pinecone client is available
+    if (!pc) {
+      console.log("Pinecone client not available - skipping index initialization");
+      return false;
+    }
+
     // List all indexes
     const indexes = await pc.listIndexes();
     
@@ -51,7 +76,7 @@ export async function initializePineconeIndex(): Promise<boolean> {
       console.log(`Creating Pinecone index: ${PINECONE_INDEX_NAME}`);
       
       // Create the index using Pinecone API spec format
-      await pc.createIndex({
+      await pc!.createIndex({
         name: PINECONE_INDEX_NAME,
         dimension: EMBEDDING_DIMENSION,
         metric: 'cosine',
@@ -67,7 +92,7 @@ export async function initializePineconeIndex(): Promise<boolean> {
       await new Promise(resolve => setTimeout(resolve, 60000));
       
       // Get the newly created index
-      index = pc.index(PINECONE_INDEX_NAME);
+      index = pc!.index(PINECONE_INDEX_NAME);
       
       console.log(`Successfully created Pinecone index: ${PINECONE_INDEX_NAME}`);
     } else {
@@ -90,6 +115,17 @@ async function searchChunks(query: string, nResults: number = 3): Promise<{
 }> {
   try {
     console.log(`🔎 Searching chunks for: ${query}`);
+    
+    // Check if required services are available
+    if (!openai) {
+      console.log("OpenAI client not available - cannot perform search");
+      return { content: [], metadata: [] };
+    }
+    
+    if (!index) {
+      console.log("Pinecone index not available - cannot perform search");
+      return { content: [], metadata: [] };
+    }
     
     // Step 1: Embed the query using OpenAI
     const embeddingResponse = await openai.embeddings.create({
