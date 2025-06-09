@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare } from "lucide-react";
+import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 import AnswerFeedback from "./answer-feedback";
 
 interface SourceChunk {
@@ -132,6 +133,12 @@ export default function RfpAnswerEditor({
 }: RfpAnswerEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Fetch user details for the reviewer
+  const { data: reviewerData } = useQuery({
+    queryKey: [`/api/users/${question.answer?.lastReviewedBy}`],
+    enabled: !!question.answer?.lastReviewedBy,
+  });
   
   console.log("RfpAnswerEditor - Question:", question);
   console.log("RfpAnswerEditor - Answer:", question.answer);
@@ -334,6 +341,23 @@ export default function RfpAnswerEditor({
                   <p className="italic text-muted-foreground">No generated answer available yet.</p>
                 )}
               </div>
+              
+              {/* Review information */}
+              {question.answer.lastReviewedBy && question.answer.lastReviewedAt && (
+                <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                  <User className="h-3 w-3" />
+                  <span>
+                    Last reviewed by {reviewerData?.user?.email || question.answer.lastReviewedBy} on{' '}
+                    {new Date(question.answer.lastReviewedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Source chunks section */}
