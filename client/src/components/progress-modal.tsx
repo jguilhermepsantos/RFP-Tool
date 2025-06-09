@@ -18,10 +18,12 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
   const progress = getProgress(documentId);
 
   useEffect(() => {
+    console.log('ProgressModal state:', { isOpen, documentId, isConnected, progress });
     if (isOpen && documentId && isConnected) {
+      console.log('Registering for progress updates for document:', documentId);
       registerForProgress(documentId);
     }
-  }, [isOpen, documentId, isConnected, registerForProgress]);
+  }, [isOpen, documentId, isConnected, registerForProgress, progress]);
 
   useEffect(() => {
     // Auto-close modal after completion with a delay

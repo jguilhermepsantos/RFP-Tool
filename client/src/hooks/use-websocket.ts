@@ -36,13 +36,14 @@ export function useWebSocket() {
         ws.current = new WebSocket(wsUrl);
         
         ws.current.onopen = () => {
-          console.log('WebSocket connected');
+          console.log('WebSocket connected to', wsUrl);
           setIsConnected(true);
         };
         
         ws.current.onmessage = (event) => {
           try {
             const message: WebSocketMessage = JSON.parse(event.data);
+            console.log('WebSocket message received:', message);
             
             if (message.type === 'progress' && message.documentId) {
               const update: ProgressUpdate = {
@@ -55,9 +56,12 @@ export function useWebSocket() {
                 completed: message.completed || false
               };
               
+              console.log('Progress update:', update);
+              
               setProgressUpdates(prev => {
                 const newMap = new Map(prev);
                 newMap.set(message.documentId!, update);
+                console.log('Updated progress map:', newMap);
                 return newMap;
               });
             } else if (message.type === 'error' && message.documentId) {
@@ -70,11 +74,15 @@ export function useWebSocket() {
                 completed: true
               };
               
+              console.log('Error update:', errorUpdate);
+              
               setProgressUpdates(prev => {
                 const newMap = new Map(prev);
                 newMap.set(message.documentId!, errorUpdate);
                 return newMap;
               });
+            } else if (message.type === 'registered') {
+              console.log('Successfully registered for progress updates:', message.documentId);
             }
           } catch (error) {
             console.error('Error parsing WebSocket message:', error);
