@@ -82,47 +82,95 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
     return 'bg-blue-500';
   };
 
-  console.log('ProgressModal render:', { isOpen, documentId, documentName });
-
   return (
-    <>
-      {/* TEST: Simple visible div to verify rendering */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
-            <h2 className="text-lg font-semibold mb-4">Processing Questions</h2>
-            <p className="mb-4">Document: {documentName}</p>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {getStatusIcon()}
+            Processing Questions
+          </DialogTitle>
+          <DialogDescription>
+            {documentName && `Processing questions for "${documentName}"`}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Progress</span>
+              <span>{progress?.progress || 0}%</span>
+            </div>
+            <Progress 
+              value={progress?.progress || 0} 
+              className="w-full"
+            />
+          </div>
+          
+          {/* Question Progress */}
+          {progress && progress.totalQuestions > 0 && (
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Progress</span>
-                <span>{progress?.progress || 0}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${progress?.progress || 0}%` }}
-                />
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Questions</span>
+                <span>{progress.questionIndex} of {progress.totalQuestions}</span>
               </div>
             </div>
-            {progress && (
-              <div className="mt-4 text-sm">
-                <p>Status: {progress.status}</p>
-                <p>Question {progress.questionIndex} of {progress.totalQuestions}</p>
-                {progress.currentQuestion && (
-                  <p className="mt-2 text-gray-600">
-                    Current: {progress.currentQuestion.substring(0, 80)}...
-                  </p>
-                )}
+          )}
+          
+          {/* Current Question */}
+          {progress?.currentQuestion && !progress.completed && (
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Current Question:</div>
+              <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                {progress.currentQuestion.length > 100 
+                  ? `${progress.currentQuestion.substring(0, 100)}...` 
+                  : progress.currentQuestion
+                }
               </div>
-            )}
-            <div className="flex justify-end mt-4">
-              <Button onClick={onClose} size="sm">
-                {progress?.completed ? 'Close' : 'Run in Background'}
-              </Button>
+            </div>
+          )}
+          
+          {/* Status */}
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Status:</div>
+            <div className={`text-sm p-2 rounded-md ${
+              progress?.status.includes('Error') 
+                ? 'bg-red-50 text-red-700 border border-red-200' 
+                : progress?.completed
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-blue-50 text-blue-700 border border-blue-200'
+            }`}>
+              {progress?.status || 'Connecting...'}
             </div>
           </div>
+          
+          {/* WebSocket Connection Status */}
+          {!isConnected && (
+            <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded-md border border-yellow-200">
+              Reconnecting to server...
+            </div>
+          )}
+          
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2 pt-4">
+            {progress?.completed ? (
+              <Button onClick={onClose} size="sm">
+                Close
+              </Button>
+            ) : (
+              <Button 
+                onClick={onClose} 
+                variant="outline" 
+                size="sm"
+                disabled={!progress}
+              >
+                Run in Background
+              </Button>
+            )}
+          </div>
         </div>
-      )}
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
