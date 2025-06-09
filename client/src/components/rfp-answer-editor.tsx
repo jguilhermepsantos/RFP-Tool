@@ -140,6 +140,9 @@ export default function RfpAnswerEditor({
     enabled: !!question.answer?.lastReviewedBy,
   });
   
+  console.log("Reviewer data:", reviewerData);
+  console.log("Last reviewed by:", question.answer?.lastReviewedBy);
+  
   console.log("RfpAnswerEditor - Question:", question);
   console.log("RfpAnswerEditor - Answer:", question.answer);
   console.log("RfpAnswerEditor - Document Status:", documentStatus);
