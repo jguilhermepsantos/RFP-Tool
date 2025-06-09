@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import NavHeader from "@/components/nav-header";
 import RfpAnswerEditor from "@/components/rfp-answer-editor";
+import ProgressModal from "@/components/progress-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const [isDownloading, setIsDownloading] = useState(false);
   const [confidenceFilter, setConfidenceFilter] = useState<string>("all");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progressModalOpen, setProgressModalOpen] = useState(false);
 
   interface ProjectResponse {
     project: {
@@ -107,18 +109,14 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     return item.answer?.confidenceLevel === confidenceFilter;
   });
 
-  const handleProcessDocument = async () => {
+  const handleProcessDocument = () => {
     if (isProcessing) return; // Prevent multiple clicks
-    
+    setIsProcessing(true);
+    setProgressModalOpen(true);
+  };
+
+  const startProcessing = async () => {
     try {
-      setIsProcessing(true);
-      
-      // Show initial processing notification
-      toast({
-        title: "Processing Started",
-        description: "AI is now processing the questions. This may take a few minutes...",
-      });
-      
       await apiRequest(`/api/projects/${projectId}/rfp-documents/${documentId}/process`, {
         method: "POST",
         headers: {
@@ -454,6 +452,15 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
           </>
         ) : null}
       </main>
+      
+      {/* Progress Modal */}
+      <ProgressModal
+        isOpen={progressModalOpen}
+        onClose={() => setProgressModalOpen(false)}
+        documentId={documentId}
+        documentName={document?.name}
+        onStartProcessing={startProcessing}
+      />
     </div>
   );
 }
