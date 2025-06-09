@@ -74,6 +74,13 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
     }
   }, [progress?.completed, documentId, clearProgress, onClose]);
 
+  useEffect(() => {
+    // Reset processing state when modal closes
+    if (!isOpen) {
+      setHasStartedProcessing(false);
+    }
+  }, [isOpen]);
+
   const getStatusIcon = () => {
     if (!progress) {
       return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;

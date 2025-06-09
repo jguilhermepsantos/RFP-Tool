@@ -327,6 +327,7 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
         onClose={() => setProgressModalOpen(false)}
         documentId={currentProcessingDoc?.id || ''}
         documentName={currentProcessingDoc?.name}
+        onStartProcessing={startProcessing}
       />
     </>
   );
