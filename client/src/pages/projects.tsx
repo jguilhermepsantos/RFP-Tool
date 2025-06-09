@@ -96,7 +96,7 @@ export default function Projects() {
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       if (!user) throw new Error("User not authenticated");
       
-      const response = await apiRequest("/api/projects", {
+      return await apiRequest("/api/projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,9 +109,8 @@ export default function Projects() {
           createdBy: user.id,
         }),
       });
-      return response;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "Success",
         description: "Project created successfully",
@@ -252,7 +251,9 @@ export default function Projects() {
                   />
                   
                   <DialogFooter>
-                    <Button type="submit">Create Project</Button>
+                    <Button type="submit" disabled={createProjectMutation.isPending}>
+                      {createProjectMutation.isPending ? "Creating..." : "Create Project"}
+                    </Button>
                   </DialogFooter>
                 </form>
               </Form>
