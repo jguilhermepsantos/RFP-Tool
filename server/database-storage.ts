@@ -142,14 +142,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {
-    const [project] = await db
-      .insert(projects)
-      .values({
-        id: uuidv4(),
-        ...insertProject
-      })
-      .returning();
-    return project;
+    try {
+      const projectId = uuidv4();
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({
+          id: projectId,
+          name: insertProject.name,
+          description: insertProject.description,
+          salesforce_link: insertProject.salesforceLink,
+          region: insertProject.region,
+          created_by: insertProject.createdBy
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error creating project:', error);
+        throw error;
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        salesforceLink: data.salesforce_link,
+        region: data.region,
+        createdAt: data.created_at,
+        createdBy: data.created_by
+      };
+    } catch (error) {
+      console.error('Error creating project:', error);
+      throw new Error(`Failed to create project: ${error}`);
+    }
   }
 
   async deleteProject(id: string): Promise<void> {
