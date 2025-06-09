@@ -1,5 +1,4 @@
 import { Link } from "wouter";
-import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,10 +77,16 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Created {formatDistanceToNow(
-            project.createdAt ? new Date(project.createdAt) : new Date(), 
-            { addSuffix: true }
-          )}
+          Created {project.createdAt 
+            ? new Date(project.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+            : 'Unknown date'
+          }
         </p>
       </CardHeader>
       
