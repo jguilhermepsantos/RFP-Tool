@@ -102,12 +102,12 @@ export class DatabaseStorage implements IStorage {
       // Map the raw results to our Project type
       return result.rows.map(row => {
         return {
-          id: row.id,
-          name: row.name,
-          createdAt: row.created_at,
-          createdBy: row.created_by,
+          id: row.id as string,
+          name: row.name as string,
+          createdAt: new Date(row.created_at as string),
+          createdBy: row.created_by as string,
           // Handle description conditionally since it might not exist in the DB
-          ...(row.description ? { description: row.description } : {})
+          ...(row.description ? { description: row.description as string } : {})
         } as Project;
       });
     } catch (error) {
@@ -128,12 +128,12 @@ export class DatabaseStorage implements IStorage {
       const row = result.rows[0];
       // Map the raw result to our Project type
       return {
-        id: row.id,
-        name: row.name,
-        createdAt: row.created_at,
-        createdBy: row.created_by,
+        id: row.id as string,
+        name: row.name as string,
+        createdAt: new Date(row.created_at as string),
+        createdBy: row.created_by as string,
         // Handle description conditionally since it might not exist in the DB
-        ...(row.description ? { description: row.description } : {})
+        ...(row.description ? { description: row.description as string } : {})
       } as Project;
     } catch (error) {
       console.error('Error getting project:', error);
@@ -182,11 +182,11 @@ export class DatabaseStorage implements IStorage {
         );
         
         return result.rows.map(row => ({
-          id: row.id,
-          name: row.name,
-          createdAt: row.created_at,
-          createdBy: row.created_by,
-          ...(row.description ? { description: row.description } : {})
+          id: row.id as string,
+          name: row.name as string,
+          createdAt: new Date(row.created_at as string),
+          createdBy: row.created_by as string,
+          ...(row.description ? { description: row.description as string } : {})
         } as Project));
       } else {
         // Get all projects then filter - in a real app this would use a proper IN clause
@@ -199,11 +199,11 @@ export class DatabaseStorage implements IStorage {
         );
         
         return filteredRows.map(row => ({
-          id: row.id,
-          name: row.name,
-          createdAt: row.created_at,
-          createdBy: row.created_by,
-          ...(row.description ? { description: row.description } : {})
+          id: row.id as string,
+          name: row.name as string,
+          createdAt: new Date(row.created_at as string),
+          createdBy: row.created_by as string,
+          ...(row.description ? { description: row.description as string } : {})
         } as Project));
       }
     } catch (error) {

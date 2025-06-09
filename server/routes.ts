@@ -216,6 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const projects = await storage.getProjectsByUserId(userId);
+      console.log("Projects from database:", JSON.stringify(projects, null, 2));
 
       // Get the role for each project
       const projectsWithRole = await Promise.all(
@@ -229,6 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }),
       );
 
+      console.log("Projects with role:", JSON.stringify(projectsWithRole, null, 2));
       return res.status(200).json({ projects: projectsWithRole });
     } catch (error) {
       return res.status(500).json({ message: "Internal server error" });
