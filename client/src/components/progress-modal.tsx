@@ -19,11 +19,28 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
 
   useEffect(() => {
     console.log('ProgressModal state:', { isOpen, documentId, isConnected, progress });
-    if (isOpen && documentId && isConnected) {
-      console.log('Registering for progress updates for document:', documentId);
-      registerForProgress(documentId);
+    if (isOpen && documentId) {
+      if (isConnected) {
+        console.log('Registering for progress updates for document:', documentId);
+        registerForProgress(documentId);
+      } else {
+        console.log('WebSocket not connected yet, waiting...');
+        // Set up a retry mechanism
+        const retryInterval = setInterval(() => {
+          if (isConnected) {
+            console.log('WebSocket connected, registering for progress updates for document:', documentId);
+            registerForProgress(documentId);
+            clearInterval(retryInterval);
+          }
+        }, 100);
+        
+        // Clear interval after 5 seconds to avoid infinite retries
+        setTimeout(() => clearInterval(retryInterval), 5000);
+        
+        return () => clearInterval(retryInterval);
+      }
     }
-  }, [isOpen, documentId, isConnected, registerForProgress, progress]);
+  }, [isOpen, documentId, isConnected, registerForProgress]);
 
   useEffect(() => {
     // Auto-close modal after completion with a delay
