@@ -117,11 +117,16 @@ export function useWebSocket() {
   }, []);
 
   const registerForProgress = (documentId: string) => {
+    console.log('registerForProgress called with:', documentId, 'connected:', isConnected);
     if (ws.current && isConnected) {
-      ws.current.send(JSON.stringify({
+      const message = {
         type: 'register',
         documentId
-      }));
+      };
+      console.log('Sending registration message:', message);
+      ws.current.send(JSON.stringify(message));
+    } else {
+      console.log('Cannot register - WebSocket not ready:', { wsExists: !!ws.current, isConnected });
     }
   };
 

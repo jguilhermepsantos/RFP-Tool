@@ -43,8 +43,8 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
     setCurrentProcessingDoc(document);
     setProgressModalOpen(true);
     
-    // Add a small delay to ensure the modal opens and WebSocket connects
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Add delay to ensure the modal opens and WebSocket registration completes
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
     try {
       await apiRequest(`/api/projects/${projectId}/rfp-documents/${documentId}/process`, {
