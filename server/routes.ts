@@ -216,21 +216,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const projects = await storage.getProjectsByUserId(userId);
-      console.log("Projects from database:", JSON.stringify(projects, null, 2));
 
-      // Get the role for each project
+      // Get the role for each project and ensure proper field mapping
       const projectsWithRole = await Promise.all(
         projects.map(async (project) => {
           const members = await storage.getProjectMembers(project.id);
           const userMembership = members.find((m) => m.userId === userId);
+          
+          // Ensure we handle both camelCase and snake_case fields properly
+          const rawProject = project as any;
+          const createdAtValue = rawProject.createdAt || rawProject.created_at;
+          
           return {
-            ...project,
+            id: rawProject.id,
+            name: rawProject.name,
+            description: rawProject.description || null,
+            createdAt: createdAtValue ? (typeof createdAtValue === 'string' ? createdAtValue : createdAtValue.toISOString()) : null,
+            createdBy: rawProject.createdBy || rawProject.created_by,
+            salesforceLink: rawProject.salesforceLink || rawProject.salesforce_link || null,
+            region: rawProject.region || null,
             role: userMembership?.role || "viewer",
           };
         }),
       );
 
-      console.log("Projects with role:", JSON.stringify(projectsWithRole, null, 2));
       return res.status(200).json({ projects: projectsWithRole });
     } catch (error) {
       return res.status(500).json({ message: "Internal server error" });
