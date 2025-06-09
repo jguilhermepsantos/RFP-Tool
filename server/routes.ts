@@ -283,14 +283,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post("/projects", async (req: Request, res: Response) => {
     try {
+      console.log("[API] POST /projects - Request body:", req.body);
       const projectData = insertProjectSchema.parse(req.body);
+      console.log("[API] POST /projects - Parsed project data:", projectData);
       const newProject = await storage.createProject(projectData);
+      console.log("[API] POST /projects - Created project:", newProject);
       return res.status(201).json({ project: newProject });
     } catch (error) {
+      console.error("[API] POST /projects - Error:", error);
       if (error instanceof z.ZodError) {
+        console.error("[API] POST /projects - Validation error:", error.errors);
         return res.status(400).json({ message: error.errors[0].message });
       }
-      return res.status(500).json({ message: "Internal server error" });
+      return res.status(500).json({ message: "Internal server error", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
