@@ -401,7 +401,7 @@ Respond strictly in the following JSON format (and nothing else): Please make su
 
 {
   "compliance": "<one of: Yes, natively | Yes, with customization | Yes, with 3rd party integration | No, not provided | Unknown>",
-  "answer": "<elaborate answer string>"
+  "answer": "<elaborate answer string with a link to support the answer, in case some URL is provided in any of the context chunks>"
 }
 `;
 

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocation } from "wouter";
 
@@ -92,6 +91,51 @@ export default function Projects() {
     },
   });
 
+  // Project creation mutation
+  const createProjectMutation = useMutation({
+    mutationFn: async (values: z.infer<typeof formSchema>) => {
+      if (!user) throw new Error("User not authenticated");
+      
+      const response = await apiRequest("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: values.name,
+          description: values.description || null,
+          salesforceLink: values.salesforceLink || null,
+          region: values.region || null,
+          createdBy: user.id,
+        }),
+      });
+      return response;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: "Project created successfully",
+      });
+
+      // Reset form and close dialog
+      form.reset();
+      setDialogOpen(false);
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/projects`] });
+      
+      // Redirect to the project details page
+      setLocation(`/projects/${data.project.id}`);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to create project",
+      });
+    },
+  });
+
   useEffect(() => {
     if (isError && error) {
       toast({
@@ -102,59 +146,8 @@ export default function Projects() {
     }
   }, [isError, error, toast]);
 
-  const handleCreateProject = async (values: z.infer<typeof formSchema>) => {
-    if (!user) return;
-
-    try {
-      // Create project directly in Supabase
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .insert({
-          name: values.name,
-          description: values.description || null,
-          salesforce_link: values.salesforceLink || null,
-          region: values.region || null,
-          created_by: user.id,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-        
-      if (projectError) throw new Error(projectError.message);
-      
-      // Add project permission for the creator
-      const { error: permError } = await supabase
-        .from('project_permissions')
-        .insert({
-          project_id: project.id,
-          user_id: user.id,
-          role: 'owner',
-          created_at: new Date().toISOString()
-        });
-        
-      if (permError) throw new Error(permError.message);
-
-      toast({
-        title: "Success",
-        description: "Project created successfully",
-      });
-
-      // Reset form and invalidate query to refresh data
-      form.reset();
-      queryClient.invalidateQueries({ queryKey: [`/api/projects`] });
-      
-      // Close the dialog
-      setDialogOpen(false);
-      
-      // Redirect to the project details page
-      setLocation(`/projects/${project.id}`);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: (error as Error).message || "Failed to create project",
-      });
-    }
+  const handleCreateProject = (values: z.infer<typeof formSchema>) => {
+    createProjectMutation.mutate(values);
   };
 
   const projects = data?.projects as ProjectWithRole[] || [];
