@@ -68,6 +68,8 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
       const timer = setTimeout(() => {
         clearProgress(documentId);
         onClose();
+        // Refresh the page to show updated document status
+        window.location.reload();
       }, 3000);
       
       return () => clearTimeout(timer);
@@ -181,18 +183,9 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
           
           {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-4">
-            {progress?.completed ? (
+            {progress?.completed && (
               <Button onClick={onClose} size="sm">
                 Close
-              </Button>
-            ) : (
-              <Button 
-                onClick={onClose} 
-                variant="outline" 
-                size="sm"
-                disabled={!progress}
-              >
-                Run in Background
               </Button>
             )}
           </div>
