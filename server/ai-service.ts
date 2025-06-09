@@ -808,6 +808,9 @@ export async function processDocumentQuestions(documentId: string): Promise<{
   try {
     console.log(`📝 Processing questions for document: ${documentId}`);
     
+    // Import progress tracker
+    const { progressTracker } = await import('./progress-tracker');
+    
     // Get questions for this document
     const { data: questions, error: questionsError } = await supabase
       .from('rfp_questions')
@@ -816,70 +819,116 @@ export async function processDocumentQuestions(documentId: string): Promise<{
       
     if (questionsError) {
       console.error(`Error fetching questions for processing:`, questionsError);
+      progressTracker.sendError(documentId, `Failed to fetch questions: ${questionsError.message}`);
       throw new Error(`Failed to fetch questions: ${questionsError.message}`);
     }
     
     console.log(`Found ${questions?.length || 0} questions to process`);
+    const totalQuestions = questions?.length || 0;
+    
+    if (totalQuestions === 0) {
+      progressTracker.updateProgress({
+        documentId,
+        questionIndex: 0,
+        totalQuestions: 0,
+        progress: 100,
+        status: "No questions to process",
+        completed: true
+      });
+      return { success: true, processedCount: 0, errors: [] };
+    }
+    
+    // Send initial progress
+    progressTracker.updateProgress({
+      documentId,
+      questionIndex: 0,
+      totalQuestions,
+      progress: 0,
+      status: "Starting question processing...",
+      completed: false
+    });
     
     const errors: any[] = [];
     let processedCount = 0;
     
     // Process each question and create answers
-    if (questions && questions.length > 0) {
-      for (const question of questions) {
-        try {
-          console.log(`Processing question: ${question.id} - ${question.question_text}`);
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      
+      try {
+        console.log(`Processing question ${i + 1}/${totalQuestions}: ${question.id} - ${question.question_text}`);
+        
+        // Update progress for current question
+        progressTracker.updateProgress({
+          documentId,
+          questionIndex: i + 1,
+          totalQuestions,
+          progress: Math.round(((i) / totalQuestions) * 100),
+          currentQuestion: question.question_text,
+          status: `Processing question ${i + 1} of ${totalQuestions}...`,
+          completed: false
+        });
+        
+        // Check if answer already exists
+        const { data: existingAnswer } = await supabase
+          .from('rfp_answers')
+          .select('*')
+          .eq('rfp_question_id', question.id)
+          .single();
           
-          // Check if answer already exists
-          const { data: existingAnswer } = await supabase
-            .from('rfp_answers')
-            .select('*')
-            .eq('rfp_question_id', question.id)
-            .single();
-            
-          if (existingAnswer) {
-            console.log(`Answer already exists for question ${question.id}, skipping`);
-            continue;
-          }
+        if (existingAnswer) {
+          console.log(`Answer already exists for question ${question.id}, skipping`);
+          processedCount++;
+          continue;
+        }
+        
+        // Generate answer using RAG
+        const { compliance, answer, sourceChunks, averageSimilarity, confidenceLevel } = await answerQuestion(question.question_text);
+        
+        // Create answer in database
+        const { data: newAnswer, error: answerError } = await supabase
+          .from('rfp_answers')
+          .insert({
+            rfp_document_id: documentId,
+            rfp_question_id: question.id,
+            question_text: question.question_text,
+            compliance_answer: compliance,
+            generated_answer: answer,
+            source_chunks: JSON.stringify(sourceChunks),
+            average_similarity: averageSimilarity,
+            confidence_level: confidenceLevel
+          })
+          .select()
+          .single();
           
-          // Generate answer using RAG
-          const { compliance, answer, sourceChunks, averageSimilarity, confidenceLevel } = await answerQuestion(question.question_text);
-          
-          // Create answer in database
-          const { data: newAnswer, error: answerError } = await supabase
-            .from('rfp_answers')
-            .insert({
-              rfp_document_id: documentId,
-              rfp_question_id: question.id,
-              question_text: question.question_text,
-              compliance_answer: compliance,
-              generated_answer: answer,
-              source_chunks: JSON.stringify(sourceChunks),
-              average_similarity: averageSimilarity,
-              confidence_level: confidenceLevel
-            })
-            .select()
-            .single();
-            
-          if (answerError) {
-            console.error(`Error creating answer for question ${question.id}:`, answerError);
-            errors.push({
-              questionId: question.id,
-              error: answerError.message
-            });
-          } else {
-            console.log(`Created answer ${newAnswer.id} for question ${question.id}`);
-            processedCount++;
-          }
-        } catch (questionError) {
-          console.error(`Error processing question ${question.id}:`, questionError);
+        if (answerError) {
+          console.error(`Error creating answer for question ${question.id}:`, answerError);
           errors.push({
             questionId: question.id,
-            error: questionError instanceof Error ? questionError.message : String(questionError)
+            error: answerError.message
           });
+        } else {
+          console.log(`Created answer ${newAnswer.id} for question ${question.id}`);
+          processedCount++;
         }
+      } catch (questionError) {
+        console.error(`Error processing question ${question.id}:`, questionError);
+        errors.push({
+          questionId: question.id,
+          error: questionError instanceof Error ? questionError.message : String(questionError)
+        });
       }
     }
+    
+    // Send completion progress
+    progressTracker.updateProgress({
+      documentId,
+      questionIndex: totalQuestions,
+      totalQuestions,
+      progress: 100,
+      status: `Completed! Processed ${processedCount} of ${totalQuestions} questions`,
+      completed: true
+    });
     
     return {
       success: errors.length === 0,
@@ -888,6 +937,8 @@ export async function processDocumentQuestions(documentId: string): Promise<{
     };
   } catch (error) {
     console.error("Error processing document questions:", error);
+    const { progressTracker } = await import('./progress-tracker');
+    progressTracker.sendError(documentId, error instanceof Error ? error.message : String(error));
     return {
       success: false,
       processedCount: 0,

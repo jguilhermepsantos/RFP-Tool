@@ -1,5 +1,6 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { supabase } from "./db";
 import { handleMockUpload, isS3Configured } from "./supabase-s3";
@@ -1697,5 +1698,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create the HTTP server
   const httpServer = createServer(app);
+  
+  // Setup WebSocket server for progress tracking
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  wss.on('connection', (ws: WebSocket) => {
+    console.log('WebSocket client connected');
+    
+    ws.on('message', (message: string) => {
+      try {
+        const data = JSON.parse(message);
+        console.log('WebSocket message received:', data);
+        
+        // Handle progress tracking registration
+        if (data.type === 'register' && data.documentId) {
+          const { progressTracker } = require('./progress-tracker');
+          progressTracker.registerClient(data.documentId, ws);
+          ws.send(JSON.stringify({ type: 'registered', documentId: data.documentId }));
+        }
+      } catch (error) {
+        console.error('Invalid WebSocket message:', error);
+      }
+    });
+    
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
+
+  // Store WebSocket server globally for access from other modules
+  (global as any).wss = wss;
+  
   return httpServer;
 }
