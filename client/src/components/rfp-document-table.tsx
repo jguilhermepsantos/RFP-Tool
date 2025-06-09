@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { File, PlayCircle, CheckCircle } from "lucide-react";
+import ProgressModal from "@/components/progress-modal";
 
 interface RfpDocument {
   id: string;
@@ -29,11 +30,18 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
   const { user } = useAuth();
   const { toast } = useToast();
   const [processingDocId, setProcessingDocId] = useState<string | null>(null);
+  const [progressModalOpen, setProgressModalOpen] = useState(false);
+  const [currentProcessingDoc, setCurrentProcessingDoc] = useState<RfpDocument | null>(null);
 
   const handleProcessDocument = async (documentId: string) => {
     if (!user) return;
     
+    const document = documents.find(doc => doc.id === documentId);
+    if (!document) return;
+    
     setProcessingDocId(documentId);
+    setCurrentProcessingDoc(document);
+    setProgressModalOpen(true);
     
     try {
       await apiRequest(`/api/projects/${projectId}/rfp-documents/${documentId}/process`, {
@@ -262,50 +270,60 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
   }
 
   return (
-    <div className="bg-white rounded-lg border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {documents.map((document) => (
-            <TableRow key={document.id}>
-              <TableCell className="font-medium">
-                <Link href={`/projects/${projectId}/rfp-documents/${document.id}`}>
-                  <a className="text-primary hover:underline flex items-center">
-                    <File className="mr-2 h-4 w-4" />
-                    {document.name}
-                  </a>
-                </Link>
-              </TableCell>
-              <TableCell>{getStatusBadge(document.status)}</TableCell>
-              <TableCell className="text-muted-foreground text-sm">
-                {document.createdAt ? formatDistanceToNow(new Date(document.createdAt), { addSuffix: true }) : 'N/A'}
-              </TableCell>
-              <TableCell>
-                {document.isPastRfp ? (
-                  <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
-                    Past RFP
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                    Current
-                  </Badge>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                {getActionButton(document)}
-              </TableCell>
+    <>
+      <div className="bg-white rounded-lg border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {documents.map((document) => (
+              <TableRow key={document.id}>
+                <TableCell className="font-medium">
+                  <Link href={`/projects/${projectId}/rfp-documents/${document.id}`}>
+                    <a className="text-primary hover:underline flex items-center">
+                      <File className="mr-2 h-4 w-4" />
+                      {document.name}
+                    </a>
+                  </Link>
+                </TableCell>
+                <TableCell>{getStatusBadge(document.status)}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">
+                  {document.createdAt ? formatDistanceToNow(new Date(document.createdAt), { addSuffix: true }) : 'N/A'}
+                </TableCell>
+                <TableCell>
+                  {document.isPastRfp ? (
+                    <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                      Past RFP
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                      Current
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  {getActionButton(document)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      
+      {/* Progress Modal */}
+      <ProgressModal
+        isOpen={progressModalOpen}
+        onClose={() => setProgressModalOpen(false)}
+        documentId={currentProcessingDoc?.id || ''}
+        documentName={currentProcessingDoc?.name}
+      />
+    </>
   );
 }
