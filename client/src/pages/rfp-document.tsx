@@ -347,6 +347,9 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                 <h1 className="text-2xl font-bold">{document.name}</h1>
                 <div className="flex items-center gap-2 mt-1">
                   {getStatusBadge(document.status)}
+                  <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-xs">
+                    {questionsWithAnswers.length} Question{questionsWithAnswers.length !== 1 ? 's' : ''}
+                  </Badge>
                   {document.isPastRfp && (
                     <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
                       Past RFP
