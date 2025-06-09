@@ -9,18 +9,14 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Project as BaseProject } from "@shared/schema";
 
-interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at?: string;
-  createdAt?: string;
+interface ProjectWithRole extends BaseProject {
   role: 'owner' | 'collaborator' | 'viewer';
 }
 
 interface ProjectCardProps {
-  project: Project;
+  project: ProjectWithRole;
 }
 
 export default function ProjectCard({ project }: ProjectCardProps) {
@@ -82,7 +78,10 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Created {formatDistanceToNow(new Date(project.created_at || project.createdAt || Date.now()), { addSuffix: true })}
+          Created {formatDistanceToNow(
+            project.createdAt ? new Date(project.createdAt) : new Date(), 
+            { addSuffix: true }
+          )}
         </p>
       </CardHeader>
       
