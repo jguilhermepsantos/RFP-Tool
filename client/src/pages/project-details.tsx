@@ -14,6 +14,7 @@ import { PlusCircle, Trash2, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +30,8 @@ interface ProjectData {
   id: string;
   name: string;
   description: string | null;
+  salesforce_link: string | null;
+  region: string | null;
   created_at: string;
   created_by: string | null;
 }
@@ -76,8 +79,17 @@ const updateRoleSchema = z.object({
   })
 });
 
+// Edit project form schema
+const editProjectSchema = z.object({
+  name: z.string().min(1, "Project name is required"),
+  description: z.string().optional(),
+  salesforceLink: z.string().optional(),
+  region: z.enum(['US', 'Brazil', 'South LATAM', 'North LATAM', 'EMEA', 'APAC']).optional(),
+});
+
 type AddMemberFormValues = z.infer<typeof addMemberSchema>;
 type UpdateRoleFormValues = z.infer<typeof updateRoleSchema>;
+type EditProjectFormValues = z.infer<typeof editProjectSchema>;
 
 // Add Member Form Component
 interface AddMemberFormProps {
@@ -505,6 +517,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
               <TabsList>
                 <TabsTrigger value="documents">RFP Documents</TabsTrigger>
                 <TabsTrigger value="team">Team Members</TabsTrigger>
+                <TabsTrigger value="settings">Project Settings</TabsTrigger>
               </TabsList>
               
               <TabsContent value="documents" className="space-y-4">
@@ -648,6 +661,24 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                         </ul>
                       )}
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="settings">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Project Settings</CardTitle>
+                    <CardDescription>
+                      Edit project information and configuration
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ProjectSettingsForm 
+                      project={project} 
+                      onUpdate={fetchProjectDetails}
+                      isEditable={isOwnerOrCollaborator}
+                    />
                   </CardContent>
                 </Card>
               </TabsContent>
