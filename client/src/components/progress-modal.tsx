@@ -62,19 +62,14 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
     }
   }, [isOpen, documentId, isConnected, registerForProgress, onStartProcessing, hasStartedProcessing]);
 
-  useEffect(() => {
-    // Auto-close modal after completion with a delay
+  const handleClose = () => {
+    clearProgress(documentId);
+    onClose();
+    // Refresh the page to show updated document status when manually closed
     if (progress?.completed) {
-      const timer = setTimeout(() => {
-        clearProgress(documentId);
-        onClose();
-        // Refresh the page to show updated document status
-        window.location.reload();
-      }, 3000);
-      
-      return () => clearTimeout(timer);
+      window.location.reload();
     }
-  }, [progress?.completed, documentId, clearProgress, onClose]);
+  };
 
   useEffect(() => {
     // Reset processing state when modal closes
@@ -184,7 +179,7 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
           {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-4">
             {progress?.completed && (
-              <Button onClick={onClose} size="sm">
+              <Button onClick={handleClose} size="sm">
                 Close
               </Button>
             )}
