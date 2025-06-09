@@ -93,8 +93,8 @@ export interface IStorage {
   deleteAnswerFeedback(id: string): Promise<boolean>;
 }
 
-// Import the SupabaseStorage implementation
-import { SupabaseStorage } from './supabase-storage';
+// Import the DatabaseStorage implementation
+import { DatabaseStorage } from './database-storage';
 
-// Export an instance of SupabaseStorage to be used throughout the application
-export const storage = new SupabaseStorage();
+// Export an instance of DatabaseStorage to be used throughout the application
+export const storage = new DatabaseStorage();
