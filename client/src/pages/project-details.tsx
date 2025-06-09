@@ -91,6 +91,173 @@ type AddMemberFormValues = z.infer<typeof addMemberSchema>;
 type UpdateRoleFormValues = z.infer<typeof updateRoleSchema>;
 type EditProjectFormValues = z.infer<typeof editProjectSchema>;
 
+// Project Settings Form Component
+interface ProjectSettingsFormProps {
+  project: ProjectData;
+  onUpdate: () => void;
+  isEditable: boolean;
+}
+
+function ProjectSettingsFormInner({ project, onUpdate, isEditable }: ProjectSettingsFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const form = useForm<EditProjectFormValues>({
+    resolver: zodResolver(editProjectSchema),
+    defaultValues: {
+      name: project.name,
+      description: project.description || '',
+      salesforceLink: project.salesforce_link || '',
+      region: project.region as any || undefined,
+    },
+  });
+
+  const onSubmit = async (values: EditProjectFormValues) => {
+    if (!isEditable) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit this project",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          name: values.name,
+          description: values.description || null,
+          salesforce_link: values.salesforceLink || null,
+          region: values.region || null,
+        })
+        .eq('id', project.id);
+        
+      if (error) throw new Error(error.message);
+      
+      toast({
+        title: "Project Updated",
+        description: "Project information has been updated successfully",
+      });
+      
+      onUpdate();
+    } catch (err) {
+      console.error('Error updating project:', err);
+      toast({
+        title: "Error",
+        description: `Failed to update project: ${(err as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Project Name</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter project name" 
+                  {...field}
+                  disabled={!isEditable}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Brief description of the project" 
+                  {...field}
+                  disabled={!isEditable}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="salesforceLink"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Salesforce Link</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter Salesforce link" 
+                  {...field}
+                  disabled={!isEditable}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="region"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Region</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                disabled={!isEditable}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a region" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="US">US</SelectItem>
+                  <SelectItem value="Brazil">Brazil</SelectItem>
+                  <SelectItem value="South LATAM">South LATAM</SelectItem>
+                  <SelectItem value="North LATAM">North LATAM</SelectItem>
+                  <SelectItem value="EMEA">EMEA</SelectItem>
+                  <SelectItem value="APAC">APAC</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        {isEditable && (
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Updating..." : "Update Project"}
+          </Button>
+        )}
+        
+        {!isEditable && (
+          <p className="text-sm text-muted-foreground">
+            You need project owner or collaborator permissions to edit project settings.
+          </p>
+        )}
+      </form>
+    </Form>
+  );
+}
+
 // Add Member Form Component
 interface AddMemberFormProps {
   projectId: string;
@@ -309,6 +476,18 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
   const [memberToUpdateRole, setMemberToUpdateRole] = useState<MemberData | null>(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  
+  // Project settings form state
+  const editProjectForm = useForm<EditProjectFormValues>({
+    resolver: zodResolver(editProjectSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      salesforceLink: "",
+      region: undefined,
+    },
+  });
+  const [isUpdatingProject, setIsUpdatingProject] = useState(false);
 
   const fetchProjectDetails = async () => {
     if (!projectId) return;
@@ -437,6 +616,50 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
     } finally {
       setIsUpdatingRole(false);
       setMemberToUpdateRole(null);
+    }
+  };
+
+  // Handle updating project information
+  const handleUpdateProject = async (values: EditProjectFormValues) => {
+    if (!isOwnerOrCollaborator) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit this project",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsUpdatingProject(true);
+      
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          name: values.name,
+          description: values.description || null,
+          salesforce_link: values.salesforceLink || null,
+          region: values.region || null,
+        })
+        .eq('id', projectId);
+        
+      if (error) throw new Error(error.message);
+      
+      toast({
+        title: "Project Updated",
+        description: "Project information has been updated successfully",
+      });
+      
+      fetchProjectDetails();
+    } catch (err) {
+      console.error('Error updating project:', err);
+      toast({
+        title: "Error",
+        description: `Failed to update project: ${(err as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingProject(false);
     }
   };
   
@@ -674,7 +897,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ProjectSettingsForm 
+                    <ProjectSettingsFormInner 
                       project={project} 
                       onUpdate={fetchProjectDetails}
                       isEditable={isOwnerOrCollaborator}
