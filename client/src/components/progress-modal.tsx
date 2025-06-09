@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -10,19 +10,30 @@ interface ProgressModalProps {
   onClose: () => void;
   documentId: string;
   documentName?: string;
+  onStartProcessing?: () => Promise<void>;
 }
 
-export default function ProgressModal({ isOpen, onClose, documentId, documentName }: ProgressModalProps) {
+export default function ProgressModal({ isOpen, onClose, documentId, documentName, onStartProcessing }: ProgressModalProps) {
   const { isConnected, registerForProgress, getProgress, clearProgress } = useWebSocket();
+  const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
   
   const progress = getProgress(documentId);
 
   useEffect(() => {
-    console.log('ProgressModal state:', { isOpen, documentId, isConnected, progress });
-    if (isOpen && documentId) {
+    console.log('ProgressModal state:', { isOpen, documentId, isConnected, progress, hasStartedProcessing });
+    if (isOpen && documentId && !hasStartedProcessing) {
       if (isConnected) {
         console.log('Registering for progress updates for document:', documentId);
         registerForProgress(documentId);
+        
+        // Start processing after registration
+        if (onStartProcessing) {
+          console.log('Starting processing for document:', documentId);
+          setHasStartedProcessing(true);
+          onStartProcessing().catch(error => {
+            console.error('Error starting processing:', error);
+          });
+        }
       } else {
         console.log('WebSocket not connected yet, waiting...');
         // Set up a retry mechanism
@@ -30,6 +41,15 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
           if (isConnected) {
             console.log('WebSocket connected, registering for progress updates for document:', documentId);
             registerForProgress(documentId);
+            
+            // Start processing after registration
+            if (onStartProcessing) {
+              console.log('Starting processing for document:', documentId);
+              setHasStartedProcessing(true);
+              onStartProcessing().catch(error => {
+                console.error('Error starting processing:', error);
+              });
+            }
             clearInterval(retryInterval);
           }
         }, 100);
@@ -40,7 +60,7 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
         return () => clearInterval(retryInterval);
       }
     }
-  }, [isOpen, documentId, isConnected, registerForProgress]);
+  }, [isOpen, documentId, isConnected, registerForProgress, onStartProcessing, hasStartedProcessing]);
 
   useEffect(() => {
     // Auto-close modal after completion with a delay

@@ -1713,11 +1713,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle progress tracking registration
         if (data.type === 'register' && data.documentId) {
           console.log(`Registering client for document progress: ${data.documentId}`);
-          const { progressTracker } = require('./progress-tracker');
-          progressTracker.registerClient(data.documentId, ws);
-          const response = { type: 'registered', documentId: data.documentId };
-          console.log('Sending registration response:', response);
-          ws.send(JSON.stringify(response));
+          import('./progress-tracker').then(({ progressTracker }) => {
+            progressTracker.registerClient(data.documentId, ws);
+            const response = { type: 'registered', documentId: data.documentId };
+            console.log('Sending registration response:', response);
+            ws.send(JSON.stringify(response));
+          }).catch(error => {
+            console.error('Error importing progress tracker:', error);
+          });
         }
       } catch (error) {
         console.error('Invalid WebSocket message:', error);

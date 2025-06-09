@@ -33,7 +33,7 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [currentProcessingDoc, setCurrentProcessingDoc] = useState<RfpDocument | null>(null);
 
-  const handleProcessDocument = async (documentId: string) => {
+  const handleProcessDocument = (documentId: string) => {
     if (!user) return;
     
     const document = documents.find(doc => doc.id === documentId);
@@ -42,12 +42,13 @@ export default function RfpDocumentTable({ projectId, documents, isEditable }: R
     setProcessingDocId(documentId);
     setCurrentProcessingDoc(document);
     setProgressModalOpen(true);
-    
-    // Add a small delay to ensure the modal opens and WebSocket connects
-    await new Promise(resolve => setTimeout(resolve, 500));
+  };
+
+  const startProcessing = async () => {
+    if (!processingDocId) return;
     
     try {
-      await apiRequest(`/api/projects/${projectId}/rfp-documents/${documentId}/process`, {
+      await apiRequest(`/api/projects/${projectId}/rfp-documents/${processingDocId}/process`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
