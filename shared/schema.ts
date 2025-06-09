@@ -5,6 +5,9 @@ import { z } from "zod";
 // User role enum for project access
 export const userRoleEnum = pgEnum('user_role', ['owner', 'collaborator', 'viewer']);
 
+// Region enum for projects
+export const regionEnum = pgEnum('region', ['US', 'Brazil', 'South LATAM', 'North LATAM', 'EMEA', 'APAC']);
+
 // Document status enum for RFP documents
 export const documentStatusEnum = pgEnum('document_status', [
   'unprocessed', 
@@ -29,6 +32,8 @@ export const projects = pgTable("projects", {
   id: uuid("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"), // Added description column
+  salesforceLink: text("salesforce_link"),
+  region: regionEnum("region"),
   createdAt: timestamp("created_at").defaultNow(),
   createdBy: uuid("created_by").references(() => users.id),
 });

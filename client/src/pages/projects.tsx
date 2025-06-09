@@ -28,6 +28,8 @@ interface ProjectWithRole extends Project {
 const formSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   description: z.string().optional(),
+  salesforceLink: z.string().optional(),
+  region: z.enum(['US', 'Brazil', 'South LATAM', 'North LATAM', 'EMEA', 'APAC']).optional(),
 });
 
 export default function Projects() {
@@ -84,6 +86,8 @@ export default function Projects() {
     defaultValues: {
       name: "",
       description: "",
+      salesforceLink: "",
+      region: undefined,
     },
   });
 
@@ -107,6 +111,8 @@ export default function Projects() {
         .insert({
           name: values.name,
           description: values.description || null,
+          salesforce_link: values.salesforceLink || null,
+          region: values.region || null,
           created_by: user.id,
           created_at: new Date().toISOString()
         })
