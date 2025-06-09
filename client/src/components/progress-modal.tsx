@@ -82,6 +82,8 @@ export default function ProgressModal({ isOpen, onClose, documentId, documentNam
     return 'bg-blue-500';
   };
 
+  console.log('ProgressModal render:', { isOpen, documentId, documentName });
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
