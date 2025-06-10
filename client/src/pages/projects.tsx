@@ -68,11 +68,17 @@ export default function Projects() {
         
       if (projError) throw new Error(projError.message);
       
-      // Combine projects with their roles
+      // Combine projects with their roles and transform field names
       const projectsWithRole = projects.map(project => {
         const permission = projectPermissions.find(p => p.project_id === project.id);
         return {
-          ...project,
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          createdAt: project.created_at, // Transform snake_case to camelCase
+          createdBy: project.created_by, // Transform snake_case to camelCase
+          salesforceLink: project.salesforce_link,
+          region: project.region,
           role: permission?.role || 'viewer'
         };
       });
