@@ -161,10 +161,21 @@ export class SupabaseStorage implements IStorage {
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select('*')
-      .in('id', projectIds);
+      .in('id', projectIds)
+      .order('created_at', { ascending: false });
     
     if (projectsError) throw new Error(`Failed to get projects: ${projectsError.message}`);
-    return projects as Project[];
+    
+    // Transform snake_case fields to camelCase for frontend compatibility
+    return projects.map((project: any) => ({
+      id: project.id,
+      name: project.name,
+      description: project.description || null,
+      createdAt: new Date(project.created_at),
+      createdBy: project.created_by,
+      salesforceLink: project.salesforce_link || null,
+      region: project.region || null,
+    })) as Project[];
   }
   
   // Project Members operations
