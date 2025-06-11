@@ -61,19 +61,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: { subscription } } = await supabase.auth.onAuthStateChange(
         async (event, session) => {
           console.log('Auth state changed:', event);
+          queryHealthMonitor.trackAuthChange();
           setSession(session);
           
           if (!session) {
             setUser(null);
-            // Invalidate all queries when user logs out
-            queryClient.invalidateQueries();
+            // Use selective invalidation instead of invalidating all queries
+            queryClient.invalidateQueries({ 
+              predicate: (query) => {
+                const queryKey = query.queryKey[0] as string;
+                return queryKey.includes('/api/projects') || queryKey.includes('/api/rfp');
+              }
+            });
           } else if (event === 'SIGNED_IN') {
             // When user signs in, ensure they have a profile
             try {
               const userData = await ensureUserProfile(session.user);
               setUser(userData);
-              // Invalidate all queries when user signs in
-              queryClient.invalidateQueries();
+              // Use selective invalidation for sign in
+              queryClient.invalidateQueries({ 
+                predicate: (query) => {
+                  const queryKey = query.queryKey[0] as string;
+                  return queryKey.includes('/api/projects') || queryKey.includes('/api/rfp');
+                }
+              });
             } catch (error) {
               console.error("Error in auth change handler:", error);
             }
@@ -194,9 +205,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Error logging out:', error.message);
     }
     
-    // Explicitly invalidate all queries when logging out
-    queryClient.invalidateQueries();
-    queryClient.clear();
+    // Track auth change and use selective clearing
+    queryHealthMonitor.trackAuthChange();
+    queryClient.removeQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey[0] as string;
+        return !queryKey.includes('/health');
+      }
+    });
     
     setUser(null);
     setSession(null);
