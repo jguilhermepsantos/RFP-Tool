@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import { useLocation } from 'wouter';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { queryClient } from './queryClient';
+import { queryHealthMonitor } from './queryHealthMonitor';
 
 interface AuthUserData {
   id: string;

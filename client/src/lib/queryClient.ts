@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { queryHealthMonitor } from "./queryHealthMonitor";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -9,6 +10,14 @@ async function throwIfResNotOk(res: Response) {
 
 interface ApiRequestOptions extends RequestInit {
   params?: Record<string, any>;
+  timeout?: number;
+}
+
+// Create timeout promise helper
+function createTimeoutPromise(timeout: number) {
+  return new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Request timeout')), timeout);
+  });
 }
 
 export async function apiRequest(
@@ -31,12 +40,20 @@ export async function apiRequest(
     }
   }
 
-  const res = await fetch(finalUrl, {
+  const timeout = options?.timeout || 30000; // 30 second default timeout
+  
+  const fetchPromise = fetch(finalUrl, {
     method: options?.method || 'GET',
     headers: options?.headers || {},
     body: options?.body,
     credentials: "include",
   });
+
+  // Race between fetch and timeout
+  const res = await Promise.race([
+    fetchPromise,
+    createTimeoutPromise(timeout)
+  ]);
 
   await throwIfResNotOk(res);
   
@@ -50,21 +67,50 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
+
+// Enhanced query function with health monitoring and timeout
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+  async ({ queryKey, signal }) => {
+    const queryKeyStr = queryKey[0] as string;
+    
+    // Track query start
+    queryHealthMonitor.trackQueryStart(queryKeyStr);
+    
+    try {
+      // Create timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout after 30 seconds')), 30000);
+      });
+      
+      // Create fetch promise
+      const fetchPromise = fetch(queryKeyStr, {
+        credentials: "include",
+        signal, // Respect abort signal from React Query
+      });
+      
+      // Race between fetch and timeout
+      const res = await Promise.race([fetchPromise, timeoutPromise]);
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        queryHealthMonitor.trackQueryComplete(queryKeyStr);
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      const result = await res.json();
+      
+      // Track successful completion
+      queryHealthMonitor.trackQueryComplete(queryKeyStr);
+      return result;
+      
+    } catch (error) {
+      // Track query error
+      queryHealthMonitor.trackQueryError(queryKeyStr);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({
@@ -73,9 +119,20 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      // Changed from Infinity to 5 minutes for user-dependent data
       staleTime: 5 * 60 * 1000,
-      retry: false,
+      retry: (failureCount, error) => {
+        // Don't retry timeouts or 401/403 errors
+        if (error.message.includes('timeout') || 
+            error.message.includes('401') || 
+            error.message.includes('403')) {
+          return false;
+        }
+        // Retry up to 2 times for other errors
+        return failureCount < 2;
+      },
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // Network mode to prevent hanging on network issues
+      networkMode: 'always',
     },
     mutations: {
       retry: false,
