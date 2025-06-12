@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { Pinecone } from "@pinecone-database/pinecone";
+import { franc } from "franc";
 import { supabase } from "./db";
 import { storage } from "./storage";
 
@@ -40,6 +41,34 @@ const EMBEDDING_DIMENSION = 1536; // Dimension for text-embedding-3-small
 const EMBEDDING_MODEL = "text-embedding-3-small";
 
 console.log(`Using Pinecone index: ${PINECONE_INDEX_NAME}`);
+
+// Language detection function
+function detectLanguage(text: string): { language: string; confidence: number; languageName: string } {
+  const detected = franc(text);
+  
+  // Map ISO 639-3 codes to language names and confidence
+  const languageMap: Record<string, string> = {
+    'eng': 'English',
+    'spa': 'Spanish', 
+    'por': 'Portuguese',
+    'fra': 'French',
+    'deu': 'German',
+    'ita': 'Italian',
+    'und': 'Undefined' // When franc can't detect
+  };
+  
+  // Get confidence - franc returns 'und' for uncertain detection
+  const confidence = detected === 'und' ? 0 : 0.85; // Assume good confidence for detected languages
+  const languageName = languageMap[detected] || 'Unknown';
+  
+  console.log(`🌐 Detected language: ${languageName} (${detected}) - confidence: ${confidence}`);
+  
+  return {
+    language: detected,
+    confidence,
+    languageName
+  };
+}
 
 // Initialize Pinecone index
 let index: any = null;
@@ -381,14 +410,58 @@ async function generateAnswer(contextChunks: string[], question: string): Promis
   answer: string;
 }> {
   try {
+    // Detect question language first
+    const { language, confidence, languageName } = detectLanguage(question);
+    
     const context = contextChunks.length > 0
       ? contextChunks.join("\n\n")
       : "No specific context available for this question.";
 
-    const prompt = `You are a VTEX Solution Engineer answering a customer RFP.
+    // Create language-specific compliance options
+    const getComplianceOptions = (lang: string) => {
+      switch (lang) {
+        case 'spa': // Spanish
+          return {
+            native: "Sí, nativamente",
+            customization: "Sí, con personalización", 
+            thirdParty: "Sí, con integración de terceros",
+            notProvided: "No, no proporcionado"
+          };
+        case 'por': // Portuguese
+          return {
+            native: "Sim, nativamente",
+            customization: "Sim, com customização",
+            thirdParty: "Sim, com integração de terceiros", 
+            notProvided: "Não, não fornecido"
+          };
+        case 'fra': // French
+          return {
+            native: "Oui, nativement",
+            customization: "Oui, avec personnalisation",
+            thirdParty: "Oui, avec intégration tierce",
+            notProvided: "Non, non fourni"
+          };
+        default: // English (default)
+          return {
+            native: "Yes, natively",
+            customization: "Yes, with customization",
+            thirdParty: "Yes, with 3rd party integration",
+            notProvided: "No, not provided"
+          };
+      }
+    };
+
+    const complianceOptions = getComplianceOptions(language);
+
+    const prompt = `You are an experienced VTEX Solution Engineer answering a customer RFP.
+
+CRITICAL LANGUAGE INSTRUCTION:
+Question Language: ${languageName} (${language})
+MANDATORY: Your response MUST be written entirely in ${languageName}. 
+Do not mix languages or translate. Maintain the exact same language as the question throughout your entire response.
 
 ${contextChunks.length > 0
-  ? "Use only the context below to answer clearly and accurately."
+  ? "Leverage the context below to answer clearly and accurately."
   : "No specific context is available. Answer based on your general knowledge, but make it clear that this is a general response."}
 
 Context:
@@ -400,14 +473,18 @@ ${question}
 Respond strictly in the following JSON format (and nothing else): 
 
 {
-  "compliance": "<one of: Yes, natively (in case you identify the required feature is provided out-of-the box by VTEX) | Yes, with customization (in case the feature requires some level of code development for the feature to be achieved) | Yes, with 3rd party integration (in case another software is required to accomplish the requirement) | No, not provided (in case VTEX does not fulfill the requirement in any way)>",
-  "answer": "<elaborate answer string>"
+  "compliance": "<one of: ${complianceOptions.native} (when the feature is provided out-of-the-box by VTEX) | ${complianceOptions.customization} (when the feature requires code development) | ${complianceOptions.thirdParty} (when another software is required) | ${complianceOptions.notProvided} (when VTEX does not fulfill the requirement)>",
+  "answer": "<elaborate answer string in ${languageName}, preferably with a link that supports the answer if a URL is available in the context chunks>"
 }
 
-Please make sure that the answer is provided in the same language as the question. For example, if you identify that the question is in English, the answer should be in English, even if some pieces of context are in another language. Please, also translate the compliance field of the json to the language of the question. For example, if the question is in portuguese, use "Sim, nativamente", "Sim, com customização", "Sim, com integração de terceiros", "Não, não fornecido". If the question is in spanish, use "Sí, nativamente", "Sí, con personalización", "Sí, con integración de terceros", "No, no proporcionado".
+LANGUAGE CONSISTENCY CHECK:
+- Question is in: ${languageName}
+- Your response must be in: ${languageName}  
+- Do NOT translate or use any other language
+- Ignore the language of context chunks - respond only in ${languageName}
 `;
 
-    console.log(`🧠 Sending prompt to LLM...`);
+    console.log(`🧠 Sending prompt to LLM for ${languageName} question...`);
 
     if (!openai) {
       console.log("OpenAI client not available - cannot generate answer");
@@ -420,7 +497,7 @@ Please make sure that the answer is provided in the same language as the questio
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.3
+      temperature: 0.4
     });
 
     const raw = response.choices[0].message.content || "";
@@ -431,6 +508,8 @@ Please make sure that the answer is provided in the same language as the questio
     const jsonString = raw.slice(jsonStart, jsonEnd + 1);
 
     const parsed = JSON.parse(jsonString);
+
+    console.log(`✅ Generated answer in ${languageName}: ${parsed.answer?.substring(0, 100)}...`);
 
     return {
       compliance: parsed.compliance || "Unknown",
