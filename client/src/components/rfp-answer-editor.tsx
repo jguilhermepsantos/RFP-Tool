@@ -248,7 +248,7 @@ export default function RfpAnswerEditor({
             {/* Confidence level badge */}
             {question.answer?.confidenceLevel && (
               <Badge variant="outline" className={getConfidenceColor(question.answer.confidenceLevel)}>
-                {question.answer.confidenceLevel.toUpperCase()} CONFIDENCE
+                {question.answer.confidenceLevel.toUpperCase()} SIMILARITY
                 {question.answer.averageSimilarity && (
                   <span className="ml-1 text-xs">
                     ({Math.round(question.answer.averageSimilarity * 100)}%)

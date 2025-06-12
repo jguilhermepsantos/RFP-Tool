@@ -397,12 +397,14 @@ ${context}
 Question:
 ${question}
 
-Respond strictly in the following JSON format (and nothing else): Please make sure that the answer is provided in the same language as the question. For example, if you identify that the question is in English, the answer should be in English, even if some pieces of context are in another language.
+Respond strictly in the following JSON format (and nothing else): 
 
 {
-  "compliance": "<one of: Yes, natively | Yes, with customization | Yes, with 3rd party integration | No, not provided | Unknown>",
+  "compliance": "<one of: Yes, natively (in case you identify the required feature is provided out-of-the box by VTEX) | Yes, with customization (in case the feature requires some level of code development for the feature to be achieved) | Yes, with 3rd party integration (in case another software is required to accomplish the requirement) | No, not provided (in case VTEX does not fulfill the requirement in any way)>",
   "answer": "<elaborate answer string>"
 }
+
+Please make sure that the answer is provided in the same language as the question. For example, if you identify that the question is in English, the answer should be in English, even if some pieces of context are in another language. Please, also translate the compliance field of the json to the language of the question. For example, if the question is in portuguese, use "Sim, nativamente", "Sim, com customização", "Sim, com integração de terceiros", "Não, não fornecido". If the question is in spanish, use "Sí, nativamente", "Sí, con personalización", "Sí, con integración de terceros", "No, no proporcionado".
 `;
 
     console.log(`🧠 Sending prompt to LLM...`);
@@ -418,7 +420,7 @@ Respond strictly in the following JSON format (and nothing else): Please make su
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.2
+      temperature: 0.3
     });
 
     const raw = response.choices[0].message.content || "";

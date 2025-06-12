@@ -390,9 +390,9 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Answers</SelectItem>
-                        <SelectItem value="low">Low Confidence</SelectItem>
-                        <SelectItem value="medium">Medium Confidence</SelectItem>
-                        <SelectItem value="high">High Confidence</SelectItem>
+                        <SelectItem value="low">Low Similarity</SelectItem>
+                        <SelectItem value="medium">Medium Similarity</SelectItem>
+                        <SelectItem value="high">High Similarity</SelectItem>
                       </SelectContent>
                     </Select>
                     <span className="text-xs text-gray-500">
