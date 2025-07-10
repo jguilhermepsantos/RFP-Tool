@@ -4,6 +4,12 @@
 
 The RFP Assistant Tool is a comprehensive web application designed to help Solution Engineers streamline the process of responding to RFPs (Requests for Proposals). The system utilizes a Retrieval-Augmented Generation (RAG) pipeline to provide AI-assisted answers by leveraging centralized project-specific documents and a knowledge management system.
 
+## Recent Changes
+
+- **Assignment System Enhancement (July 10, 2025)**: Extended question assignment functionality to include "processed" status RFP documents, enabling team members to assign questions across all workflow stages (unprocessed, under review, and processed)
+- **Supabase Integration**: Successfully implemented pure Supabase storage for all database operations, ensuring consistent data access across the platform
+- **Project Member Management**: Implemented robust project member fetching system using Supabase's project_permissions table for accurate team collaboration
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

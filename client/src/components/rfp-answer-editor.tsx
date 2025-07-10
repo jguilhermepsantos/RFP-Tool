@@ -267,8 +267,8 @@ export default function RfpAnswerEditor({
           
           {/* Right side buttons and badges */}
           <div className="flex flex-col items-end gap-2 ml-4">
-            {/* Assignment controls - only show for unprocessed and under review statuses */}
-            {(documentStatus === 'unprocessed' || documentStatus === 'under review') && (
+            {/* Assignment controls - show for unprocessed, under review, and processed statuses */}
+            {(documentStatus === 'unprocessed' || documentStatus === 'under review' || documentStatus === 'processed') && (
               <div className="flex items-center gap-2">
                 {question.assignedTo ? (
                   <div className="flex items-center gap-1">
