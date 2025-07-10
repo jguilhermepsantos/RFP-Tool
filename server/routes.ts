@@ -523,13 +523,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`Document status: ${documentData.status}`);
 
-        // New approach: Always fetch questions first with assignment info
+        // New approach: Always fetch questions first, then get user info separately
         const { data: questionsData, error: questionsError } = await supabase
           .from("rfp_questions")
-          .select(`
-            *,
-            assigned_user:assigned_to(id, email, name)
-          `)
+          .select("*")
           .eq("rfp_document_id", documentId)
           .order("created_at", { ascending: true });
 
@@ -543,6 +540,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(
           `Found ${questionsData?.length || 0} questions for document`,
         );
+
+        // Get unique user IDs from questions that have assignments
+        const assignedUserIds = [...new Set(
+          (questionsData || [])
+            .filter(q => q.assigned_to)
+            .map(q => q.assigned_to)
+        )];
+
+        // Fetch user information for assigned users
+        let usersData = [];
+        if (assignedUserIds.length > 0) {
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("id, email, name")
+            .in("id", assignedUserIds);
+
+          if (userError) {
+            console.log(`Error fetching user data:`, userError);
+          } else {
+            usersData = userData || [];
+          }
+        }
+
+        // Create a map of users by ID for efficient lookup
+        const usersMap = new Map();
+        usersData.forEach(user => {
+          usersMap.set(user.id, user);
+        });
 
         // Get corresponding answers if they exist
         const { data: answersData, error: answersError } = await supabase
@@ -585,7 +610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             rfpDocumentId: question.rfp_document_id,
             questionText: question.question_text,
             assignedTo: question.assigned_to,
-            assignedUser: question.assigned_user,
+            assignedUser: question.assigned_to ? usersMap.get(question.assigned_to) : null,
             createdAt: question.created_at,
             answer: answer ? {
               id: answer.id,
@@ -1718,10 +1743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .from("rfp_questions")
           .update({ assigned_to: assignedTo })
           .eq("id", questionId)
-          .select(`
-            *,
-            assigned_user:assigned_to(id, email, name)
-          `)
+          .select("*")
           .single();
           
         if (error) {
