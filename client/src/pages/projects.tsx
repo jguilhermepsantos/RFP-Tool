@@ -30,8 +30,12 @@ const formSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   description: z.string().optional(),
   salesforceLink: z.string().optional(),
-  region: z.enum(['US', 'Brazil', 'South LATAM', 'North LATAM', 'EMEA', 'APAC']).optional(),
-  language: z.enum(['English', 'Spanish', 'Portuguese', 'French', 'German', 'Polish']).optional(),
+  region: z.enum(['US', 'Brazil', 'South LATAM', 'North LATAM', 'EMEA', 'APAC'], {
+    required_error: "Region is required"
+  }),
+  language: z.enum(['English', 'Spanish', 'Portuguese', 'French', 'German', 'Polish'], {
+    required_error: "Language is required"
+  }),
 });
 
 export default function Projects() {
@@ -96,8 +100,6 @@ export default function Projects() {
       name: "",
       description: "",
       salesforceLink: "",
-      region: undefined,
-      language: undefined,
     },
   });
 
@@ -122,8 +124,8 @@ export default function Projects() {
           name: values.name,
           description: values.description || null,
           salesforce_link: values.salesforceLink || null,
-          region: values.region || null,
-          language: values.language || null,
+          region: values.region,
+          language: values.language,
           created_by: user.id,
           created_at: new Date().toISOString()
         })
@@ -247,7 +249,7 @@ export default function Projects() {
                     name="region"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Region (Optional)</FormLabel>
+                        <FormLabel>Region</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -273,7 +275,7 @@ export default function Projects() {
                     name="language"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Language (Optional)</FormLabel>
+                        <FormLabel>Language</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
