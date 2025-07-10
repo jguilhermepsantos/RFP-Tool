@@ -32,6 +32,7 @@ interface ProjectData {
   description: string | null;
   salesforce_link: string | null;
   region: string | null;
+  language: string | null;
   created_at: string;
   created_by: string | null;
 }
@@ -85,6 +86,7 @@ const editProjectSchema = z.object({
   description: z.string().optional(),
   salesforceLink: z.string().optional(),
   region: z.enum(['US', 'Brazil', 'South LATAM', 'North LATAM', 'EMEA', 'APAC']).optional(),
+  language: z.enum(['English', 'Spanish', 'Portuguese', 'French', 'German', 'Polish']).optional(),
 });
 
 type AddMemberFormValues = z.infer<typeof addMemberSchema>;
@@ -318,6 +320,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
       description: "",
       salesforceLink: "",
       region: undefined,
+      language: undefined,
     },
   });
   const [isUpdatingProject, setIsUpdatingProject] = useState(false);
@@ -397,6 +400,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
           description: projectData.description || '',
           salesforceLink: projectData.salesforce_link || '',
           region: projectData.region as any || undefined,
+          language: projectData.language as any || undefined,
         });
       }
     } catch (err) {
@@ -483,6 +487,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
           description: values.description || null,
           salesforce_link: values.salesforceLink || null,
           region: values.region || null,
+          language: values.language || null,
         })
         .eq('id', projectId);
         
@@ -819,6 +824,36 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                                   <SelectItem value="North LATAM">North LATAM</SelectItem>
                                   <SelectItem value="EMEA">EMEA</SelectItem>
                                   <SelectItem value="APAC">APAC</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={editProjectForm.control}
+                          name="language"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Language</FormLabel>
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                                disabled={!isOwnerOrCollaborator}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select project language" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="English">English</SelectItem>
+                                  <SelectItem value="Spanish">Spanish</SelectItem>
+                                  <SelectItem value="Portuguese">Portuguese</SelectItem>
+                                  <SelectItem value="French">French</SelectItem>
+                                  <SelectItem value="German">German</SelectItem>
+                                  <SelectItem value="Polish">Polish</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
