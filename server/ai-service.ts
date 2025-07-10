@@ -352,7 +352,7 @@ function calculateSimilarityMetrics(chunks: { chunkId: string; similarity: numbe
   return { averageSimilarity, confidenceLevel };
 }
 
-export async function answerQuestion(question: string, nResults: number = 3): Promise<{
+export async function answerQuestion(question: string, nResults: number = 3, projectLanguage?: string): Promise<{
   compliance: string;
   answer: string;
   sourceChunks: { chunkId: string; similarity: number; source: 'document' | 'rfp' }[];
@@ -370,7 +370,7 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
     }
 
     // Step 2: Generate both compliance + elaborate answer in a single LLM call
-    const { compliance, answer } = await generateAnswer(documents, question);
+    const { compliance, answer } = await generateAnswer(documents, question, projectLanguage);
 
     // Step 3: Calculate similarity metrics
     const { averageSimilarity, confidenceLevel } = calculateSimilarityMetrics(metadata);
@@ -405,13 +405,39 @@ export async function answerQuestion(question: string, nResults: number = 3): Pr
   }
 }
 
-async function generateAnswer(contextChunks: string[], question: string): Promise<{
+async function generateAnswer(contextChunks: string[], question: string, projectLanguage?: string): Promise<{
   compliance: string;
   answer: string;
 }> {
   try {
-    // Detect question language first
-    const { language, confidence, languageName } = detectLanguage(question);
+    // Use project language if provided, otherwise detect from question
+    let language: string;
+    let languageName: string;
+    
+    if (projectLanguage) {
+      // Map project language to franc language codes
+      const languageMap: Record<string, { code: string; name: string }> = {
+        'English': { code: 'eng', name: 'English' },
+        'Spanish': { code: 'spa', name: 'Spanish' },
+        'Portuguese': { code: 'por', name: 'Portuguese' },
+        'French': { code: 'fra', name: 'French' },
+        'German': { code: 'deu', name: 'German' },
+        'Polish': { code: 'pol', name: 'Polish' }
+      };
+      
+      const mappedLanguage = languageMap[projectLanguage] || languageMap['English'];
+      language = mappedLanguage.code;
+      languageName = mappedLanguage.name;
+      
+      console.log(`🎯 Using project language: ${languageName} (${language})`);
+    } else {
+      // Fallback to detection if no project language is set
+      const detected = detectLanguage(question);
+      language = detected.language;
+      languageName = detected.languageName;
+      
+      console.log(`🔍 Detected language: ${languageName} (${language})`);
+    }
     
     const context = contextChunks.length > 0
       ? contextChunks.join("\n\n")
@@ -892,6 +918,35 @@ export async function processDocumentQuestions(documentId: string): Promise<{
     // Import progress tracker
     const { progressTracker } = await import('./progress-tracker');
     
+    // First, get the RFP document to fetch project language
+    const { data: rfpDocument, error: docError } = await supabase
+      .from('rfp_documents')
+      .select('project_id')
+      .eq('id', documentId)
+      .single();
+      
+    if (docError) {
+      console.error(`Error fetching RFP document:`, docError);
+      throw new Error(`Failed to fetch RFP document: ${docError.message}`);
+    }
+    
+    // Get project language
+    let projectLanguage: string | undefined;
+    if (rfpDocument?.project_id) {
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('language')
+        .eq('id', rfpDocument.project_id)
+        .single();
+        
+      if (projectError) {
+        console.warn(`Could not fetch project language: ${projectError.message}`);
+      } else {
+        projectLanguage = project?.language || undefined;
+        console.log(`📋 Project language: ${projectLanguage || 'not set'}`);
+      }
+    }
+    
     // Get questions for this document
     const { data: questions, error: questionsError } = await supabase
       .from('rfp_questions')
@@ -963,8 +1018,8 @@ export async function processDocumentQuestions(documentId: string): Promise<{
           continue;
         }
         
-        // Generate answer using RAG
-        const { compliance, answer, sourceChunks, averageSimilarity, confidenceLevel } = await answerQuestion(question.question_text);
+        // Generate answer using RAG with project language
+        const { compliance, answer, sourceChunks, averageSimilarity, confidenceLevel } = await answerQuestion(question.question_text, 3, projectLanguage);
         
         // Create answer in database
         const { data: newAnswer, error: answerError } = await supabase

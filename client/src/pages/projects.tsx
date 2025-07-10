@@ -31,6 +31,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   salesforceLink: z.string().optional(),
   region: z.enum(['US', 'Brazil', 'South LATAM', 'North LATAM', 'EMEA', 'APAC']).optional(),
+  language: z.enum(['English', 'Spanish', 'Portuguese', 'French', 'German', 'Polish']).optional(),
 });
 
 export default function Projects() {
@@ -79,6 +80,7 @@ export default function Projects() {
           createdBy: project.created_by, // Transform snake_case to camelCase
           salesforceLink: project.salesforce_link,
           region: project.region,
+          language: project.language,
           role: permission?.role || 'viewer'
         };
       });
@@ -95,6 +97,7 @@ export default function Projects() {
       description: "",
       salesforceLink: "",
       region: undefined,
+      language: undefined,
     },
   });
 
@@ -120,6 +123,7 @@ export default function Projects() {
           description: values.description || null,
           salesforce_link: values.salesforceLink || null,
           region: values.region || null,
+          language: values.language || null,
           created_by: user.id,
           created_at: new Date().toISOString()
         })
@@ -257,6 +261,32 @@ export default function Projects() {
                             <SelectItem value="North LATAM">North LATAM</SelectItem>
                             <SelectItem value="EMEA">EMEA</SelectItem>
                             <SelectItem value="APAC">APAC</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="language"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Language (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select project language" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="English">English</SelectItem>
+                            <SelectItem value="Spanish">Spanish</SelectItem>
+                            <SelectItem value="Portuguese">Portuguese</SelectItem>
+                            <SelectItem value="French">French</SelectItem>
+                            <SelectItem value="German">German</SelectItem>
+                            <SelectItem value="Polish">Polish</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

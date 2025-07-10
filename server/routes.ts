@@ -877,7 +877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI and Vector Database routes
   apiRouter.post("/ai/answer", async (req: Request, res: Response) => {
     try {
-      const { question } = req.body;
+      const { question, projectLanguage } = req.body;
 
       if (!question || typeof question !== "string") {
         return res
@@ -888,8 +888,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import the AI service
       const { answerQuestion } = await import("./ai-service");
 
-      // Get answer from RAG engine
-      const result = await answerQuestion(question);
+      // Get answer from RAG engine with optional project language
+      const result = await answerQuestion(question, 3, projectLanguage);
 
       return res.status(200).json(result);
     } catch (error) {
