@@ -305,6 +305,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Development endpoint to initialize Supabase data
+  apiRouter.post(
+    "/initialize-supabase-data",
+    async (req: Request, res: Response) => {
+      try {
+        console.log("Initializing Supabase data...");
+        
+        // Create a test user in Supabase
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .upsert({
+            id: '13f369a9-dbfb-46bc-9ef2-8cafa6a06b24',
+            email: 'joao.guilherme@vtex.com',
+            name: 'João Guilherme',
+            access_granted: true,
+            role: 'user'
+          })
+          .select()
+          .single();
+        
+        console.log("User creation result:", { userData, userError });
+        
+        // Create a test project in Supabase
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .upsert({
+            id: '22222222-2222-2222-2222-222222222222',
+            name: 'Test Project',
+            created_by: '13f369a9-dbfb-46bc-9ef2-8cafa6a06b24'
+          })
+          .select()
+          .single();
+        
+        console.log("Project creation result:", { projectData, projectError });
+        
+        // Create project permission in Supabase
+        const { data: permissionData, error: permissionError } = await supabase
+          .from('project_permissions')
+          .upsert({
+            id: 'perm-1111-1111-1111-111111111111',
+            project_id: '22222222-2222-2222-2222-222222222222',
+            user_id: '13f369a9-dbfb-46bc-9ef2-8cafa6a06b24',
+            role: 'owner'
+          })
+          .select()
+          .single();
+        
+        console.log("Permission creation result:", { permissionData, permissionError });
+        
+        return res.status(200).json({ 
+          message: "Supabase data initialized successfully",
+          user: userData,
+          project: projectData,
+          permission: permissionData
+        });
+      } catch (error) {
+        console.error("Error initializing Supabase data:", error);
+        return res.status(500).json({ message: "Failed to initialize Supabase data" });
+      }
+    },
+  );
+
   // Project Permissions routes
   apiRouter.get(
     "/projects/:projectId/members",

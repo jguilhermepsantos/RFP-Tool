@@ -181,29 +181,53 @@ export class SupabaseStorage implements IStorage {
   // Project Members operations
   async getProjectMembers(projectId: string): Promise<any[]> {
     try {
-      // Use direct database query instead of Supabase client to avoid configuration issues
-      const { db } = await import('./db');
-      const { sql } = await import('drizzle-orm');
+      console.log(`[SupabaseStorage] Getting project members for project: ${projectId}`);
       
-      const result = await db.execute(sql`
-        SELECT 
-          pp.role,
-          u.id,
-          u.email,
-          u.name
-        FROM project_permissions pp
-        JOIN users u ON pp.user_id = u.id
-        WHERE pp.project_id = ${projectId}
-      `);
+      // First get project permissions from Supabase
+      const { data: permissions, error: permissionsError } = await supabase
+        .from('project_permissions')
+        .select('user_id, role')
+        .eq('project_id', projectId);
       
-      // Transform the result to the expected format
-      const members = result.rows.map((row: any) => ({
-        id: row.id,
-        email: row.email,
-        name: row.name || null,
-        role: row.role
-      }));
+      console.log(`[SupabaseStorage] Project permissions query result:`, { permissions, error: permissionsError });
       
+      if (permissionsError) {
+        throw new Error(`Failed to get project permissions: ${permissionsError.message}`);
+      }
+      
+      if (!permissions || permissions.length === 0) {
+        console.log(`[SupabaseStorage] No permissions found for project ${projectId}`);
+        return [];
+      }
+
+      // Get user IDs from permissions
+      const userIds = permissions.map(p => p.user_id);
+      console.log(`[SupabaseStorage] User IDs from permissions:`, userIds);
+      
+      // Fetch user information from Supabase
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, email, name')
+        .in('id', userIds);
+      
+      console.log(`[SupabaseStorage] Users query result:`, { users, error: usersError });
+      
+      if (usersError) {
+        throw new Error(`Failed to get user data: ${usersError.message}`);
+      }
+      
+      // Combine permissions with user data
+      const members = permissions.map(permission => {
+        const user = users?.find(u => u.id === permission.user_id);
+        return {
+          id: user?.id || permission.user_id,
+          email: user?.email || '',
+          name: user?.name || null,
+          role: permission.role
+        };
+      });
+      
+      console.log(`[SupabaseStorage] Final members result:`, members);
       return members;
       
     } catch (error) {
