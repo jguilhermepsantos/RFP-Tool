@@ -179,14 +179,37 @@ export class SupabaseStorage implements IStorage {
   }
   
   // Project Members operations
-  async getProjectMembers(projectId: string): Promise<ProjectPermission[]> {
-    const { data, error } = await supabase
-      .from('project_permissions')
-      .select('*')
-      .eq('project_id', projectId);
-    
-    if (error) throw new Error(`Failed to get project members: ${error.message}`);
-    return data as ProjectPermission[];
+  async getProjectMembers(projectId: string): Promise<any[]> {
+    try {
+      // Use direct database query instead of Supabase client to avoid configuration issues
+      const { db } = await import('./db');
+      const { sql } = await import('drizzle-orm');
+      
+      const result = await db.execute(sql`
+        SELECT 
+          pp.role,
+          u.id,
+          u.email,
+          u.name
+        FROM project_permissions pp
+        JOIN users u ON pp.user_id = u.id
+        WHERE pp.project_id = ${projectId}
+      `);
+      
+      // Transform the result to the expected format
+      const members = result.rows.map((row: any) => ({
+        id: row.id,
+        email: row.email,
+        name: row.name || null,
+        role: row.role
+      }));
+      
+      return members;
+      
+    } catch (error) {
+      console.error(`[SupabaseStorage] Error getting project members:`, error);
+      throw new Error(`Failed to get project members: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   async addProjectMember(projectMember: InsertProjectPermission): Promise<ProjectPermission> {

@@ -306,6 +306,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project Permissions routes
+  apiRouter.get(
+    "/projects/:projectId/members",
+    async (req: Request, res: Response) => {
+      try {
+        const projectId = req.params.projectId;
+
+        if (!projectId) {
+          return res
+            .status(400)
+            .json({ message: "Valid project ID is required" });
+        }
+
+        const members = await storage.getProjectMembers(projectId);
+        return res.status(200).json({ members });
+      } catch (error) {
+        console.error("Error getting project members:", error);
+        return res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
+
   apiRouter.post(
     "/projects/:projectId/members",
     async (req: Request, res: Response) => {

@@ -34,7 +34,7 @@ export interface IStorage {
   getProjectsByUserId(userId: string): Promise<Project[]>;
   
   // Project Permission operations
-  getProjectMembers(projectId: string): Promise<ProjectPermission[]>;
+  getProjectMembers(projectId: string): Promise<any[]>;
   addProjectMember(projectMember: InsertProjectPermission): Promise<ProjectPermission>;
   updateProjectMemberRole(id: string, role: string): Promise<ProjectPermission | undefined>;
   
