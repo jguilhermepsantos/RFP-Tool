@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle, PlayCircle, ChevronRight, Filter, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle, PlayCircle, ChevronRight, Filter, Loader2, User, UserPlus, UserX } from "lucide-react";
 
 interface RfpDocumentProps {
   projectId: string;
@@ -25,6 +25,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const [, setLocation] = useLocation();
   const [isDownloading, setIsDownloading] = useState(false);
   const [confidenceFilter, setConfidenceFilter] = useState<string>("all");
+  const [assignmentFilter, setAssignmentFilter] = useState<string>("all");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressModalOpen, setProgressModalOpen] = useState(false);
 
@@ -52,6 +53,12 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
       questionNumber: string;
       questionText: string;
       section: string | null;
+      assignedTo: string | null;
+      assignedUser: {
+        id: string;
+        email: string;
+        name?: string;
+      } | null;
       answer: {
         id: string;
         rfpQuestionId: string | null;
@@ -73,6 +80,12 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const { data, isLoading, isError, error } = useQuery<DocumentResponse>({
     queryKey: [`/api/projects/${projectId}/rfp-documents/${documentId}`],
     enabled: !!projectId && !!documentId,
+  });
+
+  // Get project members for assignment
+  const { data: membersData } = useQuery<{ members: Array<{ id: string; email: string; name?: string; role: string }> }>({
+    queryKey: [`/api/projects/${projectId}/members`],
+    enabled: !!projectId,
   });
 
   useEffect(() => {
@@ -103,10 +116,25 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     return dateA - dateB;
   });
 
-  // Apply confidence level filter
+  // Apply confidence level and assignment filters
   const questionsWithAnswers = allQuestionsWithAnswers.filter((item) => {
-    if (confidenceFilter === "all") return true;
-    return item.answer?.confidenceLevel === confidenceFilter;
+    // Apply confidence filter
+    if (confidenceFilter !== "all" && item.answer?.confidenceLevel !== confidenceFilter) {
+      return false;
+    }
+    
+    // Apply assignment filter
+    if (assignmentFilter === "assigned-to-me" && item.assignedTo !== user?.id) {
+      return false;
+    }
+    if (assignmentFilter === "assigned" && !item.assignedTo) {
+      return false;
+    }
+    if (assignmentFilter === "unassigned" && item.assignedTo) {
+      return false;
+    }
+    
+    return true;
   });
 
   const handleProcessDocument = () => {
@@ -141,6 +169,58 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const assignQuestion = async (questionId: string, assignedTo: string) => {
+    try {
+      await apiRequest(`/api/rfp-questions/${questionId}/assign`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ assignedTo }),
+      });
+      
+      // Refresh the data
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/projects/${projectId}/rfp-documents/${documentId}`] 
+      });
+      
+      toast({
+        title: "Success",
+        description: "Question assigned successfully",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to assign question",
+      });
+    }
+  };
+
+  const unassignQuestion = async (questionId: string) => {
+    try {
+      await apiRequest(`/api/rfp-questions/${questionId}/unassign`, {
+        method: "PUT",
+      });
+      
+      // Refresh the data
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/projects/${projectId}/rfp-documents/${documentId}`] 
+      });
+      
+      toast({
+        title: "Success",
+        description: "Question unassigned successfully",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to unassign question",
+      });
     }
   };
 
@@ -379,27 +459,50 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
               </Card>
             ) : (
               <div className="space-y-6">
-                {/* Confidence Level Filter - Only show for processed documents with answers */}
-                {document.status !== 'unprocessed' && allQuestionsWithAnswers.some(item => item.answer?.confidenceLevel) && (
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
-                    <Filter className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">Filter by confidence level:</span>
-                    <Select value={confidenceFilter} onValueChange={setConfidenceFilter}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="All answers" />
+                {/* Filters */}
+                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
+                  <Filter className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">Filters:</span>
+                  
+                  {/* Assignment Filter */}
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">Assignment:</span>
+                    <Select value={assignmentFilter} onValueChange={setAssignmentFilter}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue placeholder="All questions" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Answers</SelectItem>
-                        <SelectItem value="low">Low Similarity</SelectItem>
-                        <SelectItem value="medium">Medium Similarity</SelectItem>
-                        <SelectItem value="high">High Similarity</SelectItem>
+                        <SelectItem value="all">All Questions</SelectItem>
+                        <SelectItem value="assigned-to-me">Assigned to Me</SelectItem>
+                        <SelectItem value="assigned">Assigned</SelectItem>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
                       </SelectContent>
                     </Select>
-                    <span className="text-xs text-gray-500">
-                      Showing {questionsWithAnswers.length} of {allQuestionsWithAnswers.length} answers
-                    </span>
                   </div>
-                )}
+                  
+                  {/* Confidence Level Filter - Only show for processed documents with answers */}
+                  {document.status !== 'unprocessed' && allQuestionsWithAnswers.some(item => item.answer?.confidenceLevel) && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">Confidence:</span>
+                      <Select value={confidenceFilter} onValueChange={setConfidenceFilter}>
+                        <SelectTrigger className="w-[160px]">
+                          <SelectValue placeholder="All answers" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Answers</SelectItem>
+                          <SelectItem value="low">Low Similarity</SelectItem>
+                          <SelectItem value="medium">Medium Similarity</SelectItem>
+                          <SelectItem value="high">High Similarity</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  
+                  <span className="text-xs text-gray-500 ml-auto">
+                    Showing {questionsWithAnswers.length} of {allQuestionsWithAnswers.length} questions
+                  </span>
+                </div>
                 
                 {document.status === 'unprocessed' ? (
                   <>
@@ -433,6 +536,9 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                           documentStatus={document.status}
                           projectId={projectId}
                           documentId={documentId}
+                          members={membersData?.members || []}
+                          onAssign={assignQuestion}
+                          onUnassign={unassignQuestion}
                         />
                       ))}
                     </div>
@@ -446,6 +552,9 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                         documentStatus={document.status}
                         projectId={projectId}
                         documentId={documentId}
+                        members={membersData?.members || []}
+                        onAssign={assignQuestion}
+                        onUnassign={unassignQuestion}
                       />
                     ))}
                   </div>

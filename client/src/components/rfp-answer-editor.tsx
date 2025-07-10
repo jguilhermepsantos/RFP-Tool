@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare, User } from "lucide-react";
+import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare, User, UserPlus, UserX } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import AnswerFeedback from "./answer-feedback";
@@ -39,6 +40,12 @@ interface Question {
   questionNumber: string;
   questionText: string;
   section: string | null;
+  assignedTo: string | null;
+  assignedUser: {
+    id: string;
+    email: string;
+    name?: string;
+  } | null;
   answer: Answer | null;
 }
 
@@ -47,6 +54,9 @@ interface RfpAnswerEditorProps {
   documentStatus: string;
   projectId: string;
   documentId: string;
+  members: Array<{ id: string; email: string; name?: string; role: string }>;
+  onAssign: (questionId: string, assignedTo: string) => void;
+  onUnassign: (questionId: string) => void;
 }
 
 interface SourceChunkDisplayProps {
@@ -129,7 +139,10 @@ export default function RfpAnswerEditor({
   question, 
   documentStatus, 
   projectId, 
-  documentId 
+  documentId,
+  members,
+  onAssign,
+  onUnassign
 }: RfpAnswerEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -236,15 +249,68 @@ export default function RfpAnswerEditor({
               <span className="text-muted-foreground">{question.questionNumber}</span>
               {question.questionText}
             </CardTitle>
-            {question.section && (
-              <CardDescription>
-                Section: {question.section}
-              </CardDescription>
-            )}
+            <div className="flex flex-col gap-1 mt-2">
+              {question.section && (
+                <CardDescription>
+                  Section: {question.section}
+                </CardDescription>
+              )}
+              {/* Assignment display */}
+              {question.assignedUser && (
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <User className="h-3 w-3" />
+                  <span>Assigned to: {question.assignedUser.name || question.assignedUser.email}</span>
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Right side buttons and badges */}
           <div className="flex flex-col items-end gap-2 ml-4">
+            {/* Assignment controls - only show for unprocessed and under review statuses */}
+            {(documentStatus === 'unprocessed' || documentStatus === 'under review') && (
+              <div className="flex items-center gap-2">
+                {question.assignedTo ? (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onUnassign(question.id)}
+                      className="h-7 px-2"
+                    >
+                      <UserX className="h-3 w-3 mr-1" />
+                      Unassign
+                    </Button>
+                    <Select value={question.assignedTo} onValueChange={(value) => onAssign(question.id, value)}>
+                      <SelectTrigger className="h-7 w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {members.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name || member.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <Select value="" onValueChange={(value) => onAssign(question.id, value)}>
+                    <SelectTrigger className="h-7 w-32">
+                      <SelectValue placeholder="Assign to..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.name || member.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
             {/* Confidence level badge */}
             {question.answer?.confidenceLevel && (
               <Badge variant="outline" className={getConfidenceColor(question.answer.confidenceLevel)}>

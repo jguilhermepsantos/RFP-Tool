@@ -523,109 +523,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`Document status: ${documentData.status}`);
 
-        // Handle differently based on document status
-        if (documentData.status === "unprocessed") {
-          // For unprocessed documents, get questions without answers
-          console.log(
-            `Fetching questions for unprocessed document ID: ${documentId}`,
-          );
+        // New approach: Always fetch questions first with assignment info
+        const { data: questionsData, error: questionsError } = await supabase
+          .from("rfp_questions")
+          .select(`
+            *,
+            assigned_user:assigned_to(id, email, name)
+          `)
+          .eq("rfp_document_id", documentId)
+          .order("created_at", { ascending: true });
 
-          const { data: questionsData, error: questionsError } = await supabase
-            .from("rfp_questions")
-            .select("*")
-            .eq("rfp_document_id", documentId)
-            .order("created_at", { ascending: true });
-
-          if (questionsError) {
-            console.log(`Error fetching questions:`, questionsError);
-            return res.status(500).json({
-              message: `Failed to fetch questions: ${questionsError.message}`,
-            });
-          }
-
-          console.log(
-            `Found ${questionsData?.length || 0} questions for unprocessed document`,
-          );
-
-          // Debug: output all questions found for this document
-          if (questionsData && questionsData.length > 0) {
-            console.log("Questions found for this document:");
-            questionsData.forEach((q: any) => {
-              console.log(` - ${q.id}: ${q.question_text}`);
-            });
-          } else {
-            console.log(
-              "No questions found in rfp_questions table for this document",
-            );
-          }
-
-          // Transform questions into expected format (without answers)
-          questionsWithAnswers = (questionsData || []).map((question: any) => {
-            return {
-              id: question.id,
-              rfpDocumentId: question.rfp_document_id,
-              // questionNumber: question.question_number || '',
-              questionText: question.question_text,
-              // section: question.section,
-              // answer: null // No answer yet for unprocessed documents
-            };
-          });
-        } else {
-          // For processed/reviewed/done documents, get answers with questions
-          const { data: answersData, error: answersError } = await supabase
-            .from("rfp_answers")
-            .select("*")
-            .eq("rfp_document_id", documentId)
-            .order("created_at", { ascending: true });
-
-          if (answersError) {
-            console.log(`Error fetching answers:`, answersError);
-            return res.status(500).json({
-              message: `Failed to fetch answers: ${answersError.message}`,
-            });
-          }
-
-          console.log(
-            `Found ${answersData?.length || 0} answers directly from answers table`,
-          );
-          if (answersData && answersData.length > 0) {
-            console.log(`First answer from DB:`, answersData[0]);
-          } else {
-            console.log(`No answers found for document ID: ${documentId}`);
-          }
-
-          // Transform the answers into the expected format for the frontend
-          questionsWithAnswers = (answersData || []).map((dbAnswer: any, index: number) => {
-            // Parse source chunks if they exist
-            let sourceChunks = [];
-            if (dbAnswer.source_chunks) {
-              try {
-                sourceChunks = JSON.parse(dbAnswer.source_chunks);
-              } catch (e) {
-                console.log(`Failed to parse source chunks for answer ${dbAnswer.id}:`, e);
-              }
-            }
-
-            return {
-              id: dbAnswer.rfp_question_id,
-              rfpDocumentId: dbAnswer.rfp_document_id,
-              questionText: dbAnswer.question_text,
-              sortOrder: index, // Add stable sort order based on original created_at ordering
-              createdAt: dbAnswer.created_at, // Include created_at for debugging
-              answer: {
-                id: dbAnswer.id,
-                rfpQuestionId: dbAnswer.rfp_question_id,
-                complianceAnswer: dbAnswer.compliance_answer,
-                generatedAnswer: dbAnswer.generated_answer,
-                sourceChunks: sourceChunks,
-                averageSimilarity: dbAnswer.average_similarity,
-                confidenceLevel: dbAnswer.confidence_level,
-                lastReviewedBy: dbAnswer.last_reviewed_by,
-                lastReviewedAt: dbAnswer.last_reviewed_at,
-              },
-            };
+        if (questionsError) {
+          console.log(`Error fetching questions:`, questionsError);
+          return res.status(500).json({
+            message: `Failed to fetch questions: ${questionsError.message}`,
           });
         }
+
+        console.log(
+          `Found ${questionsData?.length || 0} questions for document`,
+        );
+
+        // Get corresponding answers if they exist
+        const { data: answersData, error: answersError } = await supabase
+          .from("rfp_answers")
+          .select("*")
+          .eq("rfp_document_id", documentId);
+
+        if (answersError) {
+          console.log(`Error fetching answers:`, answersError);
+          return res.status(500).json({
+            message: `Failed to fetch answers: ${answersError.message}`,
+          });
+        }
+
+        console.log(
+          `Found ${answersData?.length || 0} answers for document`,
+        );
+
+        // Create a map of answers by question ID for efficient lookup
+        const answersMap = new Map();
+        (answersData || []).forEach((answer: any) => {
+          answersMap.set(answer.rfp_question_id, answer);
+        });
+
+        // Transform questions with their answers and assignment info
+        questionsWithAnswers = (questionsData || []).map((question: any) => {
+          const answer = answersMap.get(question.id);
+          
+          let sourceChunks = [];
+          if (answer && answer.source_chunks) {
+            try {
+              sourceChunks = JSON.parse(answer.source_chunks);
+            } catch (e) {
+              console.log(`Failed to parse source chunks for answer ${answer.id}:`, e);
+            }
+          }
+
+          return {
+            id: question.id,
+            rfpDocumentId: question.rfp_document_id,
+            questionText: question.question_text,
+            assignedTo: question.assigned_to,
+            assignedUser: question.assigned_user,
+            createdAt: question.created_at,
+            answer: answer ? {
+              id: answer.id,
+              rfpQuestionId: answer.rfp_question_id,
+              complianceAnswer: answer.compliance_answer,
+              generatedAnswer: answer.generated_answer,
+              sourceChunks: sourceChunks,
+              averageSimilarity: answer.average_similarity,
+              confidenceLevel: answer.confidence_level,
+              lastReviewedBy: answer.last_reviewed_by,
+              lastReviewedAt: answer.last_reviewed_at,
+            } : null,
+          };
+        });
 
         console.log(
           `Returning ${questionsWithAnswers.length} questions with answers from direct DB call`,
@@ -1726,6 +1700,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("Error fetching answer feedbacks:", error);
         return res.status(500).json({ error: "Failed to fetch answer feedbacks" });
+      }
+    },
+  );
+
+  // Question assignment routes
+  apiRouter.put(
+    "/rfp-questions/:questionId/assign",
+    async (req: Request, res: Response) => {
+      try {
+        const { questionId } = req.params;
+        const { assignedTo } = req.body;
+        
+        console.log(`Assigning question ${questionId} to user ${assignedTo}`);
+        
+        const { data, error } = await supabase
+          .from("rfp_questions")
+          .update({ assigned_to: assignedTo })
+          .eq("id", questionId)
+          .select(`
+            *,
+            assigned_user:assigned_to(id, email, name)
+          `)
+          .single();
+          
+        if (error) {
+          console.error("Error assigning question:", error);
+          return res.status(500).json({ error: "Failed to assign question" });
+        }
+        
+        return res.status(200).json(data);
+      } catch (error) {
+        console.error("Error in question assignment:", error);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+    },
+  );
+
+  apiRouter.put(
+    "/rfp-questions/:questionId/unassign",
+    async (req: Request, res: Response) => {
+      try {
+        const { questionId } = req.params;
+        
+        console.log(`Unassigning question ${questionId}`);
+        
+        const { data, error } = await supabase
+          .from("rfp_questions")
+          .update({ assigned_to: null })
+          .eq("id", questionId)
+          .select("*")
+          .single();
+          
+        if (error) {
+          console.error("Error unassigning question:", error);
+          return res.status(500).json({ error: "Failed to unassign question" });
+        }
+        
+        return res.status(200).json(data);
+      } catch (error) {
+        console.error("Error in question unassignment:", error);
+        return res.status(500).json({ error: "Internal server error" });
       }
     },
   );
