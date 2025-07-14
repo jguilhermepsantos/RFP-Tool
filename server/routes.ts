@@ -1892,10 +1892,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add subsection filter if provided
         if (subsection) {
           updateQuery = updateQuery.eq("subsection", subsection);
-        } else {
-          // If no subsection specified, update all questions in the section
-          updateQuery = updateQuery.is("subsection", null);
         }
+        // If no subsection specified, update ALL questions in the section (don't filter by subsection)
 
         const { data, error } = await updateQuery.select("*");
 
@@ -1936,10 +1934,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add subsection filter if provided
         if (subsection) {
           updateQuery = updateQuery.eq("subsection", subsection);
-        } else {
-          // If no subsection specified, unassign all questions in the section
-          updateQuery = updateQuery.is("subsection", null);
         }
+        // If no subsection specified, unassign ALL questions in the section (don't filter by subsection)
 
         const { data, error } = await updateQuery.select("*");
 
