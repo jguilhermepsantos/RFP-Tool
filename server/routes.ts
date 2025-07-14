@@ -716,7 +716,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: question.id,
             rfpDocumentId: question.rfp_document_id,
             questionText: question.question_text,
-            questionNumber: question.question_number,
             requirementId: question.requirement_id,
             section: question.section,
             subsection: question.subsection,

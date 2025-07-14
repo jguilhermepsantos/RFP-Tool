@@ -116,7 +116,6 @@ export default function DocumentUpload({
           const requirementId = row.requirement_id || row["requirement id"] || row.requirement || null;
           const section = row.section || row["section"] || null;
           const subsection = row.subsection || row["subsection"] || row.sub_section || row["sub section"] || null;
-          const questionNumber = row.question_number || row["question number"] || row.number || null;
 
           // First create an rfp_question entry
           const { data: questionData, error: questionError } = await supabase
@@ -124,7 +123,6 @@ export default function DocumentUpload({
             .insert({
               rfp_document_id: rfpDocumentId,
               question_text: questionText,
-              question_number: questionNumber,
               requirement_id: requirementId,
               section: section,
               subsection: subsection,
@@ -197,7 +195,6 @@ export default function DocumentUpload({
           const requirementId = row.requirement_id || row["requirement id"] || row.requirement || null;
           const section = row.section || row["section"] || null;
           const subsection = row.subsection || row["subsection"] || row.sub_section || row["sub section"] || null;
-          const questionNumber = row.question_number || row["question number"] || row.number || null;
 
           console.log(
             `Inserting question row: Question=${questionText.substring(0, 20)}..., Section=${section}, Subsection=${subsection}`,
@@ -208,7 +205,6 @@ export default function DocumentUpload({
             .insert({
               rfp_document_id: rfpDocumentId,
               question_text: questionText,
-              question_number: questionNumber,
               requirement_id: requirementId,
               section: section,
               subsection: subsection,

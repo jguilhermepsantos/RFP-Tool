@@ -91,7 +91,6 @@ export const rfpQuestions = pgTable("rfp_questions", {
   id: uuid("id").primaryKey(),
   rfpDocumentId: uuid("rfp_document_id").references(() => rfpDocuments.id),
   questionText: text("question_text").notNull(),
-  questionNumber: text("question_number"), // Added field for question numbering
   requirementId: text("requirement_id"), // Added hierarchical field
   section: text("section"), // Added hierarchical field
   subsection: text("subsection"), // Added hierarchical field

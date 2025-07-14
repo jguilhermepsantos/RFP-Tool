@@ -592,7 +592,6 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                     ...q,
                     rfpDocumentId: q.rfpDocumentId,
                     questionText: q.questionText,
-                    questionNumber: q.questionNumber,
                     requirementId: q.requirementId,
                     section: q.section,
                     subsection: q.subsection,
