@@ -6,6 +6,12 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
+- **Hierarchical Organization System (July 14, 2025)**: Implemented comprehensive hierarchical organization with sections and subsections for RFP questions, including:
+  - Multi-level assignment system (individual questions, subsections, entire sections)
+  - Inheritance-based assignment where section assignments cascade to subsections and questions
+  - Enhanced CSV import supporting requirement_id, section, and subsection fields
+  - Hierarchical UI components with collapsible sections and progress tracking
+  - Section assignment database table and API endpoints
 - **Assignment System Enhancement (July 10, 2025)**: Extended question assignment functionality to include "processed" status RFP documents, enabling team members to assign questions across all workflow stages (unprocessed, under review, and processed)
 - **Supabase Integration**: Successfully implemented pure Supabase storage for all database operations, ensuring consistent data access across the platform
 - **Project Member Management**: Implemented robust project member fetching system using Supabase's project_permissions table for accurate team collaboration

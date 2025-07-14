@@ -91,6 +91,10 @@ export const rfpQuestions = pgTable("rfp_questions", {
   id: uuid("id").primaryKey(),
   rfpDocumentId: uuid("rfp_document_id").references(() => rfpDocuments.id),
   questionText: text("question_text").notNull(),
+  questionNumber: text("question_number"), // Added field for question numbering
+  requirementId: text("requirement_id"), // Added hierarchical field
+  section: text("section"), // Added hierarchical field
+  subsection: text("subsection"), // Added hierarchical field
   assignedTo: uuid("assigned_to").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -110,6 +114,16 @@ export const rfpAnswers = pgTable("rfp_answers", {
   createdAt: timestamp("created_at").defaultNow(),
   lastReviewedBy: uuid("last_reviewed_by").references(() => users.id),
   lastReviewedAt: timestamp("last_reviewed_at"),
+});
+
+// Section Assignments table for hierarchical assignment tracking
+export const sectionAssignments = pgTable("section_assignments", {
+  id: uuid("id").primaryKey(),
+  rfpDocumentId: uuid("rfp_document_id").references(() => rfpDocuments.id),
+  section: text("section").notNull(),
+  subsection: text("subsection"), // nullable for section-only assignments
+  assignedTo: uuid("assigned_to").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Chunks table (for RAG engine)
@@ -216,6 +230,11 @@ export const insertAnswerFeedbackSchema = createInsertSchema(answerFeedbacks).om
   updatedAt: true
 });
 
+export const insertSectionAssignmentSchema = createInsertSchema(sectionAssignments).omit({
+  id: true, 
+  createdAt: true
+});
+
 // Update schema for answer feedback
 export const updateAnswerFeedbackSchema = insertAnswerFeedbackSchema.omit({
   rfpAnswerId: true,
@@ -237,6 +256,7 @@ export type InsertComplianceMapping = z.infer<typeof insertComplianceMappingSche
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type InsertAnswerFeedback = z.infer<typeof insertAnswerFeedbackSchema>;
 export type UpdateAnswerFeedback = z.infer<typeof updateAnswerFeedbackSchema>;
+export type InsertSectionAssignment = z.infer<typeof insertSectionAssignmentSchema>;
 
 // Define select types
 export type User = typeof users.$inferSelect;
@@ -250,6 +270,7 @@ export type Chunk = typeof chunks.$inferSelect;
 export type ComplianceMapping = typeof complianceMappings.$inferSelect;
 export type Feedback = typeof feedbacks.$inferSelect;
 export type AnswerFeedback = typeof answerFeedbacks.$inferSelect;
+export type SectionAssignment = typeof sectionAssignments.$inferSelect;
 
 // Extended schemas for form validation
 export const loginSchema = z.object({

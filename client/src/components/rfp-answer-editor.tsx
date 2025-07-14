@@ -39,7 +39,9 @@ interface Question {
   rfpDocumentId: string | null;
   questionNumber: string;
   questionText: string;
+  requirementId: string | null;
   section: string | null;
+  subsection: string | null;
   assignedTo: string | null;
   assignedUser: {
     id: string;

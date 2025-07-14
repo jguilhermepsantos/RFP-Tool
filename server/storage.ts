@@ -13,6 +13,7 @@ import {
   ComplianceMapping, InsertComplianceMapping,
   Feedback, InsertFeedback,
   AnswerFeedback, InsertAnswerFeedback, UpdateAnswerFeedback,
+  SectionAssignment, InsertSectionAssignment,
   UpdateRfpAnswer
 } from "@shared/schema";
 
@@ -49,6 +50,15 @@ export interface IStorage {
   // RFP Question operations
   getRfpQuestions(documentId: string): Promise<RfpQuestion[]>;
   createRfpQuestion(question: InsertRfpQuestion): Promise<RfpQuestion>;
+  assignQuestionToUser(questionId: string, userId: string): Promise<RfpQuestion | undefined>;
+  unassignQuestion(questionId: string): Promise<RfpQuestion | undefined>;
+  
+  // Section Assignment operations
+  getSectionAssignments(documentId: string): Promise<SectionAssignment[]>;
+  createSectionAssignment(assignment: InsertSectionAssignment): Promise<SectionAssignment>;
+  deleteSectionAssignment(id: string): Promise<void>;
+  assignSectionToUser(documentId: string, section: string, subsection: string | null, userId: string): Promise<SectionAssignment>;
+  unassignSection(documentId: string, section: string, subsection: string | null): Promise<void>;
   
   // RFP Answer operations
   getRfpAnswers(questionIds: string[]): Promise<RfpAnswer[]>;

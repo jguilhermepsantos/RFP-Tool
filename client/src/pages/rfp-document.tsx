@@ -5,14 +5,16 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import NavHeader from "@/components/nav-header";
 import RfpAnswerEditor from "@/components/rfp-answer-editor";
+import HierarchicalSectionComponent from "@/components/hierarchical-section";
 import ProgressModal from "@/components/progress-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { organizeQuestionsHierarchically, calculateHierarchicalProgress, HierarchicalQuestion } from "@/utils/hierarchical-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle, PlayCircle, ChevronRight, Filter, Loader2, User, UserPlus, UserX } from "lucide-react";
+import { AlertCircle, CheckCircle, PlayCircle, ChevronRight, Filter, Loader2, User, UserPlus, UserX, FolderOpen } from "lucide-react";
 
 interface RfpDocumentProps {
   projectId: string;
@@ -28,6 +30,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const [assignmentFilter, setAssignmentFilter] = useState<string>("all");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressModalOpen, setProgressModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"hierarchical" | "flat">("hierarchical");
 
   interface ProjectResponse {
     project: {
@@ -52,13 +55,16 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
       rfpDocumentId: string | null;
       questionNumber: string;
       questionText: string;
+      requirementId: string | null;
       section: string | null;
+      subsection: string | null;
       assignedTo: string | null;
       assignedUser: {
         id: string;
         email: string;
         name?: string;
       } | null;
+      createdAt: string;
       answer: {
         id: string;
         rfpQuestionId: string | null;
@@ -86,6 +92,12 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const { data: membersData } = useQuery<{ members: Array<{ id: string; email: string; name?: string; role: string }> }>({
     queryKey: [`/api/projects/${projectId}/members`],
     enabled: !!projectId,
+  });
+
+  // Get section assignments
+  const { data: sectionAssignments } = useQuery<{ assignments: Array<{ id: string; section: string; subsection: string | null; assignedTo: string; assignedUser?: { id: string; email: string; name?: string; } }> }>({
+    queryKey: [`/api/rfp-documents/${documentId}/section-assignments`],
+    enabled: !!documentId,
   });
 
   useEffect(() => {
@@ -220,6 +232,64 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         variant: "destructive",
         title: "Error",
         description: "Failed to unassign question",
+      });
+    }
+  };
+
+  const assignSection = async (section: string, subsection: string | null, assignedTo: string) => {
+    try {
+      await apiRequest(`/api/rfp-documents/${documentId}/section-assignments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ section, subsection, assignedTo }),
+      });
+      
+      // Refresh the data
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/projects/${projectId}/rfp-documents/${documentId}`] 
+      });
+      
+      const label = subsection ? `${section} > ${subsection}` : section;
+      toast({
+        title: "Success",
+        description: `${label} assigned successfully`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to assign section",
+      });
+    }
+  };
+
+  const unassignSection = async (section: string, subsection: string | null) => {
+    try {
+      await apiRequest(`/api/rfp-documents/${documentId}/section-assignments`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ section, subsection }),
+      });
+      
+      // Refresh the data
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/projects/${projectId}/rfp-documents/${documentId}`] 
+      });
+      
+      const label = subsection ? `${section} > ${subsection}` : section;
+      toast({
+        title: "Success",
+        description: `${label} unassigned successfully`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to unassign section",
       });
     }
   };
@@ -459,10 +529,25 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
               </Card>
             ) : (
               <div className="space-y-6">
-                {/* Filters */}
+                {/* Filters and View Toggle */}
                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
                   <Filter className="h-4 w-4 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">Filters:</span>
+                  
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">View:</span>
+                    <Select value={viewMode} onValueChange={(value: "hierarchical" | "flat") => setViewMode(value)}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hierarchical">Hierarchical</SelectItem>
+                        <SelectItem value="flat">Flat List</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   
                   {/* Assignment Filter */}
                   <div className="flex items-center gap-2">
@@ -504,61 +589,125 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                   </span>
                 </div>
                 
-                {document.status === 'unprocessed' ? (
-                  <>
-                    {isProcessing ? (
-                      <Card className="bg-blue-50 border-blue-200 mb-4">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-blue-700 text-base flex items-center">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing Questions
-                          </CardTitle>
-                          <CardDescription>
-                            AI is analyzing the questions and generating answers. This may take a few minutes depending on the number of questions.
-                          </CardDescription>
-                        </CardHeader>
-                      </Card>
-                    ) : (
-                      <Card className="bg-amber-50 border-amber-200 mb-4">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-amber-700 text-base">Ready for Processing</CardTitle>
-                          <CardDescription>
-                            These questions are ready to be processed. Click the "Process Questions" button to generate AI-assisted answers.
-                          </CardDescription>
-                        </CardHeader>
-                      </Card>
-                    )}
-                    <div className="space-y-6">
-                      {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
-                        <RfpAnswerEditor 
-                          key={item.id}
-                          question={item}
-                          documentStatus={document.status}
-                          projectId={projectId}
-                          documentId={documentId}
-                          members={membersData?.members || []}
-                          onAssign={assignQuestion}
-                          onUnassign={unassignQuestion}
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-6">
-                    {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
-                      <RfpAnswerEditor 
-                        key={item.id}
-                        question={item}
-                        documentStatus={document.status}
-                        projectId={projectId}
-                        documentId={documentId}
-                        members={membersData?.members || []}
-                        onAssign={assignQuestion}
-                        onUnassign={unassignQuestion}
-                      />
-                    ))}
-                  </div>
-                )}
+                {(() => {
+                  // Organize questions hierarchically
+                  const hierarchicalQuestions: HierarchicalQuestion[] = questionsWithAnswers.map(q => ({
+                    ...q,
+                    rfpDocumentId: q.rfpDocumentId,
+                    questionText: q.questionText,
+                    questionNumber: q.questionNumber,
+                    requirementId: q.requirementId,
+                    section: q.section,
+                    subsection: q.subsection,
+                    assignedTo: q.assignedTo,
+                    assignedUser: q.assignedUser,
+                    createdAt: q.createdAt,
+                    answer: q.answer
+                  }));
+
+                  const hierarchicalStructure = organizeQuestionsHierarchically(
+                    hierarchicalQuestions,
+                    sectionAssignments?.assignments || [],
+                    membersData?.members || []
+                  );
+
+                  return (
+                    <>
+                      {document.status === 'unprocessed' && (
+                        <>
+                          {isProcessing ? (
+                            <Card className="bg-blue-50 border-blue-200 mb-4">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-blue-700 text-base flex items-center">
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Processing Questions
+                                </CardTitle>
+                                <CardDescription>
+                                  AI is analyzing the questions and generating answers. This may take a few minutes depending on the number of questions.
+                                </CardDescription>
+                              </CardHeader>
+                            </Card>
+                          ) : (
+                            <Card className="bg-amber-50 border-amber-200 mb-4">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-amber-700 text-base">Ready for Processing</CardTitle>
+                                <CardDescription>
+                                  These questions are ready to be processed. Click the "Process Questions" button to generate AI-assisted answers.
+                                </CardDescription>
+                              </CardHeader>
+                            </Card>
+                          )}
+                        </>
+                      )}
+                      
+                      {viewMode === 'hierarchical' ? (
+                        <div className="space-y-6">
+                          {/* Hierarchical Sections */}
+                          {hierarchicalStructure.sections.map((section) => (
+                            <HierarchicalSectionComponent
+                              key={section.section}
+                              section={section}
+                              documentStatus={document.status}
+                              projectId={projectId}
+                              documentId={documentId}
+                              members={membersData?.members || []}
+                              onAssignQuestion={assignQuestion}
+                              onUnassignQuestion={unassignQuestion}
+                              onAssignSection={assignSection}
+                              onUnassignSection={unassignSection}
+                            />
+                          ))}
+
+                          {/* Unorganized Questions */}
+                          {hierarchicalStructure.unorganizedQuestions.length > 0 && (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                                  Unorganized Questions
+                                </CardTitle>
+                                <CardDescription>
+                                  Questions without section organization
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-4">
+                                  {hierarchicalStructure.unorganizedQuestions.map((question) => (
+                                    <RfpAnswerEditor 
+                                      key={question.id}
+                                      question={question}
+                                      documentStatus={document.status}
+                                      projectId={projectId}
+                                      documentId={documentId}
+                                      members={membersData?.members || []}
+                                      onAssign={assignQuestion}
+                                      onUnassign={unassignQuestion}
+                                    />
+                                  ))}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
+                            <RfpAnswerEditor 
+                              key={item.id}
+                              question={item}
+                              documentStatus={document.status}
+                              projectId={projectId}
+                              documentId={documentId}
+                              members={membersData?.members || []}
+                              onAssign={assignQuestion}
+                              onUnassign={unassignQuestion}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
           </>

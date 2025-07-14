@@ -112,12 +112,22 @@ export default function DocumentUpload({
             `Inserting answer row into rfp_answers: Question="${questionText.substring(0, 20)}...", Compliance=${!!complianceAnswer}, Generated=${!!generatedAnswer}`,
           );
 
+          // Extract hierarchical fields for past RFPs too
+          const requirementId = row.requirement_id || row["requirement id"] || row.requirement || null;
+          const section = row.section || row["section"] || null;
+          const subsection = row.subsection || row["subsection"] || row.sub_section || row["sub section"] || null;
+          const questionNumber = row.question_number || row["question number"] || row.number || null;
+
           // First create an rfp_question entry
           const { data: questionData, error: questionError } = await supabase
             .from("rfp_questions")
             .insert({
               rfp_document_id: rfpDocumentId,
               question_text: questionText,
+              question_number: questionNumber,
+              requirement_id: requirementId,
+              section: section,
+              subsection: subsection,
               created_at: new Date().toISOString(),
             })
             .select("id")
@@ -183,8 +193,14 @@ export default function DocumentUpload({
             continue;
           }
 
+          // Extract hierarchical fields with fallback column names
+          const requirementId = row.requirement_id || row["requirement id"] || row.requirement || null;
+          const section = row.section || row["section"] || null;
+          const subsection = row.subsection || row["subsection"] || row.sub_section || row["sub section"] || null;
+          const questionNumber = row.question_number || row["question number"] || row.number || null;
+
           console.log(
-            `Inserting question row: Question=${questionText.substring(0, 20)}...`,
+            `Inserting question row: Question=${questionText.substring(0, 20)}..., Section=${section}, Subsection=${subsection}`,
           );
 
           const { data: insertData, error: insertError } = await supabase
@@ -192,6 +208,10 @@ export default function DocumentUpload({
             .insert({
               rfp_document_id: rfpDocumentId,
               question_text: questionText,
+              question_number: questionNumber,
+              requirement_id: requirementId,
+              section: section,
+              subsection: subsection,
               created_at: new Date().toISOString(),
             });
 
@@ -339,12 +359,14 @@ export default function DocumentUpload({
           Upload a CSV file containing RFP questions and requirements.
           {isPastRfp ? (
             <span className="block mt-1 text-xs text-blue-600">
-              Past RFP files should have columns: "Question Text", "Compliance
-              Answer", "Generated Answer" (Column names are case-insensitive)
+              Past RFP files should have columns: "Question Text", "Compliance Answer", "Generated Answer". 
+              Optional columns: "Requirement ID", "Section", "Subsection", "Question Number"
+              (Column names are case-insensitive)
             </span>
           ) : (
             <span className="block mt-1 text-xs text-blue-600">
-              New RFP files should have at least a "Question Text" column
+              New RFP files should have at least a "Question Text" column. 
+              Optional columns: "Requirement ID", "Section", "Subsection", "Question Number"
               (Column names are case-insensitive)
             </span>
           )}

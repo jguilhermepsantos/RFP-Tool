@@ -12,6 +12,7 @@ import {
   ComplianceMapping, InsertComplianceMapping,
   Feedback, InsertFeedback,
   AnswerFeedback, InsertAnswerFeedback, UpdateAnswerFeedback,
+  SectionAssignment, InsertSectionAssignment,
   UpdateRfpAnswer
 } from '@shared/schema';
 
@@ -436,6 +437,131 @@ export class SupabaseStorage implements IStorage {
     
     if (error) throw new Error(`Failed to create RFP question: ${error.message}`);
     return data as RfpQuestion;
+  }
+
+  async assignQuestionToUser(questionId: string, userId: string): Promise<RfpQuestion | undefined> {
+    const { data, error } = await supabase
+      .from('rfp_questions')
+      .update({ assigned_to: userId })
+      .eq('id', questionId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.log(`[SupabaseStorage] Error assigning question: ${error.message}`);
+      return undefined;
+    }
+    
+    return data as RfpQuestion;
+  }
+
+  async unassignQuestion(questionId: string): Promise<RfpQuestion | undefined> {
+    const { data, error } = await supabase
+      .from('rfp_questions')
+      .update({ assigned_to: null })
+      .eq('id', questionId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.log(`[SupabaseStorage] Error unassigning question: ${error.message}`);
+      return undefined;
+    }
+    
+    return data as RfpQuestion;
+  }
+
+  // Section Assignment operations
+  async getSectionAssignments(documentId: string): Promise<SectionAssignment[]> {
+    const { data, error } = await supabase
+      .from('section_assignments')
+      .select('*')
+      .eq('rfp_document_id', documentId);
+    
+    if (error) {
+      console.log(`[SupabaseStorage] Error getting section assignments: ${error.message}`);
+      throw new Error(`Failed to get section assignments: ${error.message}`);
+    }
+    
+    return data as SectionAssignment[];
+  }
+
+  async createSectionAssignment(assignment: InsertSectionAssignment): Promise<SectionAssignment> {
+    const { data, error } = await supabase
+      .from('section_assignments')
+      .insert(assignment)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create section assignment: ${error.message}`);
+    return data as SectionAssignment;
+  }
+
+  async deleteSectionAssignment(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('section_assignments')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw new Error(`Failed to delete section assignment: ${error.message}`);
+  }
+
+  async assignSectionToUser(documentId: string, section: string, subsection: string | null, userId: string): Promise<SectionAssignment> {
+    // First, check if there's an existing assignment for this section/subsection
+    const existingQuery = supabase
+      .from('section_assignments')
+      .select('*')
+      .eq('rfp_document_id', documentId)
+      .eq('section', section);
+    
+    if (subsection) {
+      existingQuery.eq('subsection', subsection);
+    } else {
+      existingQuery.is('subsection', null);
+    }
+    
+    const { data: existing } = await existingQuery.single();
+    
+    if (existing) {
+      // Update existing assignment
+      const { data, error } = await supabase
+        .from('section_assignments')
+        .update({ assigned_to: userId })
+        .eq('id', existing.id)
+        .select()
+        .single();
+      
+      if (error) throw new Error(`Failed to update section assignment: ${error.message}`);
+      return data as SectionAssignment;
+    } else {
+      // Create new assignment
+      const newAssignment: InsertSectionAssignment = {
+        rfpDocumentId: documentId,
+        section,
+        subsection,
+        assignedTo: userId
+      };
+      
+      return await this.createSectionAssignment(newAssignment);
+    }
+  }
+
+  async unassignSection(documentId: string, section: string, subsection: string | null): Promise<void> {
+    const deleteQuery = supabase
+      .from('section_assignments')
+      .delete()
+      .eq('rfp_document_id', documentId)
+      .eq('section', section);
+    
+    if (subsection) {
+      deleteQuery.eq('subsection', subsection);
+    } else {
+      deleteQuery.is('subsection', null);
+    }
+    
+    const { error } = await deleteQuery;
+    
+    if (error) throw new Error(`Failed to unassign section: ${error.message}`);
   }
   
   // RFP Answer operations

@@ -1842,6 +1842,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Section Assignment routes
+  apiRouter.get(
+    "/rfp-documents/:documentId/section-assignments",
+    async (req: Request, res: Response) => {
+      try {
+        const { documentId } = req.params;
+        const assignments = await supabase
+          .from("section_assignments")
+          .select(`
+            *,
+            assigned_user:users(id, email, name)
+          `)
+          .eq("rfp_document_id", documentId);
+
+        if (assignments.error) {
+          console.error("Error getting section assignments:", assignments.error);
+          return res.status(500).json({ message: "Internal server error" });
+        }
+
+        return res.status(200).json({ assignments: assignments.data });
+      } catch (error) {
+        console.error("Error getting section assignments:", error);
+        return res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
+
+  apiRouter.post(
+    "/rfp-documents/:documentId/section-assignments",
+    async (req: Request, res: Response) => {
+      try {
+        const { documentId } = req.params;
+        const { section, subsection, assignedTo } = req.body;
+
+        if (!section || !assignedTo) {
+          return res.status(400).json({ message: "section and assignedTo are required" });
+        }
+
+        const assignment = await storage.assignSectionToUser(documentId, section, subsection || null, assignedTo);
+        return res.status(200).json({ assignment });
+      } catch (error) {
+        console.error("Error assigning section:", error);
+        return res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
+
+  apiRouter.delete(
+    "/rfp-documents/:documentId/section-assignments",
+    async (req: Request, res: Response) => {
+      try {
+        const { documentId } = req.params;
+        const { section, subsection } = req.body;
+
+        if (!section) {
+          return res.status(400).json({ message: "section is required" });
+        }
+
+        await storage.unassignSection(documentId, section, subsection || null);
+        return res.status(200).json({ message: "Section unassigned successfully" });
+      } catch (error) {
+        console.error("Error unassigning section:", error);
+        return res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
+
   apiRouter.put(
     "/rfp-questions/:questionId/unassign",
     async (req: Request, res: Response) => {
