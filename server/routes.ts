@@ -1842,50 +1842,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
-  // Section Assignment routes
-  apiRouter.get(
-    "/rfp-documents/:documentId/section-assignments",
-    async (req: Request, res: Response) => {
-      try {
-        const { documentId } = req.params;
-        
-        // Get section assignments
-        const { data: assignments, error: assignmentsError } = await supabase
-          .from("section_assignments")
-          .select("*")
-          .eq("rfp_document_id", documentId);
-
-        if (assignmentsError) {
-          console.error("Error getting section assignments:", assignmentsError);
-          return res.status(500).json({ message: "Internal server error" });
-        }
-
-        // Get user details for each assignment
-        const assignmentsWithUsers = await Promise.all(
-          assignments.map(async (assignment) => {
-            const { data: user, error: userError } = await supabase
-              .from("users")
-              .select("id, email, name")
-              .eq("id", assignment.assigned_to)
-              .single();
-
-            return {
-              ...assignment,
-              assignedUser: userError ? null : user
-            };
-          })
-        );
-
-        return res.status(200).json({ assignments: assignmentsWithUsers });
-      } catch (error) {
-        console.error("Error getting section assignments:", error);
-        return res.status(500).json({ message: "Internal server error" });
-      }
-    },
-  );
-
+  // Section Assignment routes - assign/unassign all questions in a section/subsection
   apiRouter.post(
-    "/rfp-documents/:documentId/section-assignments",
+    "/rfp-documents/:documentId/assign-section",
     async (req: Request, res: Response) => {
       try {
         const { documentId } = req.params;
@@ -1895,8 +1854,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "section and assignedTo are required" });
         }
 
-        const assignment = await storage.assignSectionToUser(documentId, section, subsection || null, assignedTo);
-        return res.status(200).json({ assignment });
+        // Build the update query
+        let updateQuery = supabase
+          .from("rfp_questions")
+          .update({ assigned_to: assignedTo })
+          .eq("rfp_document_id", documentId)
+          .eq("section", section);
+
+        // Add subsection filter if provided
+        if (subsection) {
+          updateQuery = updateQuery.eq("subsection", subsection);
+        } else {
+          // If no subsection specified, update all questions in the section
+          updateQuery = updateQuery.is("subsection", null);
+        }
+
+        const { data, error } = await updateQuery.select("*");
+
+        if (error) {
+          console.error("Error assigning section:", error);
+          return res.status(500).json({ message: "Internal server error" });
+        }
+
+        return res.status(200).json({ 
+          message: `Successfully assigned ${data.length} questions`,
+          updatedQuestions: data 
+        });
       } catch (error) {
         console.error("Error assigning section:", error);
         return res.status(500).json({ message: "Internal server error" });
@@ -1904,8 +1887,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
-  apiRouter.delete(
-    "/rfp-documents/:documentId/section-assignments",
+  apiRouter.post(
+    "/rfp-documents/:documentId/unassign-section",
     async (req: Request, res: Response) => {
       try {
         const { documentId } = req.params;
@@ -1915,8 +1898,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "section is required" });
         }
 
-        await storage.unassignSection(documentId, section, subsection || null);
-        return res.status(200).json({ message: "Section unassigned successfully" });
+        // Build the update query
+        let updateQuery = supabase
+          .from("rfp_questions")
+          .update({ assigned_to: null })
+          .eq("rfp_document_id", documentId)
+          .eq("section", section);
+
+        // Add subsection filter if provided
+        if (subsection) {
+          updateQuery = updateQuery.eq("subsection", subsection);
+        } else {
+          // If no subsection specified, unassign all questions in the section
+          updateQuery = updateQuery.is("subsection", null);
+        }
+
+        const { data, error } = await updateQuery.select("*");
+
+        if (error) {
+          console.error("Error unassigning section:", error);
+          return res.status(500).json({ message: "Internal server error" });
+        }
+
+        return res.status(200).json({ 
+          message: `Successfully unassigned ${data.length} questions`,
+          updatedQuestions: data 
+        });
       } catch (error) {
         console.error("Error unassigning section:", error);
         return res.status(500).json({ message: "Internal server error" });

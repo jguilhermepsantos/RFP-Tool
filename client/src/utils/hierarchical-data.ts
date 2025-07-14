@@ -56,17 +56,6 @@ export interface HierarchicalStructure {
  */
 export function organizeQuestionsHierarchically(
   questions: HierarchicalQuestion[],
-  sectionAssignments: Array<{
-    id: string;
-    section: string;
-    subsection: string | null;
-    assignedTo: string;
-    assignedUser?: {
-      id: string;
-      email: string;
-      name?: string;
-    };
-  }> = [],
   projectMembers: Array<{
     id: string;
     email: string;
@@ -75,13 +64,6 @@ export function organizeQuestionsHierarchically(
 ): HierarchicalStructure {
   const sections: Map<string, HierarchicalSection> = new Map();
   const unorganizedQuestions: HierarchicalQuestion[] = [];
-
-  // Create a map of section assignments for quick lookup
-  const sectionAssignmentMap = new Map<string, any>();
-  sectionAssignments.forEach(assignment => {
-    const key = `${assignment.section}:${assignment.subsection || 'null'}`;
-    sectionAssignmentMap.set(key, assignment);
-  });
 
   // Helper function to get user info
   const getUserInfo = (userId: string | null) => {
@@ -99,12 +81,11 @@ export function organizeQuestionsHierarchically(
 
     // Get or create section
     if (!sections.has(question.section)) {
-      const sectionAssignment = sectionAssignmentMap.get(`${question.section}:null`);
       sections.set(question.section, {
         section: question.section,
         subsections: [],
-        assignedTo: sectionAssignment?.assignedTo || null,
-        assignedUser: sectionAssignment?.assignedUser || getUserInfo(sectionAssignment?.assignedTo),
+        assignedTo: null,
+        assignedUser: null,
         questionsCount: 0,
         completedCount: 0
       });
@@ -121,12 +102,11 @@ export function organizeQuestionsHierarchically(
     let subsection = section.subsections.find(s => s.subsection === subsectionKey);
     
     if (!subsection) {
-      const subsectionAssignment = sectionAssignmentMap.get(`${question.section}:${subsectionKey}`);
       subsection = {
         subsection: subsectionKey,
         questions: [],
-        assignedTo: subsectionAssignment?.assignedTo || null,
-        assignedUser: subsectionAssignment?.assignedUser || getUserInfo(subsectionAssignment?.assignedTo),
+        assignedTo: null,
+        assignedUser: null,
         questionsCount: 0,
         completedCount: 0
       };
@@ -145,7 +125,7 @@ export function organizeQuestionsHierarchically(
     a.section.localeCompare(b.section)
   );
 
-  // Sort subsections within each section
+  // Sort subsections within each section and determine section-level assignments
   sortedSections.forEach(section => {
     section.subsections.sort((a, b) => {
       if (a.subsection === null) return 1; // null subsections go last
@@ -153,7 +133,7 @@ export function organizeQuestionsHierarchically(
       return a.subsection.localeCompare(b.subsection);
     });
 
-    // Sort questions within each subsection
+    // Sort questions within each subsection and determine subsection-level assignments
     section.subsections.forEach(subsection => {
       subsection.questions.sort((a, b) => {
         // Sort by question number if available, otherwise by question text
@@ -162,7 +142,22 @@ export function organizeQuestionsHierarchically(
         }
         return a.questionText.localeCompare(b.questionText);
       });
+
+      // Determine if all questions in this subsection are assigned to the same person
+      const assignedUsers = [...new Set(subsection.questions.map(q => q.assignedTo).filter(Boolean))];
+      if (assignedUsers.length === 1) {
+        subsection.assignedTo = assignedUsers[0];
+        subsection.assignedUser = getUserInfo(assignedUsers[0]);
+      }
     });
+
+    // Determine if all questions in this section are assigned to the same person
+    const allQuestionsInSection = section.subsections.flatMap(sub => sub.questions);
+    const assignedUsers = [...new Set(allQuestionsInSection.map(q => q.assignedTo).filter(Boolean))];
+    if (assignedUsers.length === 1) {
+      section.assignedTo = assignedUsers[0];
+      section.assignedUser = getUserInfo(assignedUsers[0]);
+    }
   });
 
   return {

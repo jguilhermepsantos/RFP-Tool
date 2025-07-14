@@ -94,11 +94,8 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     enabled: !!projectId,
   });
 
-  // Get section assignments
-  const { data: sectionAssignments } = useQuery<{ assignments: Array<{ id: string; section: string; subsection: string | null; assignedTo: string; assignedUser?: { id: string; email: string; name?: string; } }> }>({
-    queryKey: [`/api/rfp-documents/${documentId}/section-assignments`],
-    enabled: !!documentId,
-  });
+  // Section assignments are now handled directly in the rfp_questions table
+  // No need for separate section assignments query
 
   useEffect(() => {
     if (isError && error) {
@@ -238,7 +235,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
 
   const assignSection = async (section: string, subsection: string | null, assignedTo: string) => {
     try {
-      await apiRequest(`/api/rfp-documents/${documentId}/section-assignments`, {
+      await apiRequest(`/api/rfp-documents/${documentId}/assign-section`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -267,8 +264,8 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
 
   const unassignSection = async (section: string, subsection: string | null) => {
     try {
-      await apiRequest(`/api/rfp-documents/${documentId}/section-assignments`, {
-        method: "DELETE",
+      await apiRequest(`/api/rfp-documents/${documentId}/unassign-section`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -607,7 +604,6 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
 
                   const hierarchicalStructure = organizeQuestionsHierarchically(
                     hierarchicalQuestions,
-                    sectionAssignments?.assignments || [],
                     membersData?.members || []
                   );
 
