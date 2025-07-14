@@ -512,6 +512,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
+        // Get all questions with their answers for this document
+        const { data: questions, error: questionsError } = await supabase
+          .from("rfp_questions")
+          .select("*")
+          .eq("rfp_document_id", documentId)
+          .order("created_at", { ascending: true });
+
+        if (questionsError) {
+          console.error("Error fetching questions:", questionsError);
+          return res
+            .status(500)
+            .json({ message: "Error fetching document questions" });
+        }
+
+        if (!questions || questions.length === 0) {
+          return res
+            .status(404)
+            .json({ message: "No questions found for this document" });
+        }
+
         // Get all answers for this document
         const { data: answers, error: answersError } = await supabase
           .from("rfp_answers")
@@ -525,24 +545,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "Error fetching document answers" });
         }
 
-        if (!answers || answers.length === 0) {
-          return res
-            .status(404)
-            .json({ message: "No answers found for this document" });
-        }
+        // Create a map of answers by question ID for efficient lookup
+        const answersMap = new Map();
+        (answers || []).forEach((answer: any) => {
+          answersMap.set(answer.rfp_question_id, answer);
+        });
 
-        // Generate CSV content
-        const csvHeader = "Question,Compliance,Answer\n";
+        // Generate CSV content with the requested columns
+        const csvHeader = "Requirement ID,Section,Subsection,Question,Compliance Answer,Answer\n";
 
-        const csvRows = answers.map((answer) => {
+        const csvRows = questions.map((question) => {
+          const answer = answersMap.get(question.id);
+          
           // Escape double quotes in fields by replacing with two double quotes
-          const question = answer.question_text?.replace(/"/g, '""') || "";
-          const compliance =
-            answer.compliance_answer?.replace(/"/g, '""') || "";
-          const answerText = answer.generated_answer?.replace(/"/g, '""') || "";
+          const requirementId = question.requirement_id?.replace(/"/g, '""') || "";
+          const section = question.section?.replace(/"/g, '""') || "";
+          const subsection = question.subsection?.replace(/"/g, '""') || "";
+          const questionText = question.question_text?.replace(/"/g, '""') || "";
+          const complianceAnswer = answer?.compliance_answer?.replace(/"/g, '""') || "";
+          const generatedAnswer = answer?.generated_answer?.replace(/"/g, '""') || "";
 
           // Wrap fields in double quotes and separate with commas
-          return `"${question}","${compliance}","${answerText}"`;
+          return `"${requirementId}","${section}","${subsection}","${questionText}","${complianceAnswer}","${generatedAnswer}"`;
         });
 
         const csvContent = csvHeader + csvRows.join("\n");
