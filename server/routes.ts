@@ -1848,20 +1848,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: Request, res: Response) => {
       try {
         const { documentId } = req.params;
-        const assignments = await supabase
+        
+        // Get section assignments
+        const { data: assignments, error: assignmentsError } = await supabase
           .from("section_assignments")
-          .select(`
-            *,
-            assigned_user:users(id, email, name)
-          `)
+          .select("*")
           .eq("rfp_document_id", documentId);
 
-        if (assignments.error) {
-          console.error("Error getting section assignments:", assignments.error);
+        if (assignmentsError) {
+          console.error("Error getting section assignments:", assignmentsError);
           return res.status(500).json({ message: "Internal server error" });
         }
 
-        return res.status(200).json({ assignments: assignments.data });
+        // Get user details for each assignment
+        const assignmentsWithUsers = await Promise.all(
+          assignments.map(async (assignment) => {
+            const { data: user, error: userError } = await supabase
+              .from("users")
+              .select("id, email, name")
+              .eq("id", assignment.assigned_to)
+              .single();
+
+            return {
+              ...assignment,
+              assignedUser: userError ? null : user
+            };
+          })
+        );
+
+        return res.status(200).json({ assignments: assignmentsWithUsers });
       } catch (error) {
         console.error("Error getting section assignments:", error);
         return res.status(500).json({ message: "Internal server error" });
