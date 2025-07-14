@@ -508,26 +508,9 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
               {getActionButton(document.status)}
             </div>
             
-            {questionsWithAnswers.length === 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <AlertCircle className="mr-2 h-5 w-5 text-amber-500" />
-                    No Questions Available
-                  </CardTitle>
-                  <CardDescription>
-                    {document.status === 'unprocessed' 
-                      ? 'No questions found for this document. Please check the uploaded file.'
-                      : document.status === 'done'
-                        ? 'This document has been marked as done but no questions were found.'
-                        : 'No questions found in this document.'}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                {/* Filters and View Toggle */}
-                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
+            {/* Filters and View Toggle - Always visible when there are questions in the document */}
+            {allQuestionsWithAnswers.length > 0 && (
+              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
                   <Filter className="h-4 w-4 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">Filters:</span>
                   
@@ -585,7 +568,39 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                     Showing {questionsWithAnswers.length} of {allQuestionsWithAnswers.length} questions
                   </span>
                 </div>
-                
+            )}
+            
+            {/* Content Area */}
+            {allQuestionsWithAnswers.length === 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <AlertCircle className="mr-2 h-5 w-5 text-amber-500" />
+                    No Questions Available
+                  </CardTitle>
+                  <CardDescription>
+                    {document.status === 'unprocessed' 
+                      ? 'No questions found for this document. Please check the uploaded file.'
+                      : document.status === 'done'
+                        ? 'This document has been marked as done but no questions were found.'
+                        : 'No questions found in this document.'}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            ) : questionsWithAnswers.length === 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <AlertCircle className="mr-2 h-5 w-5 text-amber-500" />
+                    No Questions Match Current Filters
+                  </CardTitle>
+                  <CardDescription>
+                    Try adjusting your filters to see more questions. You can use the filters above to change your view.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            ) : (
+              <div className="space-y-6">
                 {(() => {
                   // Organize questions hierarchically
                   const hierarchicalQuestions: HierarchicalQuestion[] = questionsWithAnswers.map(q => ({
