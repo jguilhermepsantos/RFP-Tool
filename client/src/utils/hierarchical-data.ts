@@ -64,6 +64,7 @@ export function organizeQuestionsHierarchically(
 ): HierarchicalStructure {
   const sections: Map<string, HierarchicalSection> = new Map();
   const unorganizedQuestions: HierarchicalQuestion[] = [];
+  const sectionOrder: Map<string, number> = new Map();
 
   // Helper function to get user info
   const getUserInfo = (userId: string | null) => {
@@ -72,11 +73,16 @@ export function organizeQuestionsHierarchically(
   };
 
   // Process each question
-  questions.forEach(question => {
+  questions.forEach((question, index) => {
     if (!question.section) {
       // Question without section goes to unorganized
       unorganizedQuestions.push(question);
       return;
+    }
+
+    // Track the order of sections as they appear in the CSV
+    if (!sectionOrder.has(question.section)) {
+      sectionOrder.set(question.section, index);
     }
 
     // Get or create section
@@ -120,9 +126,9 @@ export function organizeQuestionsHierarchically(
     }
   });
 
-  // Convert map to array and sort
+  // Convert map to array and sort by CSV order instead of alphabetically
   const sortedSections = Array.from(sections.values()).sort((a, b) => 
-    a.section.localeCompare(b.section)
+    (sectionOrder.get(a.section) || 0) - (sectionOrder.get(b.section) || 0)
   );
 
   // Sort subsections within each section and determine section-level assignments
@@ -136,9 +142,9 @@ export function organizeQuestionsHierarchically(
     // Sort questions within each subsection and determine subsection-level assignments
     section.subsections.forEach(subsection => {
       subsection.questions.sort((a, b) => {
-        // Sort by question number if available, otherwise by question text
-        if (a.questionNumber && b.questionNumber) {
-          return a.questionNumber.localeCompare(b.questionNumber);
+        // Sort by requirement ID if available, otherwise by question text
+        if (a.requirementId && b.requirementId) {
+          return a.requirementId.localeCompare(b.requirementId);
         }
         return a.questionText.localeCompare(b.questionText);
       });
@@ -163,8 +169,8 @@ export function organizeQuestionsHierarchically(
   return {
     sections: sortedSections,
     unorganizedQuestions: unorganizedQuestions.sort((a, b) => {
-      if (a.questionNumber && b.questionNumber) {
-        return a.questionNumber.localeCompare(b.questionNumber);
+      if (a.requirementId && b.requirementId) {
+        return a.requirementId.localeCompare(b.requirementId);
       }
       return a.questionText.localeCompare(b.questionText);
     })

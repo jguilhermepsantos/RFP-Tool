@@ -248,7 +248,9 @@ export default function RfpAnswerEditor({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <CardTitle className="text-base font-medium flex items-center gap-2">
-              <span className="text-muted-foreground">{question.questionNumber}</span>
+              {question.requirementId && (
+                <span className="text-muted-foreground">{question.requirementId}</span>
+              )}
               {question.questionText}
             </CardTitle>
             <div className="flex flex-col gap-1 mt-2">
