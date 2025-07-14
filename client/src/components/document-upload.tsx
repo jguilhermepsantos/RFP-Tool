@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileUpIcon, Loader2 } from "lucide-react";
+import { FileUpIcon, Loader2, Download } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Papa from "papaparse";
 
@@ -33,6 +33,45 @@ export default function DocumentUpload({
   const [documentName, setDocumentName] = useState("");
   const [isPastRfp, setIsPastRfp] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Function to download CSV example
+  const downloadCSVExample = (type: 'new' | 'past') => {
+    let csvContent = '';
+    let filename = '';
+    
+    if (type === 'new') {
+      // New RFP CSV example
+      csvContent = `"Question Text","Requirement ID","Section","Subsection"
+"Does your system support single sign-on (SSO) integration?","REQ-001","Technical Requirements","Authentication"
+"What is the maximum number of concurrent users your platform can support?","REQ-002","Technical Requirements","Performance"
+"Does your platform comply with GDPR regulations?","REQ-003","Compliance","Data Protection"
+"What security certifications does your platform have?","REQ-004","Compliance","Security"
+"Can you provide 24/7 technical support?","REQ-005","Support","Technical Support"`;
+      filename = 'new_rfp_template.csv';
+    } else {
+      // Past RFP CSV example
+      csvContent = `"Question Text","Compliance Answer","Generated Answer","Requirement ID","Section","Subsection"
+"Does your system support single sign-on (SSO) integration?","Yes, natively","VTEX supports SSO integration natively through SAML 2.0 and OAuth 2.0 protocols.","REQ-001","Technical Requirements","Authentication"
+"What is the maximum number of concurrent users your platform can support?","100,000+ users","VTEX platform can handle over 100,000 concurrent users with auto-scaling capabilities.","REQ-002","Technical Requirements","Performance"
+"Does your platform comply with GDPR regulations?","Yes, fully compliant","VTEX is fully GDPR compliant with comprehensive data protection measures.","REQ-003","Compliance","Data Protection"
+"What security certifications does your platform have?","ISO 27001, SOC 2","VTEX holds ISO 27001 and SOC 2 Type II certifications for security management.","REQ-004","Compliance","Security"
+"Can you provide 24/7 technical support?","Yes, available","VTEX provides 24/7 technical support with multilingual assistance.","REQ-005","Support","Technical Support"`;
+      filename = 'past_rfp_template.csv';
+    }
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -354,17 +393,41 @@ export default function DocumentUpload({
         <CardDescription>
           Upload a CSV file containing RFP questions and requirements.
           {isPastRfp ? (
-            <span className="block mt-1 text-xs text-blue-600">
-              Past RFP files should have columns: "Question Text", "Compliance Answer", "Generated Answer". 
-              Optional columns: "Requirement ID", "Section", "Subsection"
-              (Column names are case-insensitive)
-            </span>
+            <div className="mt-2 space-y-2">
+              <span className="block text-xs text-blue-600">
+                Past RFP files should have columns: "Question Text", "Compliance Answer", "Generated Answer". 
+                Optional columns: "Requirement ID", "Section", "Subsection"
+                (Column names are case-insensitive)
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => downloadCSVExample('past')}
+                className="text-xs h-7"
+              >
+                <Download className="h-3 w-3 mr-1" />
+                Download Past RFP Template
+              </Button>
+            </div>
           ) : (
-            <span className="block mt-1 text-xs text-blue-600">
-              New RFP files should have at least a "Question Text" column. 
-              Optional columns: "Requirement ID", "Section", "Subsection"
-              (Column names are case-insensitive)
-            </span>
+            <div className="mt-2 space-y-2">
+              <span className="block text-xs text-blue-600">
+                New RFP files should have at least a "Question Text" column. 
+                Optional columns: "Requirement ID", "Section", "Subsection"
+                (Column names are case-insensitive)
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => downloadCSVExample('new')}
+                className="text-xs h-7"
+              >
+                <Download className="h-3 w-3 mr-1" />
+                Download New RFP Template
+              </Button>
+            </div>
           )}
         </CardDescription>
       </CardHeader>
