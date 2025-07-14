@@ -356,13 +356,13 @@ export default function DocumentUpload({
           {isPastRfp ? (
             <span className="block mt-1 text-xs text-blue-600">
               Past RFP files should have columns: "Question Text", "Compliance Answer", "Generated Answer". 
-              Optional columns: "Requirement ID", "Section", "Subsection", "Question Number"
+              Optional columns: "Requirement ID", "Section", "Subsection"
               (Column names are case-insensitive)
             </span>
           ) : (
             <span className="block mt-1 text-xs text-blue-600">
               New RFP files should have at least a "Question Text" column. 
-              Optional columns: "Requirement ID", "Section", "Subsection", "Question Number"
+              Optional columns: "Requirement ID", "Section", "Subsection"
               (Column names are case-insensitive)
             </span>
           )}
