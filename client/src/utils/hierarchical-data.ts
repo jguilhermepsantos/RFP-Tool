@@ -65,6 +65,7 @@ export function organizeQuestionsHierarchically(
   const sections: Map<string, HierarchicalSection> = new Map();
   const unorganizedQuestions: HierarchicalQuestion[] = [];
   const sectionOrder: Map<string, number> = new Map();
+  const subsectionOrder: Map<string, number> = new Map();
 
   // Helper function to get user info
   const getUserInfo = (userId: string | null) => {
@@ -83,6 +84,13 @@ export function organizeQuestionsHierarchically(
     // Track the order of sections as they appear in the CSV
     if (!sectionOrder.has(question.section)) {
       sectionOrder.set(question.section, index);
+    }
+
+    // Track the order of subsections as they appear in the CSV
+    const subsectionKey = question.subsection || null;
+    const subsectionMapKey = `${question.section}:${subsectionKey}`;
+    if (!subsectionOrder.has(subsectionMapKey)) {
+      subsectionOrder.set(subsectionMapKey, index);
     }
 
     // Get or create section
@@ -104,7 +112,6 @@ export function organizeQuestionsHierarchically(
     }
 
     // Find or create subsection
-    const subsectionKey = question.subsection || null;
     let subsection = section.subsections.find(s => s.subsection === subsectionKey);
     
     if (!subsection) {
@@ -136,7 +143,14 @@ export function organizeQuestionsHierarchically(
     section.subsections.sort((a, b) => {
       if (a.subsection === null) return 1; // null subsections go last
       if (b.subsection === null) return -1;
-      return a.subsection.localeCompare(b.subsection);
+      
+      // Sort by CSV order instead of alphabetically
+      const aKey = `${section.section}:${a.subsection}`;
+      const bKey = `${section.section}:${b.subsection}`;
+      const aOrder = subsectionOrder.get(aKey) || 0;
+      const bOrder = subsectionOrder.get(bKey) || 0;
+      
+      return aOrder - bOrder;
     });
 
     // Sort questions within each subsection and determine subsection-level assignments
