@@ -6,13 +6,6 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
-- **Versioned Answer System (July 15, 2025)**: Implemented comprehensive versioned answer system with carousel-based version history:
-  - Replaced last_reviewed_by/last_reviewed_at fields with created_by field tracking answer authorship
-  - Complete audit trail preserves all AI-generated and human-edited answer versions
-  - New API endpoints for creating answer versions and retrieving version history
-  - Carousel-based version history component with user name resolution
-  - Enhanced editing workflow creates new versions instead of overwriting existing answers
-  - Version history displays proper user names/emails with fallback to user ID
 - **Question Number Field Removal (July 14, 2025)**: Completely removed question_number field from codebase after confirming requirement ID-based system works correctly. User will delete column from Supabase database.
 - **CSV Export Enhancement (July 14, 2025)**: Updated CSV export for completed RFP documents to include comprehensive columns: requirement ID, section, subsection, question, compliance answer, and answer
 - **Display and Ordering Improvements (July 14, 2025)**: Enhanced hierarchical organization to display requirement IDs instead of question numbers, and preserve CSV upload order for both sections and subsections

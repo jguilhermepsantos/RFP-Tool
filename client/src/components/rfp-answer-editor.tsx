@@ -14,7 +14,7 @@ import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare, User,
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import AnswerFeedback from "./answer-feedback";
-import { VersionHistory } from "./version-history-scroll";
+import { VersionHistory } from "./version-history";
 
 interface SourceChunk {
   chunkId: string;
@@ -340,7 +340,6 @@ export default function RfpAnswerEditor({
                 <VersionHistory 
                   questionId={question.id}
                   currentAnswer={question.answer}
-                  projectId={projectId}
                 />
               )}
               
