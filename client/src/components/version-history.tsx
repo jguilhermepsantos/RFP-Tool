@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { History, User, Bot, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useUserCache } from '@/hooks/use-user-cache';
 
 interface VersionHistoryProps {
   questionId: string;
@@ -38,16 +39,14 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
   const userIds = versions?.filter(v => v.created_by !== 'AI-generated').map(v => v.created_by) || [];
   const uniqueUserIds = [...new Set(userIds)];
   
-  const { data: users } = useQuery<{id: string, name: string, email: string}[]>({
-    queryKey: [`/api/users/batch`],
-    enabled: isOpen && uniqueUserIds.length > 0,
-  });
+  // Use the existing user cache hook instead of the failing batch API
+  const { users } = useUserCache(uniqueUserIds);
 
   const formatCreatedBy = (createdBy: string) => {
     if (createdBy === 'AI-generated') {
       return 'AI Generated';
     }
-    // Look up user information
+    // Look up user information from the user cache
     const user = users?.find(u => u.id === createdBy);
     if (user) {
       return user.name || user.email;
