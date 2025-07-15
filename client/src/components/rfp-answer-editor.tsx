@@ -14,7 +14,7 @@ import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare, User,
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import AnswerFeedback from "./answer-feedback";
-import { VersionHistory } from "./version-history-fixed";
+import { VersionHistory } from "./version-history-scroll";
 
 interface SourceChunk {
   chunkId: string;
