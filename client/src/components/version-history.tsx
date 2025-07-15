@@ -56,14 +56,16 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
   });
 
   const formatCreatedBy = (createdBy: string) => {
+    if (!createdBy) return 'Unknown';
+    
     if (createdBy === 'AI-generated') {
       return 'AI Generated';
     }
     
     // Find the user in the members list
-    const user = members.find(member => member.id === createdBy);
+    const user = members?.find(member => member?.id === createdBy);
     if (user) {
-      return user.name || user.email;
+      return user.name || user.email || 'Unknown User';
     }
     
     // Fallback to truncated user ID
