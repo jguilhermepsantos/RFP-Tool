@@ -8,12 +8,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { History, User, Bot, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { useUserCache } from '@/hooks/use-user-cache';
 
 interface VersionHistoryProps {
   questionId: string;
   currentAnswer: any;
   trigger?: React.ReactNode;
+  members?: Array<{ id: string; email: string; name?: string; role: string }>;
 }
 
 interface AnswerVersion {
@@ -27,7 +27,7 @@ interface AnswerVersion {
   confidence_level: 'low' | 'medium' | 'high';
 }
 
-export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHistoryProps) {
+export function VersionHistory({ questionId, currentAnswer, trigger, members }: VersionHistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   
   const { data: versions, isLoading, error } = useQuery<AnswerVersion[]>({
@@ -35,29 +35,14 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
     enabled: isOpen, // Only fetch when dialog is open
   });
 
-  // Get unique user IDs from versions
-  const userIds = versions?.filter(v => v.created_by !== 'AI-generated').map(v => v.created_by) || [];
-  const uniqueUserIds = [...new Set(userIds)];
-  
-  // Use the existing user cache hook instead of the failing batch API
-  const { users } = useUserCache(uniqueUserIds);
-
-  // Debug logging
-  console.log('Version history debug:', {
-    uniqueUserIds,
-    users,
-    versions: versions?.map(v => ({ id: v.id, created_by: v.created_by }))
-  });
-
   const formatCreatedBy = (createdBy: string) => {
     if (createdBy === 'AI-generated') {
       return 'AI Generated';
     }
-    // Look up user information from the user cache
-    const user = users?.find(u => u.id === createdBy);
-    console.log('User lookup for', createdBy, ':', user);
-    if (user) {
-      return user.name || user.email;
+    // Look up user information from the members prop
+    const member = members?.find(m => m.id === createdBy);
+    if (member) {
+      return member.name || member.email;
     }
     return `User ${createdBy.slice(0, 8)}...`;
   };

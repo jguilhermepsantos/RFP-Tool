@@ -340,6 +340,7 @@ export default function RfpAnswerEditor({
                 <VersionHistory 
                   questionId={question.id}
                   currentAnswer={question.answer}
+                  members={members}
                 />
               )}
               
