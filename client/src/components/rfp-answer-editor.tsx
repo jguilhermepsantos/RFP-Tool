@@ -173,6 +173,13 @@ export default function RfpAnswerEditor({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSourcesOpen, setIsSourcesOpen] = useState(false);
 
+  // Helper function to get user name from members list
+  const getUserName = (userId: string) => {
+    if (userId === 'AI-generated') return 'AI-generated';
+    const member = members.find(m => m.id === userId);
+    return member ? (member.name || member.email) : `User ${userId.slice(0, 8)}...`;
+  };
+
   const handleSaveChanges = async () => {
     if (!question.answer?.id || !user?.id) return;
     
@@ -438,7 +445,7 @@ export default function RfpAnswerEditor({
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                   <User className="h-3 w-3" />
                   <span>
-                    {question.answer.createdBy === 'AI-generated' ? 'AI-generated' : `Edited by user`} on{' '}
+                    {question.answer.createdBy === 'AI-generated' ? 'AI-generated' : `Edited by ${getUserName(question.answer.createdBy)}`} on{' '}
                     {new Date(question.answer.createdAt).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
