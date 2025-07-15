@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { History, User, Bot, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { ErrorBoundary } from './error-boundary';
 
 interface VersionHistoryProps {
   questionId: string;
@@ -38,6 +39,25 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
     queryKey: [`/api/projects/${projectId}/members`],
     enabled: isOpen && !!projectId,
   });
+
+  // Log data when it changes
+  useEffect(() => {
+    if (versions) {
+      console.log('Versions data:', versions);
+    }
+  }, [versions]);
+
+  useEffect(() => {
+    if (members) {
+      console.log('Members data:', members);
+    }
+  }, [members]);
+
+  useEffect(() => {
+    if (error) {
+      console.error('Version history error:', error);
+    }
+  }, [error]);
 
   useEffect(() => {
     if (versions && versions.length > 0) {
@@ -170,7 +190,8 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <ErrorBoundary>
+          <div className="space-y-4">
           {/* Carousel Navigation */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -225,7 +246,14 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Clock className="w-4 h-4" />
-                    {formatDistanceToNow(new Date(currentVersion.created_at), { addSuffix: true })}
+                    {(() => {
+                      try {
+                        return formatDistanceToNow(new Date(currentVersion.created_at), { addSuffix: true });
+                      } catch (e) {
+                        console.error('Error formatting date:', e, currentVersion.created_at);
+                        return 'Unknown date';
+                      }
+                    })()}
                   </div>
                 </div>
                 <CardDescription>
@@ -268,7 +296,8 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
               </CardContent>
             </Card>
           )}
-        </div>
+          </div>
+        </ErrorBoundary>
       </DialogContent>
     </Dialog>
   );
