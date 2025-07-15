@@ -187,6 +187,7 @@ export default function DocumentUpload({
               question_text: questionText, // Adding question_text here as well
               compliance_answer: complianceAnswer,
               generated_answer: generatedAnswer,
+              created_by: 'AI-generated',
               created_at: new Date().toISOString(),
             });
 

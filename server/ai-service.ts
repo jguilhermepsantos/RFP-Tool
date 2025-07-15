@@ -1032,7 +1032,8 @@ export async function processDocumentQuestions(documentId: string): Promise<{
             generated_answer: answer,
             source_chunks: JSON.stringify(sourceChunks),
             average_similarity: averageSimilarity,
-            confidence_level: confidenceLevel
+            confidence_level: confidenceLevel,
+            created_by: 'AI-generated'
           })
           .select()
           .single();

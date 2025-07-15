@@ -98,7 +98,7 @@ export const rfpQuestions = pgTable("rfp_questions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// RFP Answers table
+// RFP Answers table - Now supports versioned answers
 export const rfpAnswers = pgTable("rfp_answers", {
   id: uuid("id").primaryKey(),
   rfpDocumentId: uuid("rfp_document_id").references(() => rfpDocuments.id),
@@ -109,10 +109,8 @@ export const rfpAnswers = pgTable("rfp_answers", {
   sourceChunks: text("source_chunks"),
   averageSimilarity: real("average_similarity"),
   confidenceLevel: text("confidence_level"),
-  // finalAnswer field removed as it doesn't exist in the database
   createdAt: timestamp("created_at").defaultNow(),
-  lastReviewedBy: uuid("last_reviewed_by").references(() => users.id),
-  lastReviewedAt: timestamp("last_reviewed_at"),
+  createdBy: text("created_by").notNull(), // "AI-generated" or user ID
 });
 
 // Section Assignments table for hierarchical assignment tracking
@@ -204,9 +202,7 @@ export const insertRfpQuestionSchema = createInsertSchema(rfpQuestions).omit({
 
 export const insertRfpAnswerSchema = createInsertSchema(rfpAnswers).omit({
   id: true, 
-  createdAt: true,
-  lastReviewedAt: true,
-  lastReviewedBy: true
+  createdAt: true
 });
 
 export const insertChunkSchema = createInsertSchema(chunks).omit({
@@ -281,8 +277,7 @@ export const updateRfpAnswerSchema = z.object({
   id: z.string().uuid(),
   complianceAnswer: z.string().optional(),
   generatedAnswer: z.string().optional(),
-  lastReviewedBy: z.string().uuid().optional(),
-  lastReviewedAt: z.string().optional(),
+  createdBy: z.string().optional(),
 });
 
 // Schema for updating document approval status

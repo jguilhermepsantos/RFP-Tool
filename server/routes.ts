@@ -676,11 +676,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           usersMap.set(user.id, user);
         });
 
-        // Get corresponding answers if they exist
+        // Get corresponding answers if they exist - only latest version per question
         const { data: answersData, error: answersError } = await supabase
           .from("rfp_answers")
           .select("*")
-          .eq("rfp_document_id", documentId);
+          .eq("rfp_document_id", documentId)
+          .order("created_at", { ascending: false });
 
         if (answersError) {
           console.log(`Error fetching answers:`, answersError);
@@ -693,10 +694,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `Found ${answersData?.length || 0} answers for document`,
         );
 
-        // Create a map of answers by question ID for efficient lookup
+        // Create a map of latest answers by question ID for efficient lookup
         const answersMap = new Map();
         (answersData || []).forEach((answer: any) => {
-          answersMap.set(answer.rfp_question_id, answer);
+          const questionId = answer.rfp_question_id;
+          // Only keep the latest answer per question (already sorted by created_at desc)
+          if (!answersMap.has(questionId)) {
+            answersMap.set(questionId, answer);
+          }
         });
 
         // Transform questions with their answers and assignment info
@@ -730,8 +735,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               sourceChunks: sourceChunks,
               averageSimilarity: answer.average_similarity,
               confidenceLevel: answer.confidence_level,
-              lastReviewedBy: answer.last_reviewed_by,
-              lastReviewedAt: answer.last_reviewed_at,
+              createdBy: answer.created_by,
+              createdAt: answer.created_at,
             } : null,
           };
         });
@@ -1493,6 +1498,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     },
   );
+
+  // Create new answer version (for versioned editing)
+  apiRouter.post("/rfp-answers", async (req: Request, res: Response) => {
+    try {
+      const { 
+        rfpQuestionId, 
+        rfpDocumentId, 
+        complianceAnswer, 
+        generatedAnswer,
+        createdBy,
+        sourceChunks = [],
+        averageSimilarity = 0,
+        confidenceLevel = 'low'
+      } = req.body;
+      
+      if (!rfpQuestionId || !rfpDocumentId || !createdBy) {
+        return res.status(400).json({ 
+          message: "rfpQuestionId, rfpDocumentId, and createdBy are required" 
+        });
+      }
+      
+      // Create new answer version
+      const { data: newAnswer, error } = await supabase
+        .from("rfp_answers")
+        .insert({
+          rfp_question_id: rfpQuestionId,
+          rfp_document_id: rfpDocumentId,
+          compliance_answer: complianceAnswer,
+          generated_answer: generatedAnswer,
+          created_by: createdBy,
+          source_chunks: JSON.stringify(sourceChunks),
+          average_similarity: averageSimilarity,
+          confidence_level: confidenceLevel
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Error creating answer version:", error);
+        return res.status(500).json({ 
+          message: "Failed to create answer version",
+          error: error.message 
+        });
+      }
+      
+      return res.status(201).json(newAnswer);
+    } catch (error) {
+      console.error("Error in POST /rfp-answers:", error);
+      return res.status(500).json({ 
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Get version history for a question
+  apiRouter.get("/rfp-questions/:questionId/versions", async (req: Request, res: Response) => {
+    try {
+      const { questionId } = req.params;
+      
+      if (!questionId) {
+        return res.status(400).json({ message: "Valid question ID is required" });
+      }
+      
+      // Get all versions for this question, ordered by creation date (newest first)
+      const { data: versions, error } = await supabase
+        .from("rfp_answers")
+        .select("*")
+        .eq("rfp_question_id", questionId)
+        .order("created_at", { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching answer versions:", error);
+        return res.status(500).json({ 
+          message: "Failed to fetch answer versions",
+          error: error.message 
+        });
+      }
+      
+      return res.status(200).json(versions || []);
+    } catch (error) {
+      console.error("Error in GET /rfp-questions/:questionId/versions:", error);
+      return res.status(500).json({ 
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   // Answer Feedback routes
   apiRouter.get("/rfp-answers/:answerId/feedback", async (req: Request, res: Response) => {

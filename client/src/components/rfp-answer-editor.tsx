@@ -14,6 +14,7 @@ import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare, User,
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import AnswerFeedback from "./answer-feedback";
+import { VersionHistory } from "./version-history";
 
 interface SourceChunk {
   chunkId: string;
@@ -29,9 +30,8 @@ interface Answer {
   sourceChunks?: SourceChunk[];
   averageSimilarity?: number;
   confidenceLevel?: 'low' | 'medium' | 'high';
-  // finalAnswer removed as it doesn't exist in the database
-  lastReviewedBy: string | null;
-  lastReviewedAt: string | null;
+  createdBy: string;
+  createdAt: string;
 }
 
 interface Question {
@@ -179,16 +179,22 @@ export default function RfpAnswerEditor({
     setIsSaving(true);
     
     try {
-      await apiRequest(`/api/rfp-answers/${question.answer.id}`, {
-        method: "PATCH",
+      // Create a new version instead of updating existing answer
+      await apiRequest(`/api/rfp-answers`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          rfpQuestionId: question.id,
+          rfpDocumentId: question.rfpDocumentId,
           complianceAnswer,
           generatedAnswer,
-          lastReviewedBy: user.id,
-          lastReviewedAt: new Date().toISOString()
+          createdBy: user.id,
+          // Copy over source chunks and metrics from original AI answer
+          sourceChunks: question.answer.sourceChunks || [],
+          averageSimilarity: question.answer.averageSimilarity || 0,
+          confidenceLevel: question.answer.confidenceLevel || 'low'
         })
       });
       
@@ -327,15 +333,25 @@ export default function RfpAnswerEditor({
               </Badge>
             )}
             
-            {/* Only show edit button for processed or under review documents */}
-            {isEditable && !isReadOnly && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Pencil className="mr-2 h-3 w-3" />
-                    Edit
-                  </Button>
-                </DialogTrigger>
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              {/* Version history button - show for any answered question */}
+              {question.answer && (
+                <VersionHistory 
+                  questionId={question.id}
+                  currentAnswer={question.answer}
+                />
+              )}
+              
+              {/* Only show edit button for processed or under review documents */}
+              {isEditable && !isReadOnly && (
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Pencil className="mr-2 h-3 w-3" />
+                      Edit
+                    </Button>
+                  </DialogTrigger>
               <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>Edit Answer</DialogTitle>
@@ -378,8 +394,9 @@ export default function RfpAnswerEditor({
                   </Button>
                 </DialogFooter>
               </DialogContent>
-            </Dialog>
-            )}
+                </Dialog>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -415,13 +432,13 @@ export default function RfpAnswerEditor({
                 )}
               </div>
               
-              {/* Review information */}
-              {question.answer.lastReviewedBy && question.answer.lastReviewedAt && (
+              {/* Version information */}
+              {question.answer.createdBy && question.answer.createdAt && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                   <User className="h-3 w-3" />
                   <span>
-                    Last reviewed by {reviewerData?.user?.email || question.answer.lastReviewedBy} on{' '}
-                    {new Date(question.answer.lastReviewedAt).toLocaleDateString('en-US', {
+                    {question.answer.createdBy === 'AI-generated' ? 'AI-generated' : `Edited by ${question.answer.createdBy.slice(0, 8)}...`} on{' '}
+                    {new Date(question.answer.createdAt).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
