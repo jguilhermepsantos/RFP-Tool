@@ -437,7 +437,7 @@ export default function RfpAnswerEditor({
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                   <User className="h-3 w-3" />
                   <span>
-                    {question.answer.createdBy === 'AI-generated' ? 'AI-generated' : `Edited by ${question.answer.createdBy.slice(0, 8)}...`} on{' '}
+                    {question.answer.createdBy === 'AI-generated' ? 'AI-generated' : `Edited by user`} on{' '}
                     {new Date(question.answer.createdAt).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',

@@ -34,9 +34,23 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
     enabled: isOpen, // Only fetch when dialog is open
   });
 
+  // Get unique user IDs from versions
+  const userIds = versions?.filter(v => v.created_by !== 'AI-generated').map(v => v.created_by) || [];
+  const uniqueUserIds = [...new Set(userIds)];
+  
+  const { data: users } = useQuery<{id: string, name: string, email: string}[]>({
+    queryKey: [`/api/users/batch`, uniqueUserIds],
+    enabled: isOpen && uniqueUserIds.length > 0,
+  });
+
   const formatCreatedBy = (createdBy: string) => {
     if (createdBy === 'AI-generated') {
       return 'AI Generated';
+    }
+    // Look up user information
+    const user = users?.find(u => u.id === createdBy);
+    if (user) {
+      return user.name || user.email;
     }
     return `User ${createdBy.slice(0, 8)}...`;
   };
@@ -92,7 +106,7 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
                       <div className="flex items-center gap-2">
                         {getVersionIcon(version.created_by)}
                         <CardTitle className="text-lg">
-                          {index === 0 ? 'Current Version' : `Version ${versions.length - index}`}
+                          {index === 0 ? 'Latest Version' : `Version ${versions.length - index}`}
                         </CardTitle>
                         {getVersionBadge(version.created_by)}
                       </div>
@@ -102,7 +116,7 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
                       </div>
                     </div>
                     <CardDescription>
-                      Created by {formatCreatedBy(version.created_by)}
+                      {version.created_by === 'AI-generated' ? 'AI Generated' : `Edited by ${formatCreatedBy(version.created_by)}`}
                       {version.created_by === 'AI-generated' && version.confidence_level && (
                         <span className="ml-2">
                           • Confidence: <span className="capitalize">{version.confidence_level}</span>
