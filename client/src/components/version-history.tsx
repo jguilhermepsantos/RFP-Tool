@@ -39,7 +39,7 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
   const uniqueUserIds = [...new Set(userIds)];
   
   const { data: users } = useQuery<{id: string, name: string, email: string}[]>({
-    queryKey: [`/api/users/batch`, uniqueUserIds],
+    queryKey: [`/api/users/batch`],
     enabled: isOpen && uniqueUserIds.length > 0,
   });
 
@@ -77,8 +77,8 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <History className="w-5 h-5" />
             Answer Version History
@@ -88,8 +88,8 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-1">
-          <div className="space-y-4">
+        <ScrollArea className="flex-1 pr-4">
+          <div className="space-y-4 pb-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -101,21 +101,21 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
             ) : versions && versions.length > 0 ? (
               versions.map((version, index) => (
                 <Card key={version.id} className={index === 0 ? 'ring-2 ring-blue-500' : ''}>
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {getVersionIcon(version.created_by)}
-                        <CardTitle className="text-lg">
+                        <CardTitle className="text-base">
                           {index === 0 ? 'Latest Version' : `Version ${versions.length - index}`}
                         </CardTitle>
                         {getVersionBadge(version.created_by)}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Clock className="w-4 h-4" />
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Clock className="w-3 h-3" />
                         {formatDistanceToNow(new Date(version.created_at), { addSuffix: true })}
                       </div>
                     </div>
-                    <CardDescription>
+                    <CardDescription className="text-sm">
                       {version.created_by === 'AI-generated' ? 'AI Generated' : `Edited by ${formatCreatedBy(version.created_by)}`}
                       {version.created_by === 'AI-generated' && version.confidence_level && (
                         <span className="ml-2">
@@ -124,27 +124,27 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
                       )}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 pt-0">
                     {version.compliance_answer && (
                       <div>
-                        <h4 className="font-medium mb-2">Compliance Answer:</h4>
-                        <p className="text-sm bg-gray-50 p-3 rounded-md">
+                        <h4 className="font-medium mb-1 text-sm">Compliance Answer:</h4>
+                        <p className="text-sm bg-gray-50 p-2 rounded-md">
                           {version.compliance_answer}
                         </p>
                       </div>
                     )}
                     {version.generated_answer && (
                       <div>
-                        <h4 className="font-medium mb-2">Detailed Answer:</h4>
-                        <p className="text-sm bg-gray-50 p-3 rounded-md whitespace-pre-wrap">
+                        <h4 className="font-medium mb-1 text-sm">Detailed Answer:</h4>
+                        <p className="text-sm bg-gray-50 p-2 rounded-md whitespace-pre-wrap max-h-32 overflow-y-auto">
                           {version.generated_answer}
                         </p>
                       </div>
                     )}
                     {version.created_by === 'AI-generated' && version.source_chunks && (
                       <div>
-                        <h4 className="font-medium mb-2">Source Information:</h4>
-                        <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
+                        <h4 className="font-medium mb-1 text-sm">Source Information:</h4>
+                        <div className="text-xs text-gray-600 bg-blue-50 p-2 rounded-md">
                           <div className="flex items-center gap-4">
                             <span>Average Similarity: {(version.average_similarity * 100).toFixed(1)}%</span>
                             <span>Confidence: <span className="capitalize">{version.confidence_level}</span></span>
@@ -153,7 +153,7 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
                       </div>
                     )}
                   </CardContent>
-                  {index < versions.length - 1 && <Separator className="my-4" />}
+                  {index < versions.length - 1 && <Separator className="my-3" />}
                 </Card>
               ))
             ) : (
