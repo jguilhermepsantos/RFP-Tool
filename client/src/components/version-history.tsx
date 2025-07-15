@@ -42,12 +42,20 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
   // Use the existing user cache hook instead of the failing batch API
   const { users } = useUserCache(uniqueUserIds);
 
+  // Debug logging
+  console.log('Version history debug:', {
+    uniqueUserIds,
+    users,
+    versions: versions?.map(v => ({ id: v.id, created_by: v.created_by }))
+  });
+
   const formatCreatedBy = (createdBy: string) => {
     if (createdBy === 'AI-generated') {
       return 'AI Generated';
     }
     // Look up user information from the user cache
     const user = users?.find(u => u.id === createdBy);
+    console.log('User lookup for', createdBy, ':', user);
     if (user) {
       return user.name || user.email;
     }
