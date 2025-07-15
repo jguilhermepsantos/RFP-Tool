@@ -32,6 +32,12 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
   const { data: versions, isLoading, error } = useQuery<AnswerVersion[]>({
     queryKey: [`/api/rfp-questions/${questionId}/versions`],
     enabled: isOpen, // Only fetch when dialog is open
+    onSuccess: (data) => {
+      console.log('Version history data:', data);
+    },
+    onError: (error) => {
+      console.error('Version history error:', error);
+    }
   });
 
   // Fetch project members to resolve user names
@@ -73,13 +79,13 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
   );
 
   const handleNext = () => {
-    if (versions && currentIndex < versions.length - 1) {
+    if (versions && versions.length > 0 && currentIndex < versions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
   };
 
   const handlePrevious = () => {
-    if (currentIndex > 0) {
+    if (versions && versions.length > 0 && currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
     }
   };
@@ -90,6 +96,9 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
       setCurrentIndex(0); // Reset to first version when opening
     }
   };
+
+  // Safety check to ensure currentIndex is within bounds
+  const safeCurrentIndex = versions && versions.length > 0 ? Math.min(currentIndex, versions.length - 1) : 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
@@ -125,19 +134,19 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
                     variant="outline" 
                     size="sm" 
                     onClick={handlePrevious}
-                    disabled={currentIndex === 0}
+                    disabled={safeCurrentIndex === 0}
                   >
                     <ChevronLeft className="w-4 h-4" />
                     Previous
                   </Button>
                   <span className="text-sm text-gray-500">
-                    {currentIndex + 1} of {versions.length}
+                    {safeCurrentIndex + 1} of {versions.length}
                   </span>
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={handleNext}
-                    disabled={currentIndex === versions.length - 1}
+                    disabled={safeCurrentIndex === versions.length - 1}
                   >
                     Next
                     <ChevronRight className="w-4 h-4" />
@@ -151,7 +160,7 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
                       key={index}
                       onClick={() => setCurrentIndex(index)}
                       className={`w-2 h-2 rounded-full transition-colors ${
-                        index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
+                        index === safeCurrentIndex ? 'bg-blue-500' : 'bg-gray-300'
                       }`}
                     />
                   ))}
@@ -159,55 +168,55 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
               </div>
 
               {/* Current Version Display */}
-              {versions[currentIndex] && (
-                <Card className={currentIndex === 0 ? 'ring-2 ring-blue-500' : ''}>
+              {versions && versions[safeCurrentIndex] && (
+                <Card className={safeCurrentIndex === 0 ? 'ring-2 ring-blue-500' : ''}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {getVersionIcon(versions[currentIndex].created_by)}
+                        {getVersionIcon(versions[safeCurrentIndex].created_by)}
                         <CardTitle className="text-lg">
-                          {currentIndex === 0 ? 'Current Version' : `Version ${versions.length - currentIndex}`}
+                          {safeCurrentIndex === 0 ? 'Current Version' : `Version ${versions.length - safeCurrentIndex}`}
                         </CardTitle>
-                        {getVersionBadge(versions[currentIndex].created_by)}
+                        {getVersionBadge(versions[safeCurrentIndex].created_by)}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
                         <Clock className="w-4 h-4" />
-                        {formatDistanceToNow(new Date(versions[currentIndex].created_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(versions[safeCurrentIndex].created_at), { addSuffix: true })}
                       </div>
                     </div>
                     <CardDescription>
-                      Created by {formatCreatedBy(versions[currentIndex].created_by)}
-                      {versions[currentIndex].created_by === 'AI-generated' && versions[currentIndex].confidence_level && (
+                      Created by {formatCreatedBy(versions[safeCurrentIndex].created_by)}
+                      {versions[safeCurrentIndex].created_by === 'AI-generated' && versions[safeCurrentIndex].confidence_level && (
                         <span className="ml-2">
-                          • Confidence: <span className="capitalize">{versions[currentIndex].confidence_level}</span>
+                          • Confidence: <span className="capitalize">{versions[safeCurrentIndex].confidence_level}</span>
                         </span>
                       )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {versions[currentIndex].compliance_answer && (
+                    {versions[safeCurrentIndex].compliance_answer && (
                       <div>
                         <h4 className="font-medium mb-2">Compliance Answer:</h4>
                         <p className="text-sm bg-gray-50 p-3 rounded-md">
-                          {versions[currentIndex].compliance_answer}
+                          {versions[safeCurrentIndex].compliance_answer}
                         </p>
                       </div>
                     )}
-                    {versions[currentIndex].generated_answer && (
+                    {versions[safeCurrentIndex].generated_answer && (
                       <div>
                         <h4 className="font-medium mb-2">Detailed Answer:</h4>
                         <p className="text-sm bg-gray-50 p-3 rounded-md whitespace-pre-wrap">
-                          {versions[currentIndex].generated_answer}
+                          {versions[safeCurrentIndex].generated_answer}
                         </p>
                       </div>
                     )}
-                    {versions[currentIndex].created_by === 'AI-generated' && versions[currentIndex].source_chunks && (
+                    {versions[safeCurrentIndex].created_by === 'AI-generated' && versions[safeCurrentIndex].source_chunks && (
                       <div>
                         <h4 className="font-medium mb-2">Source Information:</h4>
                         <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
                           <div className="flex items-center gap-4">
-                            <span>Average Similarity: {(versions[currentIndex].average_similarity * 100).toFixed(1)}%</span>
-                            <span>Confidence: <span className="capitalize">{versions[currentIndex].confidence_level}</span></span>
+                            <span>Average Similarity: {versions[safeCurrentIndex].average_similarity ? (versions[safeCurrentIndex].average_similarity * 100).toFixed(1) : 0}%</span>
+                            <span>Confidence: <span className="capitalize">{versions[safeCurrentIndex].confidence_level || 'unknown'}</span></span>
                           </div>
                         </div>
                       </div>
