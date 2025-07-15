@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,13 +32,22 @@ export function VersionHistory({ questionId, currentAnswer, trigger, projectId }
   const { data: versions, isLoading, error } = useQuery<AnswerVersion[]>({
     queryKey: [`/api/rfp-questions/${questionId}/versions`],
     enabled: isOpen, // Only fetch when dialog is open
-    onSuccess: (data) => {
-      console.log('Version history data:', data);
-    },
-    onError: (error) => {
+  });
+
+  // Reset currentIndex when versions change
+  useEffect(() => {
+    if (versions && versions.length > 0) {
+      console.log('Version history data:', versions);
+      setCurrentIndex(0);
+    }
+  }, [versions]);
+
+  // Add error logging
+  useEffect(() => {
+    if (error) {
       console.error('Version history error:', error);
     }
-  });
+  }, [error]);
 
   // Fetch project members to resolve user names
   const { data: members = [] } = useQuery<any[]>({
