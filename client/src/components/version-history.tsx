@@ -77,8 +77,8 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0">
+        <DialogHeader className="flex-shrink-0 p-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <History className="w-5 h-5" />
             Answer Version History
@@ -88,8 +88,8 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4 pb-4">
+        <div className="flex-1 overflow-y-auto px-6 pb-6 max-h-[calc(85vh-140px)]">
+          <div className="space-y-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -162,7 +162,7 @@ export function VersionHistory({ questionId, currentAnswer, trigger }: VersionHi
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
