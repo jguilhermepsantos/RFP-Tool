@@ -549,7 +549,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                   {/* Confidence Level Filter - Only show for processed documents with answers */}
                   {document.status !== 'unprocessed' && allQuestionsWithAnswers.some(item => item.answer?.confidenceLevel) && (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">Confidence:</span>
+                      <span className="text-sm text-gray-600">Similarity:</span>
                       <Select value={confidenceFilter} onValueChange={setConfidenceFilter}>
                         <SelectTrigger className="w-[160px]">
                           <SelectValue placeholder="All answers" />

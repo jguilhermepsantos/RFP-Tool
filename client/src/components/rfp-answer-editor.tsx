@@ -272,6 +272,11 @@ export default function RfpAnswerEditor({
                   Section: {question.section}
                 </CardDescription>
               )}
+              {question.subsection && (
+                <CardDescription>
+                  Subsection: {question.subsection}
+                </CardDescription>
+              )}
               {/* Assignment display */}
               {question.assignedUser && (
                 <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -431,7 +436,7 @@ export default function RfpAnswerEditor({
             
             {/* AI Generated answer section */}
             <div>
-              <h4 className="text-sm font-medium mb-2 text-purple-700">AI Generated Answer</h4>
+              <h4 className="text-sm font-medium mb-2 text-purple-700">Elaborate Answer</h4>
               <div className="p-4 bg-gray-50 rounded-md">
                 {question.answer.generatedAnswer ? (
                   <p className="whitespace-pre-line">{question.answer.generatedAnswer}</p>
