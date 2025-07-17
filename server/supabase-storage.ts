@@ -1063,11 +1063,11 @@ export class SupabaseStorage implements IStorage {
   }
 
   // Answer Feedback operations
-  async getAnswerFeedback(rfpAnswerId: string): Promise<AnswerFeedback | undefined> {
+  async getAnswerFeedback(rfpQuestionId: string): Promise<AnswerFeedback | undefined> {
     const { data, error } = await supabase
       .from('answer_feedbacks')
       .select('*')
-      .eq('rfp_answer_id', rfpAnswerId)
+      .eq('rfp_question_id', rfpQuestionId)
       .single();
     
     if (error) {
@@ -1081,7 +1081,7 @@ export class SupabaseStorage implements IStorage {
     // Transform snake_case to camelCase
     return {
       id: data.id,
-      rfpAnswerId: data.rfp_answer_id,
+      rfpQuestionId: data.rfp_question_id,
       rating: data.rating,
       feedbackText: data.feedback_text,
       createdBy: data.created_by,
@@ -1093,7 +1093,7 @@ export class SupabaseStorage implements IStorage {
   async createAnswerFeedback(feedback: InsertAnswerFeedback): Promise<AnswerFeedback> {
     // Transform camelCase to snake_case for database
     const insertData = {
-      rfp_answer_id: feedback.rfpAnswerId,
+      rfp_question_id: feedback.rfpQuestionId,
       rating: feedback.rating,
       feedback_text: feedback.feedbackText,
       created_by: feedback.createdBy
@@ -1110,7 +1110,7 @@ export class SupabaseStorage implements IStorage {
     // Transform snake_case to camelCase
     return {
       id: data.id,
-      rfpAnswerId: data.rfp_answer_id,
+      rfpQuestionId: data.rfp_question_id,
       rating: data.rating,
       feedbackText: data.feedback_text,
       createdBy: data.created_by,
@@ -1147,7 +1147,7 @@ export class SupabaseStorage implements IStorage {
     // Transform snake_case to camelCase
     return {
       id: data.id,
-      rfpAnswerId: data.rfp_answer_id,
+      rfpQuestionId: data.rfp_question_id,
       rating: data.rating,
       feedbackText: data.feedback_text,
       createdBy: data.created_by,
@@ -1173,11 +1173,28 @@ export class SupabaseStorage implements IStorage {
       // Get additional data for each feedback
       const enrichedFeedbacks = await Promise.all(
         feedbacks.map(async (feedback: any) => {
-          // Get answer details
-          const { data: answer } = await supabase
+          // Get question details
+          const { data: question } = await supabase
+            .from('rfp_questions')
+            .select('question_text, requirement_id, section, subsection, rfp_document_id')
+            .eq('id', feedback.rfp_question_id)
+            .single();
+          
+          // Get AI-generated answer
+          const { data: aiAnswer } = await supabase
             .from('rfp_answers')
-            .select('generated_answer, compliance_answer, question_text')
-            .eq('id', feedback.rfp_answer_id)
+            .select('generated_answer, compliance_answer')
+            .eq('rfp_question_id', feedback.rfp_question_id)
+            .eq('created_by', 'AI-generated')
+            .single();
+          
+          // Get latest answer
+          const { data: latestAnswer } = await supabase
+            .from('rfp_answers')
+            .select('generated_answer, compliance_answer')
+            .eq('rfp_question_id', feedback.rfp_question_id)
+            .order('created_at', { ascending: false })
+            .limit(1)
             .single();
           
           // Get user details
@@ -1187,12 +1204,32 @@ export class SupabaseStorage implements IStorage {
             .eq('id', feedback.created_by)
             .single();
           
+          // Get document and project details
+          const { data: document } = await supabase
+            .from('rfp_documents')
+            .select('name, project_id')
+            .eq('id', question?.rfp_document_id)
+            .single();
+          
+          const { data: project } = await supabase
+            .from('projects')
+            .select('name')
+            .eq('id', document?.project_id)
+            .single();
+          
           return {
             ...feedback,
-            generated_answer: answer?.generated_answer,
-            compliance_answer: answer?.compliance_answer,
-            question: answer?.question_text,
-            user_email: user?.email
+            question_text: question?.question_text,
+            requirement_id: question?.requirement_id,
+            section: question?.section,
+            subsection: question?.subsection,
+            generated_answer: aiAnswer?.generated_answer,
+            compliance_answer: aiAnswer?.compliance_answer,
+            current_answer: latestAnswer?.generated_answer,
+            current_compliance_answer: latestAnswer?.compliance_answer,
+            user_email: user?.email,
+            document_name: document?.name,
+            project_name: project?.name
           };
         })
       );

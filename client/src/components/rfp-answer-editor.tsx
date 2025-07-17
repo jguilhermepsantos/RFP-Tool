@@ -492,7 +492,7 @@ export default function RfpAnswerEditor({
             {/* Add feedback component for processed answers */}
             {question.answer && question.answer.generatedAnswer && (
               <AnswerFeedback 
-                answerId={question.answer.id}
+                questionId={question.id}
                 projectId={projectId}
                 documentId={documentId}
               />

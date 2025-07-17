@@ -11,7 +11,7 @@ import { ThumbsUp, ThumbsDown, MessageSquare, Edit3, Check, X } from "lucide-rea
 
 interface AnswerFeedback {
   id: string;
-  rfpAnswerId: string;
+  rfpQuestionId: string;
   rating: 'good' | 'bad';
   feedbackText: string | null;
   createdBy: string;
@@ -20,12 +20,12 @@ interface AnswerFeedback {
 }
 
 interface AnswerFeedbackProps {
-  answerId: string;
+  questionId: string;
   projectId: string;
   documentId: string;
 }
 
-export default function AnswerFeedback({ answerId, projectId, documentId }: AnswerFeedbackProps) {
+export default function AnswerFeedback({ questionId, projectId, documentId }: AnswerFeedbackProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -34,8 +34,8 @@ export default function AnswerFeedback({ answerId, projectId, documentId }: Answ
 
   // Fetch existing feedback
   const { data: feedbackData, isLoading } = useQuery({
-    queryKey: [`/api/rfp-answers/${answerId}/feedback`],
-    enabled: !!answerId
+    queryKey: [`/api/rfp-questions/${questionId}/feedback`],
+    enabled: !!questionId
   });
 
   const feedback = feedbackData?.feedback as AnswerFeedback | undefined;
@@ -43,7 +43,7 @@ export default function AnswerFeedback({ answerId, projectId, documentId }: Answ
   // Create feedback mutation
   const createFeedbackMutation = useMutation({
     mutationFn: async (data: { rating: 'good' | 'bad'; feedbackText?: string }) => {
-      return apiRequest(`/api/rfp-answers/${answerId}/feedback`, {
+      return apiRequest(`/api/rfp-questions/${questionId}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
@@ -55,7 +55,7 @@ export default function AnswerFeedback({ answerId, projectId, documentId }: Answ
         description: "Feedback submitted successfully",
       });
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/rfp-answers/${answerId}/feedback`] 
+        queryKey: [`/api/rfp-questions/${questionId}/feedback`] 
       });
       setIsEditing(false);
       setRating(null);
@@ -73,7 +73,7 @@ export default function AnswerFeedback({ answerId, projectId, documentId }: Answ
   // Update feedback mutation
   const updateFeedbackMutation = useMutation({
     mutationFn: async (data: { rating?: 'good' | 'bad'; feedbackText?: string }) => {
-      return apiRequest(`/api/rfp-answers/${answerId}/feedback/${feedback?.id}`, {
+      return apiRequest(`/api/rfp-questions/${questionId}/feedback/${feedback?.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
@@ -85,7 +85,7 @@ export default function AnswerFeedback({ answerId, projectId, documentId }: Answ
         description: "Feedback updated successfully",
       });
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/rfp-answers/${answerId}/feedback`] 
+        queryKey: [`/api/rfp-questions/${questionId}/feedback`] 
       });
       setIsEditing(false);
     },
@@ -101,7 +101,7 @@ export default function AnswerFeedback({ answerId, projectId, documentId }: Answ
   // Delete feedback mutation
   const deleteFeedbackMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/rfp-answers/${answerId}/feedback/${feedback?.id}`, {
+      return apiRequest(`/api/rfp-questions/${questionId}/feedback/${feedback?.id}`, {
         method: "DELETE"
       });
     },
@@ -111,7 +111,7 @@ export default function AnswerFeedback({ answerId, projectId, documentId }: Answ
         description: "Feedback deleted successfully",
       });
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/rfp-answers/${answerId}/feedback`] 
+        queryKey: [`/api/rfp-questions/${questionId}/feedback`] 
       });
     },
     onError: (error) => {

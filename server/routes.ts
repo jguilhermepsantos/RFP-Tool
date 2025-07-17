@@ -1588,15 +1588,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Answer Feedback routes
-  apiRouter.get("/rfp-answers/:answerId/feedback", async (req: Request, res: Response) => {
+  apiRouter.get("/rfp-questions/:questionId/feedback", async (req: Request, res: Response) => {
     try {
-      const { answerId } = req.params;
+      const { questionId } = req.params;
       
-      if (!answerId) {
-        return res.status(400).json({ message: "Valid answer ID is required" });
+      if (!questionId) {
+        return res.status(400).json({ message: "Valid question ID is required" });
       }
       
-      const feedback = await storage.getAnswerFeedback(answerId);
+      const feedback = await storage.getAnswerFeedback(questionId);
       return res.status(200).json({ feedback });
     } catch (error) {
       console.error("Error getting answer feedback:", error);
@@ -1607,13 +1607,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.post("/rfp-answers/:answerId/feedback", async (req: Request, res: Response) => {
+  apiRouter.post("/rfp-questions/:questionId/feedback", async (req: Request, res: Response) => {
     try {
-      const { answerId } = req.params;
+      const { questionId } = req.params;
       const { rating, feedbackText } = req.body;
       
-      if (!answerId) {
-        return res.status(400).json({ message: "Valid answer ID is required" });
+      if (!questionId) {
+        return res.status(400).json({ message: "Valid question ID is required" });
       }
       
       if (!rating || !["good", "bad"].includes(rating)) {
@@ -1624,7 +1624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = "feb8dcbc-7ec6-4eed-884e-f3136665eed6"; // This should come from auth context
       
       const feedbackData = {
-        rfpAnswerId: answerId,
+        rfpQuestionId: questionId,
         rating,
         feedbackText: feedbackText || null,
         createdBy: userId
@@ -1641,7 +1641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.patch("/rfp-answers/:answerId/feedback/:feedbackId", async (req: Request, res: Response) => {
+  apiRouter.patch("/rfp-questions/:questionId/feedback/:feedbackId", async (req: Request, res: Response) => {
     try {
       const { feedbackId } = req.params;
       const { rating, feedbackText } = req.body;
@@ -1674,7 +1674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.delete("/rfp-answers/:answerId/feedback/:feedbackId", async (req: Request, res: Response) => {
+  apiRouter.delete("/rfp-questions/:questionId/feedback/:feedbackId", async (req: Request, res: Response) => {
     try {
       const { feedbackId } = req.params;
       

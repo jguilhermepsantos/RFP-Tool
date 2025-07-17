@@ -153,7 +153,7 @@ export const feedbacks = pgTable("feedbacks", {
 // Answer Feedbacks table
 export const answerFeedbacks = pgTable("answer_feedbacks", {
   id: uuid("id").primaryKey(),
-  rfpAnswerId: uuid("rfp_answer_id").references(() => rfpAnswers.id).notNull(),
+  rfpQuestionId: uuid("rfp_question_id").references(() => rfpQuestions.id).notNull(),
   rating: text("rating").notNull(), // 'good' or 'bad'
   feedbackText: text("feedback_text"),
   createdBy: uuid("created_by").references(() => users.id).notNull(),
@@ -232,7 +232,7 @@ export const insertSectionAssignmentSchema = createInsertSchema(sectionAssignmen
 
 // Update schema for answer feedback
 export const updateAnswerFeedbackSchema = insertAnswerFeedbackSchema.omit({
-  rfpAnswerId: true,
+  rfpQuestionId: true,
   createdBy: true
 }).extend({
   id: z.string()

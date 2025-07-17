@@ -706,28 +706,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Answer Feedback operations
-  async getAnswerFeedback(rfpAnswerId: string): Promise<AnswerFeedback | undefined> {
-    const result = await db.select().from(answerFeedbacks).where(eq(answerFeedbacks.rfpAnswerId, rfpAnswerId));
+  async getAnswerFeedback(rfpQuestionId: string): Promise<AnswerFeedback | undefined> {
+    const result = await db.select().from(answerFeedbacks).where(eq(answerFeedbacks.rfpQuestionId, rfpQuestionId));
     return result[0];
   }
 
   async getAllAnswerFeedbacks(): Promise<any[]> {
-    // Join answer feedbacks with rfp answers, questions, and users to get complete data
+    // Join answer feedbacks with rfp questions, AI answers, latest answers, and users to get complete data
     const result = await db.execute(sql`
       SELECT 
         af.*,
-        ra.generated_answer,
-        ra.compliance_answer,
-        rq.question,
+        rq.question_text,
+        rq.requirement_id,
+        rq.section,
+        rq.subsection,
+        ai_answer.generated_answer,
+        ai_answer.compliance_answer,
+        latest_answer.generated_answer as current_answer,
+        latest_answer.compliance_answer as current_compliance_answer,
         u.email as user_email,
         rd.name as document_name,
         p.name as project_name
       FROM answer_feedbacks af
-      JOIN rfp_answers ra ON af.rfp_answer_id = ra.id
-      JOIN rfp_questions rq ON ra.question_id = rq.id
+      JOIN rfp_questions rq ON af.rfp_question_id = rq.id
       JOIN rfp_documents rd ON rq.rfp_document_id = rd.id
       JOIN projects p ON rd.project_id = p.id
       JOIN users u ON af.created_by = u.id
+      LEFT JOIN rfp_answers ai_answer ON rq.id = ai_answer.rfp_question_id AND ai_answer.created_by = 'AI-generated'
+      LEFT JOIN LATERAL (
+        SELECT generated_answer, compliance_answer 
+        FROM rfp_answers 
+        WHERE rfp_question_id = rq.id 
+        ORDER BY created_at DESC 
+        LIMIT 1
+      ) latest_answer ON true
       ORDER BY af.created_at DESC
     `);
     
