@@ -1234,85 +1234,85 @@ export default function AdminSettings() {
                               No answer feedback submissions yet
                             </div>
                           ) : (
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Question</TableHead>
-                                  <TableHead>Generated Answer</TableHead>
-                                  <TableHead>Rating</TableHead>
-                                  <TableHead>Feedback</TableHead>
-                                  <TableHead>User</TableHead>
-                                  <TableHead>Submitted</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {answerFeedbacks
-                                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                                  .map((feedback) => {
-                                    const submittedDate = new Date(feedback.created_at).toLocaleDateString('en-US', {
-                                      year: 'numeric',
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    });
+                            <div className="space-y-4">
+                              {answerFeedbacks
+                                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                .map((feedback) => {
+                                  const submittedDate = new Date(feedback.created_at).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  });
 
-                                    const answerText = feedback.generated_answer || feedback.compliance_answer || 'No answer available';
-                                    const isExpanded = expandedAnswers.has(feedback.id);
-                                    const shouldTruncate = answerText.length > 100;
-                                    const displayText = shouldTruncate && !isExpanded ? answerText.substring(0, 100) + '...' : answerText;
+                                  const isExpanded = expandedAnswers.has(feedback.id);
+                                  const aiAnswerText = feedback.generated_answer || 'No AI answer available';
+                                  const finalAnswerText = feedback.current_answer || 'No final answer available';
+                                  const questionText = feedback.question_text || 'No question available';
 
-                                    return (
-                                      <TableRow key={feedback.id}>
-                                        <TableCell>
-                                          <div className="max-w-sm">
-                                            <p className="text-sm text-gray-900 break-words">
-                                              {feedback.question}
-                                            </p>
+                                  return (
+                                    <Card key={feedback.id} className="border-l-4 border-l-blue-500">
+                                      <CardContent className="pt-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                          <div className="flex items-center gap-4">
+                                            <Badge variant={feedback.rating === 'good' ? 'default' : 'destructive'}>
+                                              {feedback.rating === 'good' ? '👍 Good' : '👎 Bad'}
+                                            </Badge>
+                                            <div className="text-sm text-gray-600">
+                                              <span className="font-medium">{feedback.user_email || 'Unknown User'}</span>
+                                              <span className="mx-2">•</span>
+                                              <span>{submittedDate}</span>
+                                            </div>
                                           </div>
-                                        </TableCell>
-                                        <TableCell>
-                                          <div className="max-w-md">
-                                            <p className="text-sm text-gray-700 break-words whitespace-pre-wrap">
-                                              {displayText}
-                                            </p>
-                                            {shouldTruncate && (
-                                              <button
-                                                onClick={() => toggleAnswerExpanded(feedback.id)}
-                                                className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
-                                              >
-                                                {isExpanded ? 'Show less' : 'Show more'}
-                                              </button>
-                                            )}
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => toggleAnswerExpanded(feedback.id)}
+                                            className="text-blue-600 hover:text-blue-800"
+                                          >
+                                            {isExpanded ? 'Show less' : 'Show more'}
+                                          </Button>
+                                        </div>
+
+                                        <div className="mb-4">
+                                          <h4 className="font-medium text-gray-900 mb-2">Question:</h4>
+                                          <p className="text-sm text-gray-700 break-words">{questionText}</p>
+                                        </div>
+
+                                        {feedback.feedback_text && (
+                                          <div className="mb-4">
+                                            <h4 className="font-medium text-gray-900 mb-2">Feedback:</h4>
+                                            <p className="text-sm text-gray-700 break-words">{feedback.feedback_text}</p>
                                           </div>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Badge variant={feedback.rating === 'good' ? 'default' : 'destructive'}>
-                                            {feedback.rating === 'good' ? '👍 Good' : '👎 Bad'}
-                                          </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                          <div className="max-w-sm">
-                                            <p className="text-sm text-gray-700 break-words">
-                                              {feedback.feedback_text || 'No written feedback'}
-                                            </p>
+                                        )}
+
+                                        {isExpanded && (
+                                          <div className="space-y-4 mt-4 pt-4 border-t">
+                                            <div>
+                                              <h4 className="font-medium text-gray-900 mb-2">AI Generated Answer:</h4>
+                                              <div className="bg-blue-50 p-3 rounded-lg">
+                                                <p className="text-sm text-gray-700 break-words whitespace-pre-wrap">
+                                                  {aiAnswerText}
+                                                </p>
+                                              </div>
+                                            </div>
+                                            
+                                            <div>
+                                              <h4 className="font-medium text-gray-900 mb-2">Final Answer (Current Version):</h4>
+                                              <div className="bg-green-50 p-3 rounded-lg">
+                                                <p className="text-sm text-gray-700 break-words whitespace-pre-wrap">
+                                                  {finalAnswerText}
+                                                </p>
+                                              </div>
+                                            </div>
                                           </div>
-                                        </TableCell>
-                                        <TableCell>
-                                          <div className="font-medium text-sm">
-                                            {feedback.user_email || 'Unknown User'}
-                                          </div>
-                                        </TableCell>
-                                        <TableCell>
-                                          <div className="text-sm text-gray-500">
-                                            {submittedDate}
-                                          </div>
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })}
-                              </TableBody>
-                            </Table>
+                                        )}
+                                      </CardContent>
+                                    </Card>
+                                  );
+                                })}
+                            </div>
                           )}
                         </CardContent>
                       </Card>
