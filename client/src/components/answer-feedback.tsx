@@ -43,6 +43,9 @@ export default function AnswerFeedback({ questionId, projectId, documentId }: An
   // Create feedback mutation
   const createFeedbackMutation = useMutation({
     mutationFn: async (data: { rating: 'good' | 'bad'; feedbackText?: string }) => {
+      console.log("Submitting feedback with user:", user);
+      console.log("Authorization header:", user?.email);
+      
       return apiRequest(`/api/rfp-questions/${questionId}/feedback`, {
         method: "POST",
         headers: { 

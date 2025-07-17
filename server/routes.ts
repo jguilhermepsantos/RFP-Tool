@@ -1613,6 +1613,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { rating, feedbackText } = req.body;
       const userEmail = req.headers.authorization;
       
+      console.log("Feedback submission headers:", req.headers);
+      console.log("User email from authorization header:", userEmail);
+      
       if (!questionId) {
         return res.status(400).json({ message: "Valid question ID is required" });
       }
