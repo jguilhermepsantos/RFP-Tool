@@ -1180,13 +1180,28 @@ export class SupabaseStorage implements IStorage {
             .eq('id', feedback.rfp_question_id)
             .single();
           
-          // Get AI-generated answer
+          // Get AI-generated answer (first answer created, typically by AI)
           const { data: aiAnswer } = await supabase
             .from('rfp_answers')
-            .select('generated_answer, compliance_answer')
+            .select('generated_answer, compliance_answer, created_by')
             .eq('rfp_question_id', feedback.rfp_question_id)
             .eq('created_by', 'AI-generated')
+            .order('created_at', { ascending: true })
+            .limit(1)
             .single();
+          
+          // Fallback: if no AI-generated answer found, get the first answer
+          let firstAnswer = null;
+          if (!aiAnswer) {
+            const { data: fallbackAnswer } = await supabase
+              .from('rfp_answers')
+              .select('generated_answer, compliance_answer, created_by')
+              .eq('rfp_question_id', feedback.rfp_question_id)
+              .order('created_at', { ascending: true })
+              .limit(1)
+              .single();
+            firstAnswer = fallbackAnswer;
+          }
           
           // Get latest answer
           const { data: latestAnswer } = await supabase
@@ -1223,10 +1238,10 @@ export class SupabaseStorage implements IStorage {
             requirement_id: question?.requirement_id,
             section: question?.section,
             subsection: question?.subsection,
-            generated_answer: aiAnswer?.generated_answer,
-            compliance_answer: aiAnswer?.compliance_answer,
-            current_answer: latestAnswer?.generated_answer,
-            current_compliance_answer: latestAnswer?.compliance_answer,
+            generated_answer: aiAnswer?.generated_answer || firstAnswer?.generated_answer || null,
+            generated_compliance_answer: aiAnswer?.compliance_answer || firstAnswer?.compliance_answer || null,
+            current_answer: latestAnswer?.generated_answer || null,
+            current_compliance_answer: latestAnswer?.compliance_answer || null,
             user_email: user?.email,
             document_name: document?.name,
             project_name: project?.name
