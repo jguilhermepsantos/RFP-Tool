@@ -1611,6 +1611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { questionId } = req.params;
       const { rating, feedbackText } = req.body;
+      const userEmail = req.headers.authorization;
       
       if (!questionId) {
         return res.status(400).json({ message: "Valid question ID is required" });
@@ -1620,14 +1621,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Rating must be either 'good' or 'bad'" });
       }
       
-      // Get current user ID - using a placeholder for now since we don't have session middleware
-      const userId = "feb8dcbc-7ec6-4eed-884e-f3136665eed6"; // This should come from auth context
+      if (!userEmail) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Get user by email to get the user ID
+      const user = await storage.getUserByEmail(userEmail);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
       
       const feedbackData = {
         rfpQuestionId: questionId,
         rating,
         feedbackText: feedbackText || null,
-        createdBy: userId
+        createdBy: user.id
       };
       
       const feedback = await storage.createAnswerFeedback(feedbackData);

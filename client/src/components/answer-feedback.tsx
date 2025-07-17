@@ -45,7 +45,10 @@ export default function AnswerFeedback({ questionId, projectId, documentId }: An
     mutationFn: async (data: { rating: 'good' | 'bad'; feedbackText?: string }) => {
       return apiRequest(`/api/rfp-questions/${questionId}/feedback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": user?.email || ""
+        },
         body: JSON.stringify(data)
       });
     },
@@ -75,7 +78,10 @@ export default function AnswerFeedback({ questionId, projectId, documentId }: An
     mutationFn: async (data: { rating?: 'good' | 'bad'; feedbackText?: string }) => {
       return apiRequest(`/api/rfp-questions/${questionId}/feedback/${feedback?.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": user?.email || ""
+        },
         body: JSON.stringify(data)
       });
     },
