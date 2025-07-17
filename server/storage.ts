@@ -14,7 +14,10 @@ import {
   Feedback, InsertFeedback,
   AnswerFeedback, InsertAnswerFeedback, UpdateAnswerFeedback,
   SectionAssignment, InsertSectionAssignment,
-  UpdateRfpAnswer
+  UpdateRfpAnswer,
+  ProjectDocument, InsertProjectDocument,
+  ProjectThread, InsertProjectThread,
+  ProjectChatMessage, InsertProjectChatMessage
 } from "@shared/schema";
 
 // Storage interface for all CRUD operations
@@ -101,6 +104,22 @@ export interface IStorage {
   createAnswerFeedback(feedback: InsertAnswerFeedback): Promise<AnswerFeedback>;
   updateAnswerFeedback(feedback: UpdateAnswerFeedback): Promise<AnswerFeedback | undefined>;
   deleteAnswerFeedback(id: string): Promise<boolean>;
+
+  // Assistants Migration - Project Document operations
+  getProjectDocuments(projectId: string): Promise<ProjectDocument[]>;
+  getProjectDocument(id: string): Promise<ProjectDocument | undefined>;
+  createProjectDocument(document: InsertProjectDocument): Promise<ProjectDocument>;
+  updateProjectDocumentStatus(id: string, status: string): Promise<ProjectDocument | undefined>;
+  deleteProjectDocument(id: string): Promise<void>;
+
+  // Assistants Migration - Project Thread operations
+  getProjectThread(projectId: string): Promise<ProjectThread | undefined>;
+  createProjectThread(thread: InsertProjectThread): Promise<ProjectThread>;
+  updateProjectThreadActivity(projectId: string): Promise<void>;
+
+  // Assistants Migration - Project Chat Message operations
+  getProjectChatMessages(projectId: string): Promise<ProjectChatMessage[]>;
+  createProjectChatMessage(message: InsertProjectChatMessage): Promise<ProjectChatMessage>;
 }
 
 // Import the SupabaseStorage implementation

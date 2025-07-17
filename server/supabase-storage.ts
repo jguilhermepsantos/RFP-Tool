@@ -13,7 +13,10 @@ import {
   Feedback, InsertFeedback,
   AnswerFeedback, InsertAnswerFeedback, UpdateAnswerFeedback,
   SectionAssignment, InsertSectionAssignment,
-  UpdateRfpAnswer
+  UpdateRfpAnswer,
+  ProjectDocument, InsertProjectDocument,
+  ProjectThread, InsertProjectThread,
+  ProjectChatMessage, InsertProjectChatMessage
 } from '@shared/schema';
 
 export class SupabaseStorage implements IStorage {
@@ -1263,6 +1266,116 @@ export class SupabaseStorage implements IStorage {
     
     if (error) throw new Error(`Failed to delete answer feedback: ${error.message}`);
     return true;
+  }
+
+  // Assistants Migration - Project Document operations
+  async getProjectDocuments(projectId: string): Promise<ProjectDocument[]> {
+    const { data, error } = await supabase
+      .from('project_documents')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('uploaded_at', { ascending: false });
+    
+    if (error) throw new Error(`Failed to get project documents: ${error.message}`);
+    return data || [];
+  }
+
+  async getProjectDocument(id: string): Promise<ProjectDocument | undefined> {
+    const { data, error } = await supabase
+      .from('project_documents')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error || !data) return undefined;
+    return data as ProjectDocument;
+  }
+
+  async createProjectDocument(document: InsertProjectDocument): Promise<ProjectDocument> {
+    const { data, error } = await supabase
+      .from('project_documents')
+      .insert(document)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create project document: ${error.message}`);
+    return data as ProjectDocument;
+  }
+
+  async updateProjectDocumentStatus(id: string, status: string): Promise<ProjectDocument | undefined> {
+    const { data, error } = await supabase
+      .from('project_documents')
+      .update({ status, processed_at: status === 'processed' ? new Date().toISOString() : null })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error || !data) return undefined;
+    return data as ProjectDocument;
+  }
+
+  async deleteProjectDocument(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('project_documents')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw new Error(`Failed to delete project document: ${error.message}`);
+  }
+
+  // Assistants Migration - Project Thread operations
+  async getProjectThread(projectId: string): Promise<ProjectThread | undefined> {
+    const { data, error } = await supabase
+      .from('project_threads')
+      .select('*')
+      .eq('project_id', projectId)
+      .single();
+    
+    if (error || !data) return undefined;
+    return data as ProjectThread;
+  }
+
+  async createProjectThread(thread: InsertProjectThread): Promise<ProjectThread> {
+    const { data, error } = await supabase
+      .from('project_threads')
+      .insert(thread)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create project thread: ${error.message}`);
+    return data as ProjectThread;
+  }
+
+  async updateProjectThreadActivity(projectId: string): Promise<void> {
+    const { error } = await supabase
+      .from('project_threads')
+      .update({ last_activity: new Date().toISOString() })
+      .eq('project_id', projectId);
+    
+    if (error) throw new Error(`Failed to update project thread activity: ${error.message}`);
+  }
+
+  // Assistants Migration - Project Chat Message operations
+  async getProjectChatMessages(projectId: string): Promise<ProjectChatMessage[]> {
+    const { data, error } = await supabase
+      .from('project_chat_messages')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true });
+    
+    if (error) throw new Error(`Failed to get project chat messages: ${error.message}`);
+    return data || [];
+  }
+
+  async createProjectChatMessage(message: InsertProjectChatMessage): Promise<ProjectChatMessage> {
+    const { data, error } = await supabase
+      .from('project_chat_messages')
+      .insert(message)
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create project chat message: ${error.message}`);
+    return data as ProjectChatMessage;
   }
 }
 

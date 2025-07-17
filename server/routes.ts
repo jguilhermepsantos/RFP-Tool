@@ -2086,6 +2086,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Assistants Migration - Project Documents API
+  apiRouter.get("/projects/:projectId/documents", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const documents = await storage.getProjectDocuments(projectId);
+      res.json({ documents });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/projects/:projectId/documents", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const userEmail = req.headers.authorization;
+      
+      if (!userEmail) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const user = await storage.getUserByEmail(userEmail);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const documentData = {
+        ...req.body,
+        projectId,
+        uploadedBy: user.id
+      };
+      
+      const document = await storage.createProjectDocument(documentData);
+      res.json({ document });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  apiRouter.delete("/projects/:projectId/documents/:documentId", async (req: Request, res: Response) => {
+    try {
+      const { documentId } = req.params;
+      await storage.deleteProjectDocument(documentId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  // Assistants Migration - Project Thread API
+  apiRouter.get("/projects/:projectId/thread", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const thread = await storage.getProjectThread(projectId);
+      res.json({ thread });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/projects/:projectId/thread", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const { threadId, assistantId } = req.body;
+      
+      const thread = await storage.createProjectThread({
+        projectId,
+        threadId,
+        assistantId
+      });
+      
+      res.json({ thread });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  // Assistants Migration - Project Chat API
+  apiRouter.get("/projects/:projectId/chat", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const messages = await storage.getProjectChatMessages(projectId);
+      res.json({ messages });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/projects/:projectId/chat", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const { content, messageType } = req.body;
+      const userEmail = req.headers.authorization;
+      
+      if (!userEmail) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const user = await storage.getUserByEmail(userEmail);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Get or create thread for this project
+      let thread = await storage.getProjectThread(projectId);
+      
+      if (!thread) {
+        // TODO: Create OpenAI assistant thread here
+        // For now, we'll create a placeholder
+        thread = await storage.createProjectThread({
+          projectId,
+          threadId: `thread_${Date.now()}`,
+          assistantId: "asst_placeholder"
+        });
+      }
+      
+      const message = await storage.createProjectChatMessage({
+        projectId,
+        threadId: thread.threadId,
+        messageType,
+        content,
+        userId: messageType === 'user' ? user.id : null
+      });
+      
+      await storage.updateProjectThreadActivity(projectId);
+      
+      res.json({ message });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   // Create the HTTP server
   const httpServer = createServer(app);
   

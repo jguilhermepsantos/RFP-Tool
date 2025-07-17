@@ -587,6 +587,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
             <Tabs defaultValue="documents" className="w-full">
               <TabsList>
                 <TabsTrigger value="documents">RFP Documents</TabsTrigger>
+                <TabsTrigger value="prospect">Prospect Discovery</TabsTrigger>
                 <TabsTrigger value="team">Team Members</TabsTrigger>
                 <TabsTrigger value="settings">Project Settings</TabsTrigger>
               </TabsList>
@@ -612,6 +613,41 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                   }))}
                   isEditable={isOwnerOrCollaborator}
                 />
+              </TabsContent>
+              
+              <TabsContent value="prospect" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Prospect Discovery</CardTitle>
+                    <CardDescription>
+                      Upload documents and context about this specific prospect to generate better RFP responses
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    {/* Document Upload Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Context Documents</h3>
+                      {/* TODO: Add ProspectDocumentUpload component */}
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <div className="text-muted-foreground">
+                          <PlusCircle className="h-8 w-8 mx-auto mb-2" />
+                          <p>Document upload coming soon</p>
+                          <p className="text-sm">Upload prospect context documents like company info, meeting notes, etc.</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Document List Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Uploaded Documents</h3>
+                      {/* TODO: Add ProspectDocumentList component */}
+                      <div className="text-muted-foreground text-center py-8">
+                        No prospect documents uploaded yet
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
               
               <TabsContent value="team">

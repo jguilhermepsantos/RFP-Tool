@@ -267,6 +267,71 @@ export type Feedback = typeof feedbacks.$inferSelect;
 export type AnswerFeedback = typeof answerFeedbacks.$inferSelect;
 export type SectionAssignment = typeof sectionAssignments.$inferSelect;
 
+// Assistants Migration - New Tables
+
+// Project Documents table for prospect-specific documents
+export const projectDocuments = pgTable("project_documents", {
+  id: uuid("id").primaryKey(),
+  projectId: uuid("project_id").references(() => projects.id),
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileType: text("file_type").notNull(),
+  uploadedBy: uuid("uploaded_by").references(() => users.id),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+  status: text("status").default('pending'), // 'pending', 'processed', 'failed'
+});
+
+// Project Threads table for OpenAI assistant threads
+export const projectThreads = pgTable("project_threads", {
+  id: uuid("id").primaryKey(),
+  projectId: uuid("project_id").references(() => projects.id).unique(),
+  threadId: text("thread_id").notNull(),
+  assistantId: text("assistant_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastActivity: timestamp("last_activity").defaultNow(),
+});
+
+// Project Chat Messages table for storing chat history
+export const projectChatMessages = pgTable("project_chat_messages", {
+  id: uuid("id").primaryKey(),
+  projectId: uuid("project_id").references(() => projects.id),
+  threadId: text("thread_id").notNull(),
+  messageType: text("message_type").notNull(), // 'user', 'assistant'
+  content: text("content").notNull(),
+  userId: uuid("user_id").references(() => users.id), // null for assistant messages
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for new tables
+export const insertProjectDocumentSchema = createInsertSchema(projectDocuments).omit({
+  id: true,
+  uploadedAt: true,
+  processedAt: true,
+  status: true
+});
+
+export const insertProjectThreadSchema = createInsertSchema(projectThreads).omit({
+  id: true,
+  createdAt: true,
+  lastActivity: true
+});
+
+export const insertProjectChatMessageSchema = createInsertSchema(projectChatMessages).omit({
+  id: true,
+  createdAt: true
+});
+
+// Insert types
+export type InsertProjectDocument = z.infer<typeof insertProjectDocumentSchema>;
+export type InsertProjectThread = z.infer<typeof insertProjectThreadSchema>;
+export type InsertProjectChatMessage = z.infer<typeof insertProjectChatMessageSchema>;
+
+// Select types
+export type ProjectDocument = typeof projectDocuments.$inferSelect;
+export type ProjectThread = typeof projectThreads.$inferSelect;
+export type ProjectChatMessage = typeof projectChatMessages.$inferSelect;
+
 // Extended schemas for form validation
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
