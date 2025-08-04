@@ -380,7 +380,6 @@ export async function answerQuestion(
       const contextParts = [];
       if (hierarchicalContext.section) contextParts.push(`Section: ${hierarchicalContext.section}`);
       if (hierarchicalContext.subsection) contextParts.push(`Subsection: ${hierarchicalContext.subsection}`);
-      if (hierarchicalContext.requirementId) contextParts.push(`Requirement: ${hierarchicalContext.requirementId}`);
       
       if (contextParts.length > 0) {
         enhancedQuery = `[${contextParts.join(' | ')}] ${question}`;
