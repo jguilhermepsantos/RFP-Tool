@@ -383,7 +383,12 @@ export async function answerQuestion(
       
       if (contextParts.length > 0) {
         enhancedQuery = `[${contextParts.join(' | ')}] ${question}`;
-        console.log(`🔍 Enhanced query: ${enhancedQuery}`);
+        console.log(`🔍 ENHANCED QUERY FOR EMBEDDING:`);
+        console.log(`   Original: "${question}"`);
+        console.log(`   Enhanced: "${enhancedQuery}"`);
+        console.log(`   Context: ${contextParts.join(', ')}`);
+      } else {
+        console.log(`🔍 NO CONTEXT - Using original question for embedding: "${question}"`);
       }
     }
 
@@ -1044,7 +1049,11 @@ export async function processDocumentQuestions(documentId: string): Promise<{
       const question = questions[i];
       
       try {
-        console.log(`Processing question ${i + 1}/${totalQuestions}: ${question.id} - ${question.question_text}`);
+        console.log(`\n🔄 Processing question ${i + 1}/${totalQuestions}: ${question.id}`);
+        console.log(`   Question: ${question.question_text}`);
+        console.log(`   Section: ${question.section || 'N/A'}`);
+        console.log(`   Subsection: ${question.subsection || 'N/A'}`);
+        console.log(`   RequirementID: ${question.requirement_id || 'N/A'}`);
         
         // Update progress for current question
         progressTracker.updateProgress({
@@ -1065,7 +1074,7 @@ export async function processDocumentQuestions(documentId: string): Promise<{
           .single();
           
         if (existingAnswer) {
-          console.log(`Answer already exists for question ${question.id}, skipping`);
+          console.log(`   ✅ Answer already exists for question ${question.id}, skipping`);
           processedCount++;
           continue;
         }
@@ -1077,6 +1086,7 @@ export async function processDocumentQuestions(documentId: string): Promise<{
           requirementId: question.requirement_id || undefined
         };
         
+        console.log(`   🚀 Calling AI service with hierarchical context...`);
         const { compliance, answer, sourceChunks, averageSimilarity, confidenceLevel } = await answerQuestion(
           question.question_text, 
           3, 
