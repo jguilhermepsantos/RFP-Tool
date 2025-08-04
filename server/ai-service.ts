@@ -352,7 +352,16 @@ function calculateSimilarityMetrics(chunks: { chunkId: string; similarity: numbe
   return { averageSimilarity, confidenceLevel };
 }
 
-export async function answerQuestion(question: string, nResults: number = 3, projectLanguage?: string): Promise<{
+export async function answerQuestion(
+  question: string, 
+  nResults: number = 3, 
+  projectLanguage?: string,
+  hierarchicalContext?: {
+    section?: string;
+    subsection?: string;
+    requirementId?: string;
+  }
+): Promise<{
   compliance: string;
   answer: string;
   sourceChunks: { chunkId: string; similarity: number; source: 'document' | 'rfp' }[];
@@ -361,18 +370,35 @@ export async function answerQuestion(question: string, nResults: number = 3, pro
 }> {
   try {
     console.log(`💬 Processing question: ${question}`);
+    if (hierarchicalContext) {
+      console.log(`📂 Context: ${hierarchicalContext.section || 'N/A'} > ${hierarchicalContext.subsection || 'N/A'} (${hierarchicalContext.requirementId || 'N/A'})`);
+    }
 
-    // Step 1: Retrieve relevant chunks with metadata
-    const { content: documents, metadata } = await searchChunks(question, nResults);
+    // Step 1: Create enhanced query for better semantic matching
+    let enhancedQuery = question;
+    if (hierarchicalContext) {
+      const contextParts = [];
+      if (hierarchicalContext.section) contextParts.push(`Section: ${hierarchicalContext.section}`);
+      if (hierarchicalContext.subsection) contextParts.push(`Subsection: ${hierarchicalContext.subsection}`);
+      if (hierarchicalContext.requirementId) contextParts.push(`Requirement: ${hierarchicalContext.requirementId}`);
+      
+      if (contextParts.length > 0) {
+        enhancedQuery = `[${contextParts.join(' | ')}] ${question}`;
+        console.log(`🔍 Enhanced query: ${enhancedQuery}`);
+      }
+    }
+
+    // Step 2: Retrieve relevant chunks with enhanced query
+    const { content: documents, metadata } = await searchChunks(enhancedQuery, nResults);
 
     if (documents.length === 0) {
       console.log("No relevant documents found. Generating fallback answer.");
     }
 
-    // Step 2: Generate both compliance + elaborate answer in a single LLM call
-    const { compliance, answer } = await generateAnswer(documents, question, projectLanguage);
+    // Step 3: Generate answer with both hierarchical context and retrieved documents
+    const { compliance, answer } = await generateAnswer(documents, question, projectLanguage, hierarchicalContext);
 
-    // Step 3: Calculate similarity metrics
+    // Step 4: Calculate similarity metrics
     const { averageSimilarity, confidenceLevel } = calculateSimilarityMetrics(metadata);
 
     // Log result
@@ -405,7 +431,16 @@ export async function answerQuestion(question: string, nResults: number = 3, pro
   }
 }
 
-async function generateAnswer(contextChunks: string[], question: string, projectLanguage?: string): Promise<{
+async function generateAnswer(
+  contextChunks: string[], 
+  question: string, 
+  projectLanguage?: string,
+  hierarchicalContext?: {
+    section?: string;
+    subsection?: string;
+    requirementId?: string;
+  }
+): Promise<{
   compliance: string;
   answer: string;
 }> {
@@ -479,13 +514,31 @@ async function generateAnswer(contextChunks: string[], question: string, project
 
     const complianceOptions = getComplianceOptions(language);
 
+    // Build hierarchical context section for prompt
+    let hierarchicalSection = '';
+    if (hierarchicalContext) {
+      const contextDetails = [];
+      if (hierarchicalContext.section) contextDetails.push(`Section: ${hierarchicalContext.section}`);
+      if (hierarchicalContext.subsection) contextDetails.push(`Subsection: ${hierarchicalContext.subsection}`);
+      if (hierarchicalContext.requirementId) contextDetails.push(`Requirement ID: ${hierarchicalContext.requirementId}`);
+      
+      if (contextDetails.length > 0) {
+        hierarchicalSection = `
+RFP CONTEXT:
+${contextDetails.join('\n')}
+
+IMPORTANT: Consider this hierarchical context when crafting your answer. The section and subsection indicate the specific area of focus (e.g., B2B vs B2C, Enterprise vs Standard features, etc.). Tailor your response accordingly.
+`;
+      }
+    }
+
     const prompt = `You are an experienced VTEX Solution Engineer answering a customer RFP.
 
 CRITICAL LANGUAGE INSTRUCTION:
 Question Language: ${languageName} (${language})
 MANDATORY: Your response MUST be written entirely in ${languageName}. 
 Do not mix languages or translate. Maintain the exact same language as the question throughout your entire response.
-
+${hierarchicalSection}
 ${contextChunks.length > 0
   ? "Leverage the context below to answer clearly and accurately."
   : "No specific context is available. Answer based on your general knowledge, but make it clear that this is a general response."}
@@ -1018,8 +1071,19 @@ export async function processDocumentQuestions(documentId: string): Promise<{
           continue;
         }
         
-        // Generate answer using RAG with project language
-        const { compliance, answer, sourceChunks, averageSimilarity, confidenceLevel } = await answerQuestion(question.question_text, 3, projectLanguage);
+        // Generate answer using RAG with project language and hierarchical context
+        const hierarchicalContext = {
+          section: question.section || undefined,
+          subsection: question.subsection || undefined,
+          requirementId: question.requirement_id || undefined
+        };
+        
+        const { compliance, answer, sourceChunks, averageSimilarity, confidenceLevel } = await answerQuestion(
+          question.question_text, 
+          3, 
+          projectLanguage, 
+          hierarchicalContext
+        );
         
         // Create answer in database
         const { data: newAnswer, error: answerError } = await supabase

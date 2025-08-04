@@ -6,6 +6,12 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
+- **Enhanced Contextual AI Search (August 4, 2025)**: Implemented hybrid approach for context-aware answer generation with section/subsection information:
+  - Enhanced query embedding includes hierarchical context (section, subsection, requirement ID) for better semantic matching
+  - Structured prompts now explicitly include RFP context to guide AI responses (e.g., B2B vs B2C distinctions)
+  - Modified answerQuestion function to accept and process hierarchical context
+  - Updated document processing pipeline to pass section/subsection data to AI service
+  - Enhanced vector search queries format: "[Section: B2B Commerce | Subsection: Authentication] Does your system support SSO?"
 - **Question Number Field Removal (July 14, 2025)**: Completely removed question_number field from codebase after confirming requirement ID-based system works correctly. User will delete column from Supabase database.
 - **CSV Export Enhancement (July 14, 2025)**: Updated CSV export for completed RFP documents to include comprehensive columns: requirement ID, section, subsection, question, compliance answer, and answer
 - **Display and Ordering Improvements (July 14, 2025)**: Enhanced hierarchical organization to display requirement IDs instead of question numbers, and preserve CSV upload order for both sections and subsections
