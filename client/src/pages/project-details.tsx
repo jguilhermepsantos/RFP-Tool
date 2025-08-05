@@ -8,6 +8,7 @@ import DocumentUpload from "@/components/document-upload";
 import ProspectDocumentUpload from "@/components/prospect-document-upload";
 import ProjectDocumentsList from "@/components/project-documents-list";
 import ProjectChat from "@/components/project-chat";
+import ProspectTabTest from "@/components/prospect-tab-test";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -620,27 +621,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
               </TabsContent>
               
               <TabsContent value="prospect" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Prospect Discovery</CardTitle>
-                    <CardDescription>
-                      Upload documents and context about this specific prospect to generate better RFP responses
-                    </CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4">
-                    <ProspectDocumentUpload 
-                      projectId={projectId}
-                      onUploadSuccess={() => {
-                        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'documents'] });
-                      }}
-                    />
-                    
-                    <ProjectDocumentsList projectId={projectId} />
-                    
-                    <ProjectChat projectId={projectId} />
-                  </CardContent>
-                </Card>
+                <ProspectTabTest projectId={projectId} />
               </TabsContent>
               
               <TabsContent value="team">
