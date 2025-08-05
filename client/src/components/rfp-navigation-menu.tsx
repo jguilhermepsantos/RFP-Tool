@@ -202,12 +202,12 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
 
       {/* Desktop Sidebar - Fixed/Floating */}
       <div className={`hidden lg:block ${className}`}>
-        <div className="fixed top-60 left-1/2 transform -translate-x-1/2 lg:left-16 lg:transform-none w-80 max-h-[calc(100vh-18rem)] z-40">
+        <div className="fixed top-72 left-1/2 transform -translate-x-1/2 lg:left-16 lg:transform-none w-80 max-h-[calc(100vh-20rem)] z-40">
           <Card className="shadow-lg border-2 bg-white/95 backdrop-blur-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Navigation</CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 max-h-[calc(100vh-18rem)] overflow-y-auto">
+            <CardContent className="pt-0 max-h-[calc(100vh-24rem)] overflow-y-auto">
               <NavigationContent />
             </CardContent>
           </Card>
