@@ -5,6 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import NavHeader from "@/components/nav-header";
 import RfpDocumentTable from "@/components/rfp-document-table";
 import DocumentUpload from "@/components/document-upload";
+import ProspectDocumentUpload from "@/components/prospect-document-upload";
+import ProjectDocumentsList from "@/components/project-documents-list";
+import ProjectChat from "@/components/project-chat";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +24,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { queryClient } from "@/lib/queryClient";
 
 interface ProjectDetailsProps {
   projectId: string;
@@ -625,27 +629,16 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                   </CardHeader>
                   
                   <CardContent className="space-y-4">
-                    {/* Document Upload Section */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Context Documents</h3>
-                      {/* TODO: Add ProspectDocumentUpload component */}
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                        <div className="text-muted-foreground">
-                          <PlusCircle className="h-8 w-8 mx-auto mb-2" />
-                          <p>Document upload coming soon</p>
-                          <p className="text-sm">Upload prospect context documents like company info, meeting notes, etc.</p>
-                        </div>
-                      </div>
-                    </div>
+                    <ProspectDocumentUpload 
+                      projectId={projectId}
+                      onUploadSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'documents'] });
+                      }}
+                    />
                     
-                    {/* Document List Section */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Uploaded Documents</h3>
-                      {/* TODO: Add ProspectDocumentList component */}
-                      <div className="text-muted-foreground text-center py-8">
-                        No prospect documents uploaded yet
-                      </div>
-                    </div>
+                    <ProjectDocumentsList projectId={projectId} />
+                    
+                    <ProjectChat projectId={projectId} />
                   </CardContent>
                 </Card>
               </TabsContent>
