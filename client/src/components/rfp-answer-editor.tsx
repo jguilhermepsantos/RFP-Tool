@@ -168,6 +168,7 @@ export default function RfpAnswerEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSourcesOpen, setIsSourcesOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   // Helper function to get user name from members list
   const getUserName = (userId: string) => {
@@ -498,13 +499,34 @@ export default function RfpAnswerEditor({
               </div>
             )}
 
-            {/* Add feedback component for processed answers */}
+            {/* Collapsible feedback section for processed answers */}
             {question.answer && question.answer.generatedAnswer && (
-              <AnswerFeedback 
-                questionId={question.id}
-                projectId={projectId}
-                documentId={documentId}
-              />
+              <div>
+                <Collapsible open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                      <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4" />
+                        AI Answer Feedback
+                      </h4>
+                      {isFeedbackOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3">
+                    {isFeedbackOpen && (
+                      <AnswerFeedback 
+                        questionId={question.id}
+                        projectId={projectId}
+                        documentId={documentId}
+                      />
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
             )}
           </div>
         ) : (
