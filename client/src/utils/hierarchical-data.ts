@@ -5,6 +5,7 @@
 export interface HierarchicalQuestion {
   id: string;
   rfpDocumentId: string | null;
+  questionNumber?: string;
   questionText: string;
   requirementId: string | null;
   section: string | null;

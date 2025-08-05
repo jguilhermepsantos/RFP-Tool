@@ -52,8 +52,11 @@ function HierarchicalSubsectionComponent({
     ? Math.round((subsection.completedCount / subsection.questionsCount) * 100) 
     : 0;
 
+  // Create scroll target ID for subsection
+  const subsectionId = `section-${sectionName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-subsection-${(subsection.subsection || 'general').toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+
   return (
-    <div className="border-l-2 border-gray-200 pl-4 ml-4">
+    <div className="border-l-2 border-gray-200 pl-4 ml-4" id={subsectionId}>
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleTrigger asChild>
           <div className="flex items-center justify-between py-2 hover:bg-gray-50 rounded-lg px-3 cursor-pointer">
@@ -185,8 +188,11 @@ export default function HierarchicalSectionComponent({
     ? Math.round((section.completedCount / section.questionsCount) * 100) 
     : 0;
 
+  // Create scroll target ID for section
+  const sectionId = `section-${section.section.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+
   return (
-    <Card className="mb-4">
+    <Card className="mb-4" id={sectionId}>
       <CardHeader className="pb-3">
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
           <CollapsibleTrigger asChild>
