@@ -123,6 +123,7 @@ export default function Projects() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': user.email, // Pass user email in authorization header
         },
         body: JSON.stringify({
           name: values.name,
@@ -130,7 +131,6 @@ export default function Projects() {
           salesforce_link: values.salesforceLink || null,
           region: values.region,
           language: values.language,
-          created_by: user.id,
         }),
       });
 
