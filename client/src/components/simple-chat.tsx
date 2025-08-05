@@ -14,12 +14,12 @@ import { formatDistanceToNow } from "date-fns";
 
 interface ChatMessage {
   id: string;
-  projectId: string;
-  threadId: string;
-  messageType: 'user' | 'assistant';
+  project_id: string;
+  thread_id: string;
+  message_type: 'user' | 'assistant';
   content: string;
-  userId?: string;
-  createdAt: string;
+  user_id?: string;
+  created_at: string;
 }
 
 interface SimpleChatProps {
@@ -33,29 +33,27 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Test with hardcoded messages to isolate the rendering issue
-  const messages: ChatMessage[] = [
-    {
-      id: "test-1",
-      projectId: projectId,
-      threadId: "test-thread",
-      messageType: "user",
-      content: "Hello, this is a test message",
-      userId: "test-user",
-      createdAt: "2025-08-05T16:00:00Z"
+  // Fetch chat messages with correct field mapping
+  const { data: chatData, isLoading, error } = useQuery({
+    queryKey: ['/api/projects', projectId, 'chat'],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects/${projectId}/chat`, {
+        headers: {
+          'Authorization': user?.email || '',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
     },
-    {
-      id: "test-2", 
-      projectId: projectId,
-      threadId: "test-thread",
-      messageType: "assistant",
-      content: "This is a test assistant response",
-      createdAt: "2025-08-05T16:01:00Z"
-    }
-  ];
-  
-  const isLoading = false;
-  const error = null;
+    enabled: !!projectId && !!user?.email,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+    retry: false,
+  });
+
+  const messages: ChatMessage[] = Array.isArray(chatData?.messages) ? chatData.messages : [];
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -159,10 +157,10 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
                 <div
                   key={msg.id}
                   className={`flex space-x-3 ${
-                    msg.messageType === 'user' ? 'justify-end' : 'justify-start'
+                    msg.message_type === 'user' ? 'justify-end' : 'justify-start'
                   }`}
                 >
-                  {msg.messageType === 'assistant' && (
+                  {msg.message_type === 'assistant' && (
                     <div className="flex-shrink-0">
                       <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                         <Bot className="h-4 w-4 text-primary" />
@@ -170,10 +168,10 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
                     </div>
                   )}
                   
-                  <div className={`max-w-[80%] ${msg.messageType === 'user' ? 'order-1' : ''}`}>
+                  <div className={`max-w-[80%] ${msg.message_type === 'user' ? 'order-1' : ''}`}>
                     <div
                       className={`rounded-lg px-3 py-2 text-sm ${
-                        msg.messageType === 'user'
+                        msg.message_type === 'user'
                           ? 'bg-primary text-primary-foreground ml-auto'
                           : 'bg-muted'
                       }`}
@@ -181,11 +179,11 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 px-1">
-                      {formatDistanceToNow(new Date(msg.createdAt))} ago
+                      {formatDistanceToNow(new Date(msg.created_at))} ago
                     </p>
                   </div>
 
-                  {msg.messageType === 'user' && (
+                  {msg.message_type === 'user' && (
                     <div className="flex-shrink-0 order-2">
                       <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
                         <User className="h-4 w-4 text-gray-600" />

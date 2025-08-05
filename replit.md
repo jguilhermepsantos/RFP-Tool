@@ -7,6 +7,9 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 ## Recent Changes
 
 - **Real-time OpenAI Assistant Chat COMPLETED (August 5, 2025)**: Implemented full chat functionality with OpenAI Assistant integration:
+  - Fixed critical white page crashes caused by API response field mapping (snake_case vs camelCase mismatch)
+  - Resolved database confusion: messages stored in Neon database, not Supabase dashboard
+  - Stable chat component with proper error handling and defensive programming patterns
   - Removed mock assistant simulation from frontend component
   - Integrated with backend OpenAI Assistant API for real responses
   - Chat messages automatically trigger OpenAI Assistant responses via backend
