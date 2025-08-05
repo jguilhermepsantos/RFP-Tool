@@ -296,8 +296,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/projects", async (req: Request, res: Response) => {
     try {
       console.log("[PROJECT CREATION] Received request body:", req.body);
+      console.log("[PROJECT CREATION] Request body created_by field:", req.body.created_by);
       const projectData = insertProjectSchema.parse(req.body);
       console.log("[PROJECT CREATION] Parsed project data:", projectData);
+      console.log("[PROJECT CREATION] Parsed created_by field:", projectData.created_by);
       
       // Create the project first
       const newProject = await storage.createProject(projectData);

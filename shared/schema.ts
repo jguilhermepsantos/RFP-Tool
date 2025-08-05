@@ -171,6 +171,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true, 
   createdAt: true
+}).extend({
+  created_by: z.string().uuid().optional()
 });
 
 export const insertProjectPermissionSchema = createInsertSchema(projectPermissions).omit({
