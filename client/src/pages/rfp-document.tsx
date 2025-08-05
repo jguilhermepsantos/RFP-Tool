@@ -628,10 +628,10 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
 
                   return (
                     <>
-                      <div className="flex gap-6">
+                      <div className="flex gap-6 items-start">
                         {/* Navigation Sidebar - Only show in hierarchical view */}
                         {viewMode === 'hierarchical' && (
-                          <div className="w-80 flex-shrink-0">
+                          <div className="w-80 flex-shrink-0 self-start">
                             <RfpNavigationMenu 
                               sections={hierarchicalStructure.sections}
                             />
@@ -639,7 +639,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                         )}
                         
                         {/* Main Content Area */}
-                        <div className="flex-1 space-y-6">
+                        <div className="flex-1 space-y-6 min-h-screen">
                         {document.status === 'unprocessed' && (
                           <>
                             {isProcessing ? (

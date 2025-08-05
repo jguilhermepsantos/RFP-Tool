@@ -202,12 +202,12 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
 
       {/* Desktop Sidebar - Smart Sticky */}
       <div className={`hidden lg:block ${className}`}>
-        <div className="sticky top-4 w-80 max-h-[calc(100vh-2rem)] z-40">
-          <Card className="shadow-lg border-2 bg-white/95 backdrop-blur-sm">
-            <CardHeader className="pb-3">
+        <div className="sticky top-4 w-80 z-40">
+          <Card className="shadow-lg border-2 bg-white/95 backdrop-blur-sm max-h-[calc(100vh-2rem)]">
+            <CardHeader className="pb-3 flex-shrink-0">
               <CardTitle className="text-base">Navigation</CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 max-h-[calc(100vh-8rem)] overflow-y-auto">
+            <CardContent className="pt-0 overflow-y-auto max-h-[calc(100vh-8rem)]">
               <NavigationContent />
             </CardContent>
           </Card>
