@@ -6,6 +6,12 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
+- **Smart Sticky Navigation Implementation (August 5, 2025)**: Implemented advanced smart sticky navigation menu for hierarchical RFP view:
+  - JavaScript-based sticky behavior that tracks original position and scroll state
+  - Navigation scrolls naturally with content initially, becomes fixed when reaching viewport edge
+  - Returns to natural position when scrolling back up, preventing overlay of page controls
+  - Maintains exact horizontal positioning during sticky transitions with smooth animations
+  - Includes mobile-responsive collapsible design with hierarchical sections and progress indicators
 - **Enhanced Contextual AI Search (August 4, 2025)**: Implemented hybrid approach for context-aware answer generation with section/subsection information:
   - Enhanced query embedding includes hierarchical context (section, subsection, requirement ID) for better semantic matching
   - Structured prompts now explicitly include RFP context to guide AI responses (e.g., B2B vs B2C distinctions)
