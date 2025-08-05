@@ -295,35 +295,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post("/projects", async (req: Request, res: Response) => {
     try {
+      console.log("[PROJECT CREATION] Received request body:", req.body);
       const projectData = insertProjectSchema.parse(req.body);
+      console.log("[PROJECT CREATION] Parsed project data:", projectData);
       
       // Create the project first
       const newProject = await storage.createProject(projectData);
+      console.log("[PROJECT CREATION] Created project:", newProject);
       
       // Create OpenAI thread for the project
       try {
+        console.log("[PROJECT CREATION] Creating OpenAI thread...");
+        console.log("[PROJECT CREATION] Assistant service available:", !!assistantService);
+        
         const threadResult = await assistantService.createThread();
+        console.log("[PROJECT CREATION] OpenAI thread created:", threadResult);
         
         // Store the thread information in project_threads table
-        await storage.createProjectThread({
-          projectId: newProject.id,
-          threadId: threadResult.threadId,
-          assistantId: threadResult.assistantId
-        });
+        const threadData = {
+          project_id: newProject.id,
+          thread_id: threadResult.threadId,
+          assistant_id: threadResult.assistantId
+        };
+        console.log("[PROJECT CREATION] Storing thread data with corrected field names:", threadData);
         
-        console.log(`Created OpenAI thread ${threadResult.threadId} for project ${newProject.id}`);
+        const storedThread = await storage.createProjectThread(threadData);
+        console.log("[PROJECT CREATION] Thread stored in database:", storedThread);
+        
+        console.log(`[PROJECT CREATION] Successfully created OpenAI thread ${threadResult.threadId} for project ${newProject.id}`);
       } catch (threadError) {
-        console.error(`Failed to create OpenAI thread for project ${newProject.id}:`, threadError);
+        console.error(`[PROJECT CREATION] Failed to create OpenAI thread for project ${newProject.id}:`, threadError);
+        console.error(`[PROJECT CREATION] Thread error details:`, {
+          name: threadError.name,
+          message: threadError.message,
+          stack: threadError.stack
+        });
         // Don't fail the project creation if thread creation fails
         // The thread can be created later if needed
       }
       
       return res.status(201).json({ project: newProject });
     } catch (error) {
+      console.error("[PROJECT CREATION] Error:", error);
       if (error instanceof z.ZodError) {
+        console.error("[PROJECT CREATION] Validation error:", error.errors);
         return res.status(400).json({ message: error.errors[0].message });
       }
-      return res.status(500).json({ message: "Internal server error" });
+      return res.status(500).json({ message: `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
   });
 
@@ -2253,38 +2271,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get or create thread for this project
       let thread = await storage.getProjectThread(projectId);
+      console.log('[CHAT] Retrieved thread from database:', thread);
       
       if (!thread) {
         // Create OpenAI assistant thread if it doesn't exist
         const threadResult = await assistantService.createThread();
         thread = await storage.createProjectThread({
-          projectId,
-          threadId: threadResult.threadId,
-          assistantId: threadResult.assistantId
+          project_id: projectId,
+          thread_id: threadResult.threadId,
+          assistant_id: threadResult.assistantId
         });
       }
       
       // Store the user message
       const userMessage = await storage.createProjectChatMessage({
-        projectId,
-        threadId: thread.threadId,
-        messageType: 'user',
+        project_id: projectId,
+        thread_id: thread.thread_id,
+        message_type: 'user',
         content,
-        userId: user.id
+        user_id: user.id
       });
       
       // Send message to OpenAI Assistant and get response
       let assistantMessage = null;
       try {
-        const assistantResponse = await assistantService.sendMessage(thread.threadId, content);
+        const assistantResponse = await assistantService.sendMessage(thread.thread_id, content);
         
         // Store the assistant response
         assistantMessage = await storage.createProjectChatMessage({
-          projectId,
-          threadId: thread.threadId,
-          messageType: 'assistant',
+          project_id: projectId,
+          thread_id: thread.thread_id,
+          message_type: 'assistant',
           content: assistantResponse.content,
-          userId: null
+          user_id: null
         });
         
         console.log(`Assistant responded to message in project ${projectId}`);
@@ -2293,11 +2312,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Store an error message from the assistant
         assistantMessage = await storage.createProjectChatMessage({
-          projectId,
-          threadId: thread.threadId,
-          messageType: 'assistant',
+          project_id: projectId,
+          thread_id: thread.thread_id,
+          message_type: 'assistant',
           content: "I'm sorry, I'm having trouble responding right now. Please try again later.",
-          userId: null
+          user_id: null
         });
       }
       

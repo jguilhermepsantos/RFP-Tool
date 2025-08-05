@@ -131,11 +131,17 @@ export class SupabaseStorage implements IStorage {
     if (error) throw new Error(`Failed to create project: ${error.message}`);
     
     // Automatically add the creator as an owner
-    await this.addProjectMember({
-      projectId: data.id,
-      userId: project.createdBy,
+    console.log('[SupabaseStorage] Project data after creation:', data);
+    console.log('[SupabaseStorage] Original project input:', project);
+    
+    const memberData = {
+      project_id: data.id,
+      user_id: data.created_by,
       role: 'owner'
-    });
+    };
+    console.log('[SupabaseStorage] Member data to insert:', memberData);
+    
+    await this.addProjectMember(memberData);
     
     return data as Project;
   }
@@ -240,14 +246,19 @@ export class SupabaseStorage implements IStorage {
     }
   }
 
-  async addProjectMember(projectMember: InsertProjectPermission): Promise<ProjectPermission> {
+  async addProjectMember(projectMember: any): Promise<ProjectPermission> {
+    console.log('[SupabaseStorage] Adding project member with data:', projectMember);
     const { data, error } = await supabase
       .from('project_permissions')
       .insert(projectMember)
       .select()
       .single();
     
-    if (error) throw new Error(`Failed to add project member: ${error.message}`);
+    if (error) {
+      console.error('[SupabaseStorage] Error adding project member:', error);
+      throw new Error(`Failed to add project member: ${error.message}`);
+    }
+    console.log('[SupabaseStorage] Successfully added project member:', data);
     return data as ProjectPermission;
   }
 
