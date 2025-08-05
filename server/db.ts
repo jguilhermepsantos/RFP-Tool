@@ -20,6 +20,9 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Use Supabase database URL instead of Neon for consistency
+const supabaseDbUrl = `postgresql://postgres:${process.env.SUPABASE_DB_PASSWORD}@${process.env.SUPABASE_URL?.replace('https://', '')?.replace('.supabase.co', '')}.supabase.co:5432/postgres`;
+
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle(pool, { schema });
 

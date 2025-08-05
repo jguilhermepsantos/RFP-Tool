@@ -126,4 +126,6 @@ export interface IStorage {
 import { SupabaseStorage } from './supabase-storage';
 
 // Export an instance of SupabaseStorage to be used throughout the application
+console.log('[STORAGE] Initializing SupabaseStorage instance');
 export const storage = new SupabaseStorage();
+console.log('[STORAGE] SupabaseStorage instance created:', typeof storage);

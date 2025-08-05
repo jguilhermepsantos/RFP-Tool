@@ -2303,6 +2303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Store the user message
+      console.log('[CHAT] About to create user message with storage:', typeof storage);
       const userMessage = await storage.createProjectChatMessage({
         project_id: projectId,
         thread_id: thread.thread_id,
@@ -2310,6 +2311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content,
         user_id: user.id
       });
+      console.log('[CHAT] User message created:', userMessage.id);
       
       // Send message to OpenAI Assistant and get response
       let assistantMessage = null;
