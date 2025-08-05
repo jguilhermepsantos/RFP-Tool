@@ -605,7 +605,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                 </CardHeader>
               </Card>
             ) : (
-              <div className="flex gap-6">
+              <div>
                 {(() => {
                   // Organize questions hierarchically
                   const hierarchicalQuestions: HierarchicalQuestion[] = questionsWithAnswers.map(q => ({
@@ -630,15 +630,13 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                     <>
                       {/* Navigation Sidebar - Only show in hierarchical view */}
                       {viewMode === 'hierarchical' && (
-                        <div className="w-80 flex-shrink-0">
-                          <RfpNavigationMenu 
-                            sections={hierarchicalStructure.sections}
-                          />
-                        </div>
+                        <RfpNavigationMenu 
+                          sections={hierarchicalStructure.sections}
+                        />
                       )}
                       
-                      {/* Main Content Area */}
-                      <div className="flex-1 space-y-6">
+                      {/* Main Content Area - Add left margin when navigation is visible */}
+                      <div className={`space-y-6 ${viewMode === 'hierarchical' ? 'lg:ml-96' : ''}`}>
                         {document.status === 'unprocessed' && (
                           <>
                             {isProcessing ? (
