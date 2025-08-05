@@ -53,6 +53,7 @@ export default function ProjectChat({ projectId }: ProjectChatProps) {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
+      setIsGenerating(true);
       return await apiRequest(`/projects/${projectId}/chat`, {
         method: 'POST',
         headers: {
@@ -65,19 +66,18 @@ export default function ProjectChat({ projectId }: ProjectChatProps) {
         }),
       });
     },
-    onSuccess: () => {
-      // Invalidate chat messages to refresh
+    onSuccess: (data) => {
+      // The backend already handles OpenAI Assistant response automatically
+      // Just invalidate to refresh the chat and clear the message
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'chat'] });
       setMessage("");
+      setIsGenerating(false);
       
-      // TODO: Trigger assistant response generation
-      // For now, we'll simulate an assistant response
-      setTimeout(() => {
-        handleAssistantResponse();
-      }, 1000);
+      console.log('Chat response received:', data);
     },
     onError: (error) => {
       console.error('Error sending message:', error);
+      setIsGenerating(false);
       toast({
         title: "Failed to send message",
         description: "Please try again",
@@ -86,42 +86,7 @@ export default function ProjectChat({ projectId }: ProjectChatProps) {
     },
   });
 
-  // Simulate assistant response (to be replaced with actual OpenAI integration)
-  const handleAssistantResponse = async () => {
-    setIsGenerating(true);
-    
-    try {
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const assistantResponse = "I understand you're looking for information about this project. Based on the context documents and project details, I can help you with RFP responses, technical questions, and project insights. How can I assist you today?";
-      
-      await apiRequest(`/projects/${projectId}/chat`, {
-        method: 'POST',
-        headers: {
-          'Authorization': user?.email || '',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: assistantResponse,
-          messageType: 'assistant'
-        }),
-      });
-
-      // Refresh messages
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'chat'] });
-      
-    } catch (error) {
-      console.error('Error generating assistant response:', error);
-      toast({
-        title: "Assistant error",
-        description: "Failed to generate assistant response",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  // Assistant responses are now handled automatically by the backend
 
   const handleSendMessage = () => {
     if (!message.trim() || sendMessageMutation.isPending) return;
