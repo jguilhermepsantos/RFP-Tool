@@ -6,6 +6,15 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
+- **Review Button and Progress Fixes (August 5, 2025)**: Refined review tracking system with proper UI logic:
+  - Review button now only appears for questions that have answers (not shown for unprocessed documents)
+  - Progress bars now track reviewed questions instead of answered questions for better workflow tracking
+  - Sections and subsections show completion based on review status rather than answer status
+- **CSV Upload Progress Implementation (August 5, 2025)**: Successfully implemented real-time progress tracking for CSV question upload:
+  - Added progress bar that shows during CSV processing with throttled updates
+  - Tracks question creation progress as rows are inserted into database
+  - WebSocket-based progress updates with completion messages and error handling
+  - Progress displays "Creating questions (X/Y)..." with percentage completion
 - **Review Tracking System Implementation (August 5, 2025)**: Successfully implemented comprehensive review tracking system for RFP questions:
   - Added "reviewed" boolean field to rfp_questions database table
   - Created API endpoint (PATCH /api/rfp-questions/:questionId/reviewed) for toggling review status

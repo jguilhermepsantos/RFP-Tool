@@ -108,7 +108,7 @@ export function organizeQuestionsHierarchically(
 
     const section = sections.get(question.section)!;
     section.questionsCount++;
-    if (question.answer) {
+    if (question.reviewed) {
       section.completedCount++;
     }
 
@@ -129,7 +129,7 @@ export function organizeQuestionsHierarchically(
 
     subsection.questions.push(question);
     subsection.questionsCount++;
-    if (question.answer) {
+    if (question.reviewed) {
       subsection.completedCount++;
     }
   });
@@ -264,7 +264,7 @@ export function calculateHierarchicalProgress(structure: HierarchicalStructure) 
                         structure.unorganizedQuestions.length;
   
   const completedQuestions = structure.sections.reduce((sum, section) => sum + section.completedCount, 0) + 
-                            structure.unorganizedQuestions.filter(q => q.answer).length;
+                            structure.unorganizedQuestions.filter(q => q.reviewed).length;
 
   return {
     totalQuestions,

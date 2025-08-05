@@ -342,8 +342,8 @@ export default function RfpAnswerEditor({
               </Badge>
             )}
             
-            {/* Review Status */}
-            {onToggleReviewed && (
+            {/* Review Status - only show for questions with answers */}
+            {onToggleReviewed && question.answer && (
               <Button
                 variant={question.reviewed ? "default" : "outline"}
                 size="sm"
