@@ -638,6 +638,8 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                     />
                     
                     <ProjectDocumentsList projectId={projectId} />
+                    
+                    <ProjectChat projectId={projectId} />
                   </CardContent>
                 </Card>
               </TabsContent>
