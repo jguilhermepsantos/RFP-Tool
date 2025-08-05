@@ -7,7 +7,7 @@ import RfpDocumentTable from "@/components/rfp-document-table";
 import DocumentUpload from "@/components/document-upload";
 import ProspectDocumentUpload from "@/components/prospect-document-upload";
 import ProjectDocumentsList from "@/components/project-documents-list";
-import ProjectChat from "@/components/project-chat";
+import SimpleChat from "@/components/simple-chat";
 import ProspectTabTest from "@/components/prospect-tab-test";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -639,7 +639,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                     
                     <ProjectDocumentsList projectId={projectId} />
                     
-                    <ProjectChat projectId={projectId} />
+                    <SimpleChat projectId={projectId} />
                   </CardContent>
                 </Card>
               </TabsContent>
