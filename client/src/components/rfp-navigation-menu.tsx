@@ -26,6 +26,7 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
   const [stickyLeft, setStickyLeft] = useState(0);
+  const [originalTop, setOriginalTop] = useState(0);
   const navRef = useRef<HTMLDivElement>(null);
 
   // Initialize all sections as expanded
@@ -34,20 +35,38 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
     setExpandedSections(new Set(allSections));
   }, [sections]);
 
+  // Calculate original position on mount
+  useEffect(() => {
+    if (navRef.current && originalTop === 0) {
+      const rect = navRef.current.getBoundingClientRect();
+      setOriginalTop(rect.top + window.scrollY);
+    }
+  }, [originalTop]);
+
   // Smart sticky behavior
   useEffect(() => {
     const handleScroll = () => {
-      if (!navRef.current) return;
+      if (!navRef.current || originalTop === 0) return;
       
-      const rect = navRef.current.getBoundingClientRect();
-      const shouldBeSticky = rect.top <= 16; // 1rem = 16px
+      const currentScrollY = window.scrollY;
+      const targetTop = originalTop - currentScrollY;
       
-      if (shouldBeSticky !== isSticky) {
-        if (shouldBeSticky && !isSticky) {
-          // Calculate the left position before becoming sticky
-          setStickyLeft(rect.left);
+      if (isSticky) {
+        // When sticky, check if we should unstick
+        // Unstick when the natural position would be below the sticky threshold
+        const shouldUnstick = targetTop > 16;
+        if (shouldUnstick) {
+          setIsSticky(false);
         }
-        setIsSticky(shouldBeSticky);
+      } else {
+        // When not sticky, check if we should become sticky
+        const shouldBeSticky = targetTop <= 16;
+        if (shouldBeSticky) {
+          // Calculate the left position before becoming sticky
+          const rect = navRef.current.getBoundingClientRect();
+          setStickyLeft(rect.left);
+          setIsSticky(true);
+        }
       }
     };
 
@@ -55,7 +74,7 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
     handleScroll(); // Check initial state
     
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isSticky]);
+  }, [isSticky, originalTop]);
 
   const toggleSection = (sectionName: string) => {
     const newExpanded = new Set(expandedSections);
