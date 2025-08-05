@@ -726,6 +726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             subsection: question.subsection,
             assignedTo: question.assigned_to,
             assignedUser: question.assigned_to ? usersMap.get(question.assigned_to) : null,
+            reviewed: question.reviewed || false,
             createdAt: question.created_at,
             answer: answer ? {
               id: answer.id,
