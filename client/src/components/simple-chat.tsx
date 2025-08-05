@@ -58,7 +58,8 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
       setIsGenerating(true);
-      return await apiRequest(`/projects/${projectId}/chat`, {
+      console.log('[FRONTEND] Sending message to backend:', content);
+      return await apiRequest(`/api/projects/${projectId}/chat`, {
         method: 'POST',
         headers: {
           'Authorization': user?.email || '',
@@ -71,6 +72,7 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
       });
     },
     onSuccess: (data) => {
+      console.log('[FRONTEND] Message sent successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'chat'] });
       setMessage("");
       setIsGenerating(false);
