@@ -29,6 +29,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const [isDownloading, setIsDownloading] = useState(false);
   const [confidenceFilter, setConfidenceFilter] = useState<string>("all");
   const [assignmentFilter, setAssignmentFilter] = useState<string>("all");
+  const [reviewFilter, setReviewFilter] = useState<string>("all");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"hierarchical" | "flat">("hierarchical");
@@ -65,6 +66,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         email: string;
         name?: string;
       } | null;
+      reviewed: boolean;
       createdAt: string;
       sortOrder?: number;
       answer: {
@@ -130,7 +132,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     return dateA - dateB;
   });
 
-  // Apply confidence level and assignment filters
+  // Apply confidence level, assignment, and review filters
   const questionsWithAnswers = allQuestionsWithAnswers.filter((item) => {
     // Apply confidence filter
     if (confidenceFilter !== "all" && item.answer?.confidenceLevel !== confidenceFilter) {
@@ -145,6 +147,14 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
       return false;
     }
     if (assignmentFilter === "unassigned" && item.assignedTo) {
+      return false;
+    }
+    
+    // Apply review filter
+    if (reviewFilter === "reviewed" && !item.reviewed) {
+      return false;
+    }
+    if (reviewFilter === "not-reviewed" && item.reviewed) {
       return false;
     }
     
@@ -322,6 +332,34 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         variant: "destructive",
         title: "Error",
         description: (error as Error).message || `Failed to update document status`,
+      });
+    }
+  };
+
+  const toggleReviewed = async (questionId: string, currentReviewedStatus: boolean) => {
+    try {
+      await apiRequest(`/api/rfp-questions/${questionId}/reviewed`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reviewed: !currentReviewedStatus }),
+      });
+      
+      // Refresh the data
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/projects/${projectId}/rfp-documents/${documentId}`] 
+      });
+      
+      toast({
+        title: "Success",
+        description: `Question marked as ${!currentReviewedStatus ? 'reviewed' : 'not reviewed'}`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to update review status",
       });
     }
   };
@@ -569,6 +607,22 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                     </div>
                   )}
                   
+                  {/* Review Status Filter */}
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">Review:</span>
+                    <Select value={reviewFilter} onValueChange={setReviewFilter}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue placeholder="All questions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Questions</SelectItem>
+                        <SelectItem value="reviewed">Reviewed</SelectItem>
+                        <SelectItem value="not-reviewed">Not Reviewed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
                   <span className="text-xs text-gray-500 ml-auto">
                     Showing {questionsWithAnswers.length} of {allQuestionsWithAnswers.length} questions
                   </span>
@@ -617,6 +671,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                     subsection: q.subsection,
                     assignedTo: q.assignedTo,
                     assignedUser: q.assignedUser,
+                    reviewed: q.reviewed,
                     createdAt: q.createdAt,
                     answer: q.answer
                   }));
@@ -682,6 +737,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                                 onUnassignQuestion={unassignQuestion}
                                 onAssignSection={assignSection}
                                 onUnassignSection={unassignSection}
+                                onToggleReviewed={toggleReviewed}
                               />
                             ))}
 
@@ -709,6 +765,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                                         members={membersData?.members || []}
                                         onAssign={assignQuestion}
                                         onUnassign={unassignQuestion}
+                                        onToggleReviewed={toggleReviewed}
                                       />
                                     ))}
                                   </div>
@@ -728,6 +785,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                                 members={membersData?.members || []}
                                 onAssign={assignQuestion}
                                 onUnassign={unassignQuestion}
+                                onToggleReviewed={toggleReviewed}
                               />
                             ))}
                           </div>

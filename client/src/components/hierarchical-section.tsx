@@ -18,6 +18,7 @@ interface HierarchicalSectionProps {
   onUnassignQuestion: (questionId: string) => void;
   onAssignSection: (section: string, subsection: string | null, assignedTo: string) => void;
   onUnassignSection: (section: string, subsection: string | null) => void;
+  onToggleReviewed?: (questionId: string, currentReviewedStatus: boolean) => void;
 }
 
 interface HierarchicalSubsectionProps {
@@ -31,6 +32,7 @@ interface HierarchicalSubsectionProps {
   onUnassignQuestion: (questionId: string) => void;
   onAssignSection: (section: string, subsection: string | null, assignedTo: string) => void;
   onUnassignSection: (section: string, subsection: string | null) => void;
+  onToggleReviewed?: (questionId: string, currentReviewedStatus: boolean) => void;
 }
 
 function HierarchicalSubsectionComponent({
@@ -43,7 +45,8 @@ function HierarchicalSubsectionComponent({
   onAssignQuestion,
   onUnassignQuestion,
   onAssignSection,
-  onUnassignSection
+  onUnassignSection,
+  onToggleReviewed
 }: HierarchicalSubsectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const canAssign = documentStatus === 'unprocessed' || documentStatus === 'under review' || documentStatus === 'processed';
@@ -154,13 +157,17 @@ function HierarchicalSubsectionComponent({
             {subsection.questions.map((question) => (
               <RfpAnswerEditor
                 key={question.id}
-                question={question}
+                question={{
+                  ...question,
+                  questionNumber: question.questionNumber || ""
+                }}
                 documentStatus={documentStatus}
                 projectId={projectId}
                 documentId={documentId}
                 members={members}
                 onAssign={onAssignQuestion}
                 onUnassign={onUnassignQuestion}
+                onToggleReviewed={onToggleReviewed}
               />
             ))}
           </div>
@@ -179,7 +186,8 @@ export default function HierarchicalSectionComponent({
   onAssignQuestion,
   onUnassignQuestion,
   onAssignSection,
-  onUnassignSection
+  onUnassignSection,
+  onToggleReviewed
 }: HierarchicalSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const canAssign = documentStatus === 'unprocessed' || documentStatus === 'under review' || documentStatus === 'processed';
@@ -307,6 +315,7 @@ export default function HierarchicalSectionComponent({
                     onUnassignQuestion={onUnassignQuestion}
                     onAssignSection={onAssignSection}
                     onUnassignSection={onUnassignSection}
+                    onToggleReviewed={onToggleReviewed}
                   />
                 ))}
               </div>

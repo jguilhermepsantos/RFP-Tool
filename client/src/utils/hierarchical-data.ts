@@ -16,6 +16,7 @@ export interface HierarchicalQuestion {
     email: string;
     name?: string;
   } | null;
+  reviewed: boolean;
   createdAt: string;
   answer: any; // Keep this flexible for now
 }

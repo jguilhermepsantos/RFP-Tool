@@ -2086,6 +2086,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Mark question as reviewed/unreviewed
+  apiRouter.patch(
+    "/rfp-questions/:questionId/reviewed",
+    async (req: Request, res: Response) => {
+      try {
+        const { questionId } = req.params;
+        const { reviewed } = req.body;
+
+        if (typeof reviewed !== 'boolean') {
+          return res.status(400).json({ message: "reviewed must be a boolean" });
+        }
+
+        const { data, error } = await supabase
+          .from("rfp_questions")
+          .update({ reviewed })
+          .eq("id", questionId)
+          .select("*")
+          .single();
+
+        if (error) {
+          console.error("Error updating question reviewed status:", error);
+          return res.status(500).json({ message: "Internal server error" });
+        }
+
+        return res.status(200).json({
+          message: `Question marked as ${reviewed ? 'reviewed' : 'not reviewed'}`,
+          question: data
+        });
+      } catch (error) {
+        console.error("Error updating question reviewed status:", error);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+    },
+  );
+
   // Create the HTTP server
   const httpServer = createServer(app);
   
