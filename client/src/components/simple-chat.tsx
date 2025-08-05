@@ -33,26 +33,10 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Fetch chat messages
-  const { data: chatData, isLoading, error } = useQuery({
-    queryKey: ['/api/projects', projectId, 'chat'],
-    queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/chat`, {
-        headers: {
-          'Authorization': user?.email || '',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      return await response.json();
-    },
-    enabled: !!projectId && !!user?.email,
-    refetchOnWindowFocus: false,
-    staleTime: 30000,
-  });
-
-  const messages: ChatMessage[] = chatData?.messages || [];
+  // Temporarily disable message fetching to debug white page issue
+  const messages: ChatMessage[] = [];
+  const isLoading = false;
+  const error = null;
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
