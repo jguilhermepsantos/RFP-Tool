@@ -636,6 +636,8 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                         queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'documents'] });
                       }}
                     />
+                    
+                    <ProjectDocumentsList projectId={projectId} />
                   </CardContent>
                 </Card>
               </TabsContent>
