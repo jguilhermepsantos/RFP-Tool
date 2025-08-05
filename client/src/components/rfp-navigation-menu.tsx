@@ -25,6 +25,7 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
+  const [stickyLeft, setStickyLeft] = useState(0);
   const navRef = useRef<HTMLDivElement>(null);
 
   // Initialize all sections as expanded
@@ -42,6 +43,10 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
       const shouldBeSticky = rect.top <= 16; // 1rem = 16px
       
       if (shouldBeSticky !== isSticky) {
+        if (shouldBeSticky && !isSticky) {
+          // Calculate the left position before becoming sticky
+          setStickyLeft(rect.left);
+        }
         setIsSticky(shouldBeSticky);
       }
     };
@@ -227,9 +232,10 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
           ref={navRef}
           className={`w-80 z-40 transition-all duration-200 ${
             isSticky 
-              ? 'fixed top-4 left-1/2 transform -translate-x-1/2 lg:left-16 lg:transform-none' 
+              ? 'fixed top-4' 
               : 'relative'
           }`}
+          style={isSticky ? { left: `${stickyLeft}px` } : {}}
         >
           <Card className="shadow-lg border-2 bg-white/95 backdrop-blur-sm max-h-[calc(100vh-2rem)]">
             <CardHeader className="pb-3 flex-shrink-0">
