@@ -33,34 +33,29 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Fetch chat messages with defensive error handling
-  const { data: chatData, isLoading, error } = useQuery({
-    queryKey: ['/api/projects', projectId, 'chat'],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`/api/projects/${projectId}/chat`, {
-          headers: {
-            'Authorization': user?.email || '',
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        console.log('Chat data received:', data);
-        return data;
-      } catch (err) {
-        console.error('Chat fetch error:', err);
-        throw err;
-      }
+  // Test with hardcoded messages to isolate the rendering issue
+  const messages: ChatMessage[] = [
+    {
+      id: "test-1",
+      projectId: projectId,
+      threadId: "test-thread",
+      messageType: "user",
+      content: "Hello, this is a test message",
+      userId: "test-user",
+      createdAt: "2025-08-05T16:00:00Z"
     },
-    enabled: !!projectId && !!user?.email,
-    refetchOnWindowFocus: false,
-    staleTime: 30000,
-    retry: false, // Don't retry on error to prevent infinite loops
-  });
-
-  const messages: ChatMessage[] = Array.isArray(chatData?.messages) ? chatData.messages : [];
+    {
+      id: "test-2", 
+      projectId: projectId,
+      threadId: "test-thread",
+      messageType: "assistant",
+      content: "This is a test assistant response",
+      createdAt: "2025-08-05T16:01:00Z"
+    }
+  ];
+  
+  const isLoading = false;
+  const error = null;
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
