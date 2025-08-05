@@ -4,10 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight, Menu, X } from "lucide-react";
-import { HierarchicalSection } from "@/utils/hierarchical-data";
+import { HierarchicalSection, calculateHierarchicalProgress } from "@/utils/hierarchical-data";
 
 interface RfpNavigationMenuProps {
   sections: HierarchicalSection[];
+  unorganizedQuestions?: Array<{ reviewed: boolean }>;
   className?: string;
 }
 
@@ -21,7 +22,7 @@ interface NavigationItem {
   completedCount: number;
 }
 
-export default function RfpNavigationMenu({ sections, className = "" }: RfpNavigationMenuProps) {
+export default function RfpNavigationMenu({ sections, unorganizedQuestions = [], className = "" }: RfpNavigationMenuProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
@@ -110,8 +111,47 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
     }
   };
 
+  // Calculate overall RFP progress
+  const overallProgress = calculateHierarchicalProgress({ sections, unorganizedQuestions });
+
   const NavigationContent = () => (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {/* Overall RFP Progress */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-semibold text-sm text-gray-900">Overall RFP Progress</h4>
+          <Badge variant="secondary" className="text-xs">
+            {overallProgress.completedQuestions}/{overallProgress.totalQuestions}
+          </Badge>
+        </div>
+        <div className="space-y-2">
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div 
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 h-3 rounded-full transition-all duration-500 ease-out" 
+              style={{ width: `${overallProgress.progressPercentage}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-gray-600">
+              {overallProgress.progressPercentage}% Complete
+            </span>
+            <span className={`font-medium ${
+              overallProgress.progressPercentage === 100 
+                ? 'text-green-600' 
+                : overallProgress.progressPercentage >= 50 
+                  ? 'text-blue-600' 
+                  : 'text-gray-600'
+            }`}>
+              {overallProgress.progressPercentage === 100 
+                ? '✓ All Reviewed' 
+                : `${overallProgress.totalQuestions - overallProgress.completedQuestions} remaining`
+              }
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Navigation */}
       {sections.map((section) => {
         const isExpanded = expandedSections.has(section.section);
         const sectionProgress = section.questionsCount > 0 

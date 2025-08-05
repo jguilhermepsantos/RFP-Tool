@@ -6,6 +6,11 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
+- **Overall RFP Progress in Navigation (August 5, 2025)**: Added comprehensive progress tracking to navigation menu:
+  - Added overall RFP progress indicator at the top of navigation menu
+  - Shows total reviewed questions vs total questions across entire document
+  - Visual progress bar with percentage completion and remaining question count
+  - Color-coded status indicators (green when complete, blue for good progress)
 - **Review Button and Progress Fixes (August 5, 2025)**: Refined review tracking system with proper UI logic:
   - Review button now only appears for questions that have answers (not shown for unprocessed documents)
   - Progress bars now track reviewed questions instead of answered questions for better workflow tracking

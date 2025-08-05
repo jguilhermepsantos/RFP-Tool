@@ -689,6 +689,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                           <div className="w-80 flex-shrink-0 self-start">
                             <RfpNavigationMenu 
                               sections={hierarchicalStructure.sections}
+                              unorganizedQuestions={hierarchicalStructure.unorganizedQuestions}
                             />
                           </div>
                         )}
