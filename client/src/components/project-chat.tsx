@@ -134,7 +134,7 @@ export default function ProjectChat({ projectId }: ProjectChatProps) {
       <CardContent className="flex-1 flex flex-col space-y-4 min-h-0">
         {/* Messages Area */}
         <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4">
-          {isLoading ? (
+          {isLoading && (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex space-x-3">
@@ -146,7 +146,9 @@ export default function ProjectChat({ projectId }: ProjectChatProps) {
                 </div>
               ))}
             </div>
-          ) : messages.length === 0 ? (
+          )}
+          
+          {!isLoading && messages.length === 0 && (
             <div className="flex items-center justify-center h-full text-center text-muted-foreground">
               <div>
                 <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -154,7 +156,9 @@ export default function ProjectChat({ projectId }: ProjectChatProps) {
                 <p className="text-sm">Ask me anything about this project or RFP</p>
               </div>
             </div>
-          ) : (
+          )}
+          
+          {!isLoading && messages.length > 0 && (
             <div className="space-y-4">
               {messages.map((msg) => (
                 <div
