@@ -296,10 +296,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/projects", async (req: Request, res: Response) => {
     try {
       console.log("[PROJECT CREATION] Received request body:", req.body);
-      console.log("[PROJECT CREATION] Request body created_by field:", req.body.created_by);
-      const projectData = insertProjectSchema.parse(req.body);
+      
+      // Get authenticated user from authorization header
+      const userEmail = req.headers.authorization;
+      if (!userEmail) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      console.log("[PROJECT CREATION] Getting user by email:", userEmail);
+      const user = await storage.getUserByEmail(userEmail);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      console.log("[PROJECT CREATION] Authenticated user:", { id: user.id, email: user.email });
+      
+      // Parse request data and add authenticated user as created_by
+      const requestData = { ...req.body, created_by: user.id };
+      console.log("[PROJECT CREATION] Request data with user ID:", requestData);
+      
+      const projectData = insertProjectSchema.parse(requestData);
       console.log("[PROJECT CREATION] Parsed project data:", projectData);
-      console.log("[PROJECT CREATION] Parsed created_by field:", projectData.created_by);
       
       // Create the project first
       const newProject = await storage.createProject(projectData);

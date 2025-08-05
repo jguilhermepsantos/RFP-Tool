@@ -124,16 +124,17 @@ export class SupabaseStorage implements IStorage {
   async createProject(project: InsertProject): Promise<Project> {
     console.log('[SupabaseStorage] Creating project with data:', project);
     
-    // Create project without created_by to avoid constraint issues
+    // Create project with all fields including created_by
     const insertData = {
       name: project.name,
       description: project.description,
       salesforce_link: project.salesforceLink, 
       region: project.region,
-      language: project.language
+      language: project.language,
+      created_by: project.created_by
     };
     
-    console.log('[SupabaseStorage] Creating project without created_by:', insertData);
+    console.log('[SupabaseStorage] Creating project with all data:', insertData);
     
     const { data, error } = await supabase
       .from('projects')
@@ -145,9 +146,20 @@ export class SupabaseStorage implements IStorage {
     
     console.log('[SupabaseStorage] Project created successfully:', data);
     
-    // Skip adding project member for now due to constraint issues
-    // TODO: Fix user constraint issues and re-enable project member creation
-    console.log('[SupabaseStorage] Skipping project member creation due to constraint issues');
+    // Add the creator as an owner in project_permissions
+    const memberData = {
+      project_id: data.id,
+      user_id: project.created_by,
+      role: 'owner'
+    };
+    console.log('[SupabaseStorage] Adding project member:', memberData);
+    
+    try {
+      await this.addProjectMember(memberData);
+      console.log('[SupabaseStorage] Successfully added project member');
+    } catch (memberError) {
+      console.warn('[SupabaseStorage] Failed to add project member, continuing without it:', memberError);
+    }
     
     // Return project data with created_by set for consistency
     return {

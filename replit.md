@@ -6,6 +6,12 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
+- **Authentication-Aware Project Creation COMPLETED (August 5, 2025)**: Fixed complete project creation flow with proper user authentication:
+  - API now extracts authenticated user from authorization header (`req.headers.authorization`)
+  - Projects table `created_by` field correctly populated with authenticated user ID
+  - Project permissions table automatically creates owner entry for project creator
+  - All foreign key constraints resolved and working correctly
+  - Authentication integration consistent with existing chat and admin endpoints
 - **OpenAI Assistant Integration COMPLETED (August 5, 2025)**: Successfully implemented complete OpenAI Assistant integration for direct AI chat interaction within projects:
   - Fixed all database schema field mapping issues (camelCase vs snake_case conflicts)
   - Automatic OpenAI thread creation during project setup using assistant ID: asst_ANabtpP5Ogs0lv4nrrACQIPE
