@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,12 +24,33 @@ interface NavigationItem {
 export default function RfpNavigationMenu({ sections, className = "" }: RfpNavigationMenuProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSticky, setIsSticky] = useState(false);
+  const navRef = useRef<HTMLDivElement>(null);
 
   // Initialize all sections as expanded
   useEffect(() => {
     const allSections = sections.map(s => s.section);
     setExpandedSections(new Set(allSections));
   }, [sections]);
+
+  // Smart sticky behavior
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!navRef.current) return;
+      
+      const rect = navRef.current.getBoundingClientRect();
+      const shouldBeSticky = rect.top <= 16; // 1rem = 16px
+      
+      if (shouldBeSticky !== isSticky) {
+        setIsSticky(shouldBeSticky);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Check initial state
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isSticky]);
 
   const toggleSection = (sectionName: string) => {
     const newExpanded = new Set(expandedSections);
@@ -202,7 +223,14 @@ export default function RfpNavigationMenu({ sections, className = "" }: RfpNavig
 
       {/* Desktop Sidebar - Smart Sticky */}
       <div className={`hidden lg:block ${className}`}>
-        <div className="sticky top-4 w-80 z-40">
+        <div 
+          ref={navRef}
+          className={`w-80 z-40 transition-all duration-200 ${
+            isSticky 
+              ? 'fixed top-4 left-1/2 transform -translate-x-1/2 lg:left-16 lg:transform-none' 
+              : 'relative'
+          }`}
+        >
           <Card className="shadow-lg border-2 bg-white/95 backdrop-blur-sm max-h-[calc(100vh-2rem)]">
             <CardHeader className="pb-3 flex-shrink-0">
               <CardTitle className="text-base">Navigation</CardTitle>
