@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { supabase } from "./db";
 import { handleMockUpload, isS3Configured } from "./supabase-s3";
 import { chunkingRouter } from "./routes-chunking";
+import { assistantService } from "./assistant-service";
 import {
   insertUserSchema,
   insertProjectSchema,
@@ -295,7 +296,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/projects", async (req: Request, res: Response) => {
     try {
       const projectData = insertProjectSchema.parse(req.body);
+      
+      // Create the project first
       const newProject = await storage.createProject(projectData);
+      
+      // Create OpenAI thread for the project
+      try {
+        const threadResult = await assistantService.createThread();
+        
+        // Store the thread information in project_threads table
+        await storage.createProjectThread({
+          projectId: newProject.id,
+          threadId: threadResult.threadId,
+          assistantId: threadResult.assistantId
+        });
+        
+        console.log(`Created OpenAI thread ${threadResult.threadId} for project ${newProject.id}`);
+      } catch (threadError) {
+        console.error(`Failed to create OpenAI thread for project ${newProject.id}:`, threadError);
+        // Don't fail the project creation if thread creation fails
+        // The thread can be created later if needed
+      }
+      
       return res.status(201).json({ project: newProject });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2215,36 +2237,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       
+      if (!content || !content.trim()) {
+        return res.status(400).json({ error: "Message content is required" });
+      }
+      
       const user = await storage.getUserByEmail(userEmail);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Only handle user messages - assistant responses are generated automatically
+      if (messageType !== 'user') {
+        return res.status(400).json({ error: "Only user messages can be sent via this endpoint" });
       }
       
       // Get or create thread for this project
       let thread = await storage.getProjectThread(projectId);
       
       if (!thread) {
-        // TODO: Create OpenAI assistant thread here
-        // For now, we'll create a placeholder
+        // Create OpenAI assistant thread if it doesn't exist
+        const threadResult = await assistantService.createThread();
         thread = await storage.createProjectThread({
           projectId,
-          threadId: `thread_${Date.now()}`,
-          assistantId: "asst_placeholder"
+          threadId: threadResult.threadId,
+          assistantId: threadResult.assistantId
         });
       }
       
-      const message = await storage.createProjectChatMessage({
+      // Store the user message
+      const userMessage = await storage.createProjectChatMessage({
         projectId,
         threadId: thread.threadId,
-        messageType,
+        messageType: 'user',
         content,
-        userId: messageType === 'user' ? user.id : null
+        userId: user.id
       });
+      
+      // Send message to OpenAI Assistant and get response
+      let assistantMessage = null;
+      try {
+        const assistantResponse = await assistantService.sendMessage(thread.threadId, content);
+        
+        // Store the assistant response
+        assistantMessage = await storage.createProjectChatMessage({
+          projectId,
+          threadId: thread.threadId,
+          messageType: 'assistant',
+          content: assistantResponse.content,
+          userId: null
+        });
+        
+        console.log(`Assistant responded to message in project ${projectId}`);
+      } catch (assistantError) {
+        console.error(`Failed to get assistant response for project ${projectId}:`, assistantError);
+        
+        // Store an error message from the assistant
+        assistantMessage = await storage.createProjectChatMessage({
+          projectId,
+          threadId: thread.threadId,
+          messageType: 'assistant',
+          content: "I'm sorry, I'm having trouble responding right now. Please try again later.",
+          userId: null
+        });
+      }
       
       await storage.updateProjectThreadActivity(projectId);
       
-      res.json({ message });
+      // Return both user message and assistant response
+      res.json({ 
+        userMessage,
+        assistantMessage
+      });
     } catch (error) {
+      console.error("Error in chat endpoint:", error);
       res.status(500).json({ error: (error as Error).message });
     }
   });
