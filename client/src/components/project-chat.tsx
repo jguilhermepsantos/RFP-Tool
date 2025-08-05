@@ -43,7 +43,9 @@ export default function ProjectChat({ projectId }: ProjectChatProps) {
       },
     }).then(res => res.json()),
     enabled: !!projectId && !!user?.email,
-    refetchInterval: 5000, // Refresh every 5 seconds to check for new messages
+    // Remove automatic polling - only refetch when manually triggered
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   const messages: ChatMessage[] = chatData?.messages || [];

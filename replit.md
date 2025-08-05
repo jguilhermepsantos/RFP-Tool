@@ -6,6 +6,11 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
+- **Chat Performance Optimization COMPLETED (August 5, 2025)**: Fixed excessive API polling in project chat component:
+  - Removed automatic 5-second polling (refetchInterval) that was causing repeated API calls
+  - Added staleTime configuration to improve caching and reduce unnecessary requests
+  - Disabled refetchOnWindowFocus to prevent excessive refetching
+  - Chat now only refetches when manually triggered or after sending messages
 - **Authentication-Aware Project Creation COMPLETED (August 5, 2025)**: Fixed complete project creation flow with proper user authentication:
   - API now extracts authenticated user from authorization header (`req.headers.authorization`)
   - Frontend updated to send user email in Authorization header instead of created_by in request body
