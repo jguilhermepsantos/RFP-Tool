@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Project } from "@shared/schema";
@@ -117,38 +118,32 @@ export default function Projects() {
     if (!user) return;
 
     try {
-      // Create project directly in Supabase
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .insert({
+      // Use API endpoint to create project (includes OpenAI thread creation)
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: values.name,
           description: values.description || null,
           salesforce_link: values.salesforceLink || null,
           region: values.region,
           language: values.language,
           created_by: user.id,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-        
-      if (projectError) throw new Error(projectError.message);
-      
-      // Add project permission for the creator
-      const { error: permError } = await supabase
-        .from('project_permissions')
-        .insert({
-          project_id: project.id,
-          user_id: user.id,
-          role: 'owner',
-          created_at: new Date().toISOString()
-        });
-        
-      if (permError) throw new Error(permError.message);
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create project');
+      }
+
+      const { project } = await response.json();
 
       toast({
         title: "Success",
-        description: "Project created successfully",
+        description: "Project created successfully with AI chat enabled",
       });
 
       // Reset form and invalidate query to refresh data
