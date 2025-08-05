@@ -1944,6 +1944,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // CSV Upload Progress endpoint
+  apiRouter.post("/progress/csv-upload", async (req: Request, res: Response) => {
+    try {
+      const { documentId, current, total, percentage, message } = req.body;
+      
+      if (!documentId) {
+        return res.status(400).json({ error: "Document ID is required" });
+      }
+      
+      // Import progressTracker and emit progress update
+      const { progressTracker } = await import('./progress-tracker');
+      
+      const progressUpdate = {
+        documentId,
+        questionIndex: current,
+        totalQuestions: total,
+        progress: percentage,
+        status: message,
+        completed: current >= total
+      };
+      
+      console.log(`[CSV Progress] Updating progress for document ${documentId}:`, progressUpdate);
+      progressTracker.updateProgress(progressUpdate);
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error updating CSV upload progress:", error);
+      return res.status(500).json({ error: "Failed to update progress" });
+    }
+  });
+
   // Question assignment routes
   apiRouter.put(
     "/rfp-questions/:questionId/assign",
