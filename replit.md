@@ -6,6 +6,13 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
+- **Review Tracking System Implementation (August 5, 2025)**: Successfully implemented comprehensive review tracking system for RFP questions:
+  - Added "reviewed" boolean field to rfp_questions database table
+  - Created API endpoint (PATCH /api/rfp-questions/:questionId/reviewed) for toggling review status
+  - Implemented review status filtering (All Questions, Reviewed, Not Reviewed) in main RFP document view
+  - Added visual review indicators with toggle buttons on each question
+  - Updated hierarchical components to support review functionality throughout all levels
+  - Fixed API data transformation to include reviewed field in question responses
 - **Smart Sticky Navigation Implementation (August 5, 2025)**: Implemented advanced smart sticky navigation menu for hierarchical RFP view:
   - JavaScript-based sticky behavior that tracks original position and scroll state
   - Navigation scrolls naturally with content initially, becomes fixed when reaching viewport edge
