@@ -621,7 +621,23 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
               </TabsContent>
               
               <TabsContent value="prospect" className="space-y-4">
-                <ProspectTabTest projectId={projectId} />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Prospect Discovery</CardTitle>
+                    <CardDescription>
+                      Upload documents and context about this specific prospect to generate better RFP responses
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <ProspectDocumentUpload 
+                      projectId={projectId}
+                      onUploadSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'documents'] });
+                      }}
+                    />
+                  </CardContent>
+                </Card>
               </TabsContent>
               
               <TabsContent value="team">
