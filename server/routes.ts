@@ -726,6 +726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             subsection: question.subsection,
             assignedTo: question.assigned_to,
             assignedUser: question.assigned_to ? usersMap.get(question.assigned_to) : null,
+            reviewed: question.reviewed || false,
             createdAt: question.created_at,
             answer: answer ? {
               id: answer.id,
@@ -991,7 +992,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI and Vector Database routes
   apiRouter.post("/ai/answer", async (req: Request, res: Response) => {
     try {
-      const { question, projectLanguage } = req.body;
+      const { question, projectLanguage, hierarchicalContext } = req.body;
 
       if (!question || typeof question !== "string") {
         return res
@@ -1002,8 +1003,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import the AI service
       const { answerQuestion } = await import("./ai-service");
 
-      // Get answer from RAG engine with optional project language
-      const result = await answerQuestion(question, 3, projectLanguage);
+      // Get answer from RAG engine with optional project language and hierarchical context
+      const result = await answerQuestion(question, 3, projectLanguage, hierarchicalContext);
 
       return res.status(200).json(result);
     } catch (error) {
@@ -1943,6 +1944,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // CSV Upload Progress endpoint
+  apiRouter.post("/progress/csv-upload", async (req: Request, res: Response) => {
+    try {
+      const { documentId, current, total, percentage, message } = req.body;
+      
+      if (!documentId) {
+        return res.status(400).json({ error: "Document ID is required" });
+      }
+      
+      // Import progressTracker and emit progress update
+      const { progressTracker } = await import('./progress-tracker');
+      
+      const progressUpdate = {
+        documentId,
+        questionIndex: current,
+        totalQuestions: total,
+        progress: percentage,
+        status: message,
+        completed: current >= total
+      };
+      
+      console.log(`[CSV Progress] Updating progress for document ${documentId}:`, progressUpdate);
+      progressTracker.updateProgress(progressUpdate);
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error updating CSV upload progress:", error);
+      return res.status(500).json({ error: "Failed to update progress" });
+    }
+  });
+
   // Question assignment routes
   apiRouter.put(
     "/rfp-questions/:questionId/assign",
@@ -2216,6 +2248,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: (error as Error).message });
     }
   });
+
+  // Mark question as reviewed/unreviewed
+  apiRouter.patch(
+    "/rfp-questions/:questionId/reviewed",
+    async (req: Request, res: Response) => {
+      try {
+        const { questionId } = req.params;
+        const { reviewed } = req.body;
+
+        if (typeof reviewed !== 'boolean') {
+          return res.status(400).json({ message: "reviewed must be a boolean" });
+        }
+
+        const { data, error } = await supabase
+          .from("rfp_questions")
+          .update({ reviewed })
+          .eq("id", questionId)
+          .select("*")
+          .single();
+
+        if (error) {
+          console.error("Error updating question reviewed status:", error);
+          return res.status(500).json({ message: "Internal server error" });
+        }
+
+        return res.status(200).json({
+          message: `Question marked as ${reviewed ? 'reviewed' : 'not reviewed'}`,
+          question: data
+        });
+      } catch (error) {
+        console.error("Error updating question reviewed status:", error);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+    },
+  );
 
   // Create the HTTP server
   const httpServer = createServer(app);

@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import NavHeader from "@/components/nav-header";
 import RfpAnswerEditor from "@/components/rfp-answer-editor";
 import HierarchicalSectionComponent from "@/components/hierarchical-section";
+import RfpNavigationMenu from "@/components/rfp-navigation-menu";
 import ProgressModal from "@/components/progress-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { organizeQuestionsHierarchically, calculateHierarchicalProgress, HierarchicalQuestion } from "@/utils/hierarchical-data";
@@ -28,6 +29,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
   const [isDownloading, setIsDownloading] = useState(false);
   const [confidenceFilter, setConfidenceFilter] = useState<string>("all");
   const [assignmentFilter, setAssignmentFilter] = useState<string>("all");
+  const [reviewFilter, setReviewFilter] = useState<string>("all");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"hierarchical" | "flat">("hierarchical");
@@ -64,7 +66,9 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         email: string;
         name?: string;
       } | null;
+      reviewed: boolean;
       createdAt: string;
+      sortOrder?: number;
       answer: {
         id: string;
         rfpQuestionId: string | null;
@@ -72,6 +76,9 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         generatedAnswer: string | null;
         lastReviewedBy: string | null;
         lastReviewedAt: string | null;
+        confidenceLevel?: string;
+        createdBy?: string;
+        createdAt?: string;
       } | null;
     }>;
   }
@@ -125,7 +132,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
     return dateA - dateB;
   });
 
-  // Apply confidence level and assignment filters
+  // Apply confidence level, assignment, and review filters
   const questionsWithAnswers = allQuestionsWithAnswers.filter((item) => {
     // Apply confidence filter
     if (confidenceFilter !== "all" && item.answer?.confidenceLevel !== confidenceFilter) {
@@ -140,6 +147,14 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
       return false;
     }
     if (assignmentFilter === "unassigned" && item.assignedTo) {
+      return false;
+    }
+    
+    // Apply review filter
+    if (reviewFilter === "reviewed" && !item.reviewed) {
+      return false;
+    }
+    if (reviewFilter === "not-reviewed" && item.reviewed) {
       return false;
     }
     
@@ -317,6 +332,34 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
         variant: "destructive",
         title: "Error",
         description: (error as Error).message || `Failed to update document status`,
+      });
+    }
+  };
+
+  const toggleReviewed = async (questionId: string, currentReviewedStatus: boolean) => {
+    try {
+      await apiRequest(`/api/rfp-questions/${questionId}/reviewed`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reviewed: !currentReviewedStatus }),
+      });
+      
+      // Refresh the data
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/projects/${projectId}/rfp-documents/${documentId}`] 
+      });
+      
+      toast({
+        title: "Success",
+        description: `Question marked as ${!currentReviewedStatus ? 'reviewed' : 'not reviewed'}`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to update review status",
       });
     }
   };
@@ -564,6 +607,22 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                     </div>
                   )}
                   
+                  {/* Review Status Filter */}
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">Review:</span>
+                    <Select value={reviewFilter} onValueChange={setReviewFilter}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue placeholder="All questions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Questions</SelectItem>
+                        <SelectItem value="reviewed">Reviewed</SelectItem>
+                        <SelectItem value="not-reviewed">Not Reviewed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
                   <span className="text-xs text-gray-500 ml-auto">
                     Showing {questionsWithAnswers.length} of {allQuestionsWithAnswers.length} questions
                   </span>
@@ -600,7 +659,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                 </CardHeader>
               </Card>
             ) : (
-              <div className="space-y-6">
+              <div>
                 {(() => {
                   // Organize questions hierarchically
                   const hierarchicalQuestions: HierarchicalQuestion[] = questionsWithAnswers.map(q => ({
@@ -612,6 +671,7 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
                     subsection: q.subsection,
                     assignedTo: q.assignedTo,
                     assignedUser: q.assignedUser,
+                    reviewed: q.reviewed,
                     createdAt: q.createdAt,
                     answer: q.answer
                   }));
@@ -623,98 +683,116 @@ export default function RfpDocument({ projectId, documentId }: RfpDocumentProps)
 
                   return (
                     <>
-                      {document.status === 'unprocessed' && (
-                        <>
-                          {isProcessing ? (
-                            <Card className="bg-blue-50 border-blue-200 mb-4">
-                              <CardHeader className="pb-2">
-                                <CardTitle className="text-blue-700 text-base flex items-center">
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Processing Questions
-                                </CardTitle>
-                                <CardDescription>
-                                  AI is analyzing the questions and generating answers. This may take a few minutes depending on the number of questions.
-                                </CardDescription>
-                              </CardHeader>
-                            </Card>
-                          ) : (
-                            <Card className="bg-amber-50 border-amber-200 mb-4">
-                              <CardHeader className="pb-2">
-                                <CardTitle className="text-amber-700 text-base">Ready for Processing</CardTitle>
-                                <CardDescription>
-                                  These questions are ready to be processed. Click the "Process Questions" button to generate AI-assisted answers.
-                                </CardDescription>
-                              </CardHeader>
-                            </Card>
-                          )}
-                        </>
-                      )}
-                      
-                      {viewMode === 'hierarchical' ? (
-                        <div className="space-y-6">
-                          {/* Hierarchical Sections */}
-                          {hierarchicalStructure.sections.map((section) => (
-                            <HierarchicalSectionComponent
-                              key={section.section}
-                              section={section}
-                              documentStatus={document.status}
-                              projectId={projectId}
-                              documentId={documentId}
-                              members={membersData?.members || []}
-                              onAssignQuestion={assignQuestion}
-                              onUnassignQuestion={unassignQuestion}
-                              onAssignSection={assignSection}
-                              onUnassignSection={unassignSection}
+                      <div className="flex gap-6 items-start">
+                        {/* Navigation Sidebar - Only show in hierarchical view */}
+                        {viewMode === 'hierarchical' && (
+                          <div className="w-80 flex-shrink-0 self-start">
+                            <RfpNavigationMenu 
+                              sections={hierarchicalStructure.sections}
+                              unorganizedQuestions={hierarchicalStructure.unorganizedQuestions}
                             />
-                          ))}
+                          </div>
+                        )}
+                        
+                        {/* Main Content Area */}
+                        <div className="flex-1 space-y-6 min-h-screen">
+                        {document.status === 'unprocessed' && (
+                          <>
+                            {isProcessing ? (
+                              <Card className="bg-blue-50 border-blue-200 mb-4">
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-blue-700 text-base flex items-center">
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Processing Questions
+                                  </CardTitle>
+                                  <CardDescription>
+                                    AI is analyzing the questions and generating answers. This may take a few minutes depending on the number of questions.
+                                  </CardDescription>
+                                </CardHeader>
+                              </Card>
+                            ) : (
+                              <Card className="bg-amber-50 border-amber-200 mb-4">
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-amber-700 text-base">Ready for Processing</CardTitle>
+                                  <CardDescription>
+                                    These questions are ready to be processed. Click the "Process Questions" button to generate AI-assisted answers.
+                                  </CardDescription>
+                                </CardHeader>
+                              </Card>
+                            )}
+                          </>
+                        )}
+                        
+                        {viewMode === 'hierarchical' ? (
+                          <div className="space-y-6">
+                            {/* Hierarchical Sections */}
+                            {hierarchicalStructure.sections.map((section) => (
+                              <HierarchicalSectionComponent
+                                key={section.section}
+                                section={section}
+                                documentStatus={document.status}
+                                projectId={projectId}
+                                documentId={documentId}
+                                members={membersData?.members || []}
+                                onAssignQuestion={assignQuestion}
+                                onUnassignQuestion={unassignQuestion}
+                                onAssignSection={assignSection}
+                                onUnassignSection={unassignSection}
+                                onToggleReviewed={toggleReviewed}
+                              />
+                            ))}
 
-                          {/* Unorganized Questions */}
-                          {hierarchicalStructure.unorganizedQuestions.length > 0 && (
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                  <AlertCircle className="h-5 w-5 text-amber-500" />
-                                  Unorganized Questions
-                                </CardTitle>
-                                <CardDescription>
-                                  Questions without section organization
-                                </CardDescription>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="space-y-4">
-                                  {hierarchicalStructure.unorganizedQuestions.map((question) => (
-                                    <RfpAnswerEditor 
-                                      key={question.id}
-                                      question={question}
-                                      documentStatus={document.status}
-                                      projectId={projectId}
-                                      documentId={documentId}
-                                      members={membersData?.members || []}
-                                      onAssign={assignQuestion}
-                                      onUnassign={unassignQuestion}
-                                    />
-                                  ))}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
+                            {/* Unorganized Questions */}
+                            {hierarchicalStructure.unorganizedQuestions.length > 0 && (
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="text-lg flex items-center gap-2">
+                                    <AlertCircle className="h-5 w-5 text-amber-500" />
+                                    Unorganized Questions
+                                  </CardTitle>
+                                  <CardDescription>
+                                    Questions without section organization
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="space-y-4">
+                                    {hierarchicalStructure.unorganizedQuestions.map((question) => (
+                                      <RfpAnswerEditor 
+                                        key={question.id}
+                                        question={question}
+                                        documentStatus={document.status}
+                                        projectId={projectId}
+                                        documentId={documentId}
+                                        members={membersData?.members || []}
+                                        onAssign={assignQuestion}
+                                        onUnassign={unassignQuestion}
+                                        onToggleReviewed={toggleReviewed}
+                                      />
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
+                              <RfpAnswerEditor 
+                                key={item.id}
+                                question={item}
+                                documentStatus={document.status}
+                                projectId={projectId}
+                                documentId={documentId}
+                                members={membersData?.members || []}
+                                onAssign={assignQuestion}
+                                onUnassign={unassignQuestion}
+                                onToggleReviewed={toggleReviewed}
+                              />
+                            ))}
+                          </div>
+                        )}
                         </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {questionsWithAnswers.map((item: DocumentResponse['questionsWithAnswers'][0]) => (
-                            <RfpAnswerEditor 
-                              key={item.id}
-                              question={item}
-                              documentStatus={document.status}
-                              projectId={projectId}
-                              documentId={documentId}
-                              members={membersData?.members || []}
-                              onAssign={assignQuestion}
-                              onUnassign={unassignQuestion}
-                            />
-                          ))}
-                        </div>
-                      )}
+                      </div>
                     </>
                   );
                 })()}

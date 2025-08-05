@@ -95,6 +95,7 @@ export const rfpQuestions = pgTable("rfp_questions", {
   section: text("section"), // Added hierarchical field
   subsection: text("subsection"), // Added hierarchical field
   assignedTo: uuid("assigned_to").references(() => users.id),
+  reviewed: boolean("reviewed").default(false), // Added review tracking field
   createdAt: timestamp("created_at").defaultNow(),
 });
 

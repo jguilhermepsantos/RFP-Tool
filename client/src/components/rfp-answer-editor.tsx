@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare, User, UserPlus, UserX } from "lucide-react";
+import { Pencil, Save, ChevronDown, ChevronRight, FileText, MessageSquare, User, UserPlus, UserX, CheckCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import AnswerFeedback from "./answer-feedback";
@@ -48,6 +48,7 @@ interface Question {
     email: string;
     name?: string;
   } | null;
+  reviewed: boolean;
   answer: Answer | null;
 }
 
@@ -59,6 +60,7 @@ interface RfpAnswerEditorProps {
   members: Array<{ id: string; email: string; name?: string; role: string }>;
   onAssign: (questionId: string, assignedTo: string) => void;
   onUnassign: (questionId: string) => void;
+  onToggleReviewed?: (questionId: string, currentReviewedStatus: boolean) => void;
 }
 
 interface SourceChunkDisplayProps {
@@ -144,19 +146,13 @@ export default function RfpAnswerEditor({
   documentId,
   members,
   onAssign,
-  onUnassign
+  onUnassign,
+  onToggleReviewed
 }: RfpAnswerEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Fetch user details for the reviewer
-  const { data: reviewerData } = useQuery({
-    queryKey: [`/api/users/${question.answer?.lastReviewedBy}`],
-    enabled: !!question.answer?.lastReviewedBy,
-  });
-  
-  console.log("Reviewer data:", reviewerData);
-  console.log("Last reviewed by:", question.answer?.lastReviewedBy);
+  // Remove this code block as lastReviewedBy doesn't exist in our interface
   
   console.log("RfpAnswerEditor - Question:", question);
   console.log("RfpAnswerEditor - Answer:", question.answer);
@@ -172,6 +168,7 @@ export default function RfpAnswerEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSourcesOpen, setIsSourcesOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   // Helper function to get user name from members list
   const getUserName = (userId: string) => {
@@ -345,6 +342,19 @@ export default function RfpAnswerEditor({
               </Badge>
             )}
             
+            {/* Review Status - only show for questions with answers */}
+            {onToggleReviewed && question.answer && (
+              <Button
+                variant={question.reviewed ? "default" : "outline"}
+                size="sm"
+                onClick={() => onToggleReviewed(question.id, question.reviewed)}
+                className={question.reviewed ? "bg-green-600 hover:bg-green-700" : ""}
+              >
+                <CheckCircle className={`mr-1 h-3 w-3 ${question.reviewed ? "text-white" : ""}`} />
+                {question.reviewed ? "Reviewed" : "Mark Reviewed"}
+              </Button>
+            )}
+            
             {/* Action buttons */}
             <div className="flex items-center gap-2">
               {/* Version history button - show for any answered question */}
@@ -489,13 +499,34 @@ export default function RfpAnswerEditor({
               </div>
             )}
 
-            {/* Add feedback component for processed answers */}
+            {/* Collapsible feedback section for processed answers */}
             {question.answer && question.answer.generatedAnswer && (
-              <AnswerFeedback 
-                questionId={question.id}
-                projectId={projectId}
-                documentId={documentId}
-              />
+              <div>
+                <Collapsible open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                      <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4" />
+                        AI Answer Feedback
+                      </h4>
+                      {isFeedbackOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3">
+                    {isFeedbackOpen && (
+                      <AnswerFeedback 
+                        questionId={question.id}
+                        projectId={projectId}
+                        documentId={documentId}
+                      />
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
             )}
           </div>
         ) : (

@@ -6,6 +6,39 @@ The RFP Assistant Tool is a comprehensive web application designed to help Solut
 
 ## Recent Changes
 
+- **Overall RFP Progress in Navigation (August 5, 2025)**: Added comprehensive progress tracking to navigation menu:
+  - Added overall RFP progress indicator at the top of navigation menu
+  - Shows total reviewed questions vs total questions across entire document
+  - Visual progress bar with percentage completion and remaining question count
+  - Color-coded status indicators (green when complete, blue for good progress)
+- **Review Button and Progress Fixes (August 5, 2025)**: Refined review tracking system with proper UI logic:
+  - Review button now only appears for questions that have answers (not shown for unprocessed documents)
+  - Progress bars now track reviewed questions instead of answered questions for better workflow tracking
+  - Sections and subsections show completion based on review status rather than answer status
+- **CSV Upload Progress Implementation (August 5, 2025)**: Successfully implemented real-time progress tracking for CSV question upload:
+  - Added progress bar that shows during CSV processing with throttled updates
+  - Tracks question creation progress as rows are inserted into database
+  - WebSocket-based progress updates with completion messages and error handling
+  - Progress displays "Creating questions (X/Y)..." with percentage completion
+- **Review Tracking System Implementation (August 5, 2025)**: Successfully implemented comprehensive review tracking system for RFP questions:
+  - Added "reviewed" boolean field to rfp_questions database table
+  - Created API endpoint (PATCH /api/rfp-questions/:questionId/reviewed) for toggling review status
+  - Implemented review status filtering (All Questions, Reviewed, Not Reviewed) in main RFP document view
+  - Added visual review indicators with toggle buttons on each question
+  - Updated hierarchical components to support review functionality throughout all levels
+  - Fixed API data transformation to include reviewed field in question responses
+- **Smart Sticky Navigation Implementation (August 5, 2025)**: Implemented advanced smart sticky navigation menu for hierarchical RFP view:
+  - JavaScript-based sticky behavior that tracks original position and scroll state
+  - Navigation scrolls naturally with content initially, becomes fixed when reaching viewport edge
+  - Returns to natural position when scrolling back up, preventing overlay of page controls
+  - Maintains exact horizontal positioning during sticky transitions with smooth animations
+  - Includes mobile-responsive collapsible design with hierarchical sections and progress indicators
+- **Enhanced Contextual AI Search (August 4, 2025)**: Implemented hybrid approach for context-aware answer generation with section/subsection information:
+  - Enhanced query embedding includes hierarchical context (section, subsection, requirement ID) for better semantic matching
+  - Structured prompts now explicitly include RFP context to guide AI responses (e.g., B2B vs B2C distinctions)
+  - Modified answerQuestion function to accept and process hierarchical context
+  - Updated document processing pipeline to pass section/subsection data to AI service
+  - Enhanced vector search queries format: "[Section: B2B Commerce | Subsection: Authentication] Does your system support SSO?"
 - **Question Number Field Removal (July 14, 2025)**: Completely removed question_number field from codebase after confirming requirement ID-based system works correctly. User will delete column from Supabase database.
 - **CSV Export Enhancement (July 14, 2025)**: Updated CSV export for completed RFP documents to include comprehensive columns: requirement ID, section, subsection, question, compliance answer, and answer
 - **Display and Ordering Improvements (July 14, 2025)**: Enhanced hierarchical organization to display requirement IDs instead of question numbers, and preserve CSV upload order for both sections and subsections

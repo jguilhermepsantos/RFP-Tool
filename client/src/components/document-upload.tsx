@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useWebSocket } from "@/hooks/use-websocket";
 import {
   Card,
   CardContent,
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { FileUpIcon, Loader2, Download } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Papa from "papaparse";
@@ -33,6 +35,11 @@ export default function DocumentUpload({
   const [documentName, setDocumentName] = useState("");
   const [isPastRfp, setIsPastRfp] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
+  
+  const { registerForProgress, getProgress } = useWebSocket();
 
   // Function to download CSV example
   const downloadCSVExample = (type: 'new' | 'past') => {
@@ -127,13 +134,41 @@ export default function DocumentUpload({
       );
       console.log(`Data rows count: ${data.length}`);
 
+      // Register for progress updates and set initial state
+      setCurrentDocumentId(rfpDocumentId);
+      setUploadProgress(0);
+      setUploadStatus("Starting CSV processing...");
+      registerForProgress(rfpDocumentId);
+
+      const totalRows = data.length;
+      let insertedRows = 0;
+
+      // Helper function to emit progress with throttling
+      const emitProgress = (current: number, message: string) => {
+        const percentage = Math.round((current / totalRows) * 100);
+        setUploadProgress(percentage);
+        setUploadStatus(message);
+        
+        // Send progress update to backend via API call
+        fetch(`/api/progress/csv-upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            documentId: rfpDocumentId,
+            current,
+            total: totalRows,
+            percentage,
+            message
+          })
+        }).catch(err => console.error('Progress update failed:', err));
+      };
+
       if (isPastRfp) {
         // For past RFPs: insert directly into rfp_answers table
         // Expected columns: question_text, compliance_answer, generated_answer
         console.log("Processing as past RFP (inserting into rfp_answers)");
         console.log("isPastRfp =", isPastRfp);
 
-        let insertedRows = 0;
         for (const row of data) {
           // Using lowercase column names for compatibility with different CSV formats
           const questionText = row.question_text || row["question text"] || "";
@@ -201,6 +236,11 @@ export default function DocumentUpload({
             questionData.id,
           );
           insertedRows++;
+          
+          // Emit progress update every 5 rows or at 100%
+          if (insertedRows % 5 === 0 || insertedRows === totalRows) {
+            emitProgress(insertedRows, `Creating questions (${insertedRows}/${totalRows})...`);
+          }
         }
 
         console.log(
@@ -257,6 +297,11 @@ export default function DocumentUpload({
           }
 
           insertedRows++;
+          
+          // Emit progress update every 10 rows or at 100%
+          if (insertedRows % 10 === 0 || insertedRows === totalRows) {
+            emitProgress(insertedRows, `Creating questions (${insertedRows}/${totalRows})...`);
+          }
         }
 
         console.log(`Successfully inserted ${insertedRows} questions`);
@@ -264,9 +309,28 @@ export default function DocumentUpload({
         // Document status stays as 'unprocessed'
       }
 
+      // Emit final completion update
+      emitProgress(totalRows, `CSV processing completed! ${totalRows} questions created.`);
+      
+      // Clear progress after a short delay
+      setTimeout(() => {
+        setUploadProgress(0);
+        setUploadStatus("");
+        setCurrentDocumentId(null);
+      }, 2000);
+
       return true;
     } catch (error) {
       console.error("Error processing CSV data:", error);
+      
+      // Emit error progress update
+      setUploadStatus("Error processing CSV file");
+      setTimeout(() => {
+        setUploadProgress(0);
+        setUploadStatus("");
+        setCurrentDocumentId(null);
+      }, 3000);
+      
       throw error;
     }
   };
@@ -467,6 +531,17 @@ export default function DocumentUpload({
                 This is a past RFP document (for reference only)
               </Label>
             </div>
+
+            {/* Progress bar for CSV processing */}
+            {(isUploading && uploadProgress > 0) && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>{uploadStatus}</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="w-full" />
+              </div>
+            )}
           </div>
 
           <div className="md:w-1/3 flex items-center justify-center">
