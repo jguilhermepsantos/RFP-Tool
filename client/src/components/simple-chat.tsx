@@ -71,6 +71,7 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
           content,
           messageType: 'user'
         }),
+        timeout: 90000, // 90 seconds for chat operations (OpenAI can be slow)
       });
     },
     onSuccess: (data) => {

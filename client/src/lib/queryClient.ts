@@ -80,9 +80,11 @@ export const getQueryFn: <T>(options: {
     queryHealthMonitor.trackQueryStart(queryKeyStr);
     
     try {
-      // Create timeout promise
+      // Create timeout promise with longer timeout for chat endpoints
+      const isChatEndpoint = queryKeyStr.includes('/chat');
+      const timeoutMs = isChatEndpoint ? 90000 : 30000; // 90 seconds for chat, 30 for others
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout after 30 seconds')), 30000);
+        setTimeout(() => reject(new Error(`Query timeout after ${timeoutMs/1000} seconds`)), timeoutMs);
       });
       
       // Create fetch promise
