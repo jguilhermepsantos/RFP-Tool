@@ -2458,11 +2458,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .getPublicUrl(uploadData.path);
       
       // Now create database record with the actual file path (using snake_case for Supabase)
+      // Convert MIME type to simple file extension for database constraint
+      const fileExtension = req.file.mimetype.includes('pdf') ? 'pdf' :
+                           req.file.mimetype.includes('text') ? 'txt' :
+                           req.file.mimetype.includes('word') || req.file.mimetype.includes('document') ? 'doc' :
+                           req.file.originalname.split('.').pop()?.toLowerCase() || 'unknown';
+      
       const documentData = {
         project_id: projectId,
         file_name: sanitizedFileName, // Use sanitized filename
         file_path: uploadData.path, // Use the path from Supabase upload
-        file_type: req.file.mimetype,
+        file_type: fileExtension, // Use file extension instead of MIME type
         uploaded_by: user.id
       };
       
