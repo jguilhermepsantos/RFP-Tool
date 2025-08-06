@@ -1490,6 +1490,80 @@ export class SupabaseStorage implements IStorage {
     
     return data as ProjectChatMessage;
   }
+
+  // Project Document operations
+  async getProjectDocuments(projectId: string): Promise<ProjectDocument[]> {
+    console.log('[SupabaseStorage] Getting project documents for project:', projectId);
+    
+    const { data, error } = await supabase
+      .from('project_documents')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('uploaded_at', { ascending: false });
+    
+    if (error) {
+      console.error('[SupabaseStorage] Error getting project documents:', error);
+      throw new Error(`Failed to get project documents: ${error.message}`);
+    }
+    
+    console.log(`[SupabaseStorage] Found ${data?.length || 0} project documents`);
+    return data || [];
+  }
+
+  async createProjectDocument(document: InsertProjectDocument): Promise<ProjectDocument> {
+    console.log('[SupabaseStorage] Creating project document:', document);
+    
+    const { data, error } = await supabase
+      .from('project_documents')
+      .insert(document)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[SupabaseStorage] Error creating project document:', error);
+      throw new Error(`Failed to create project document: ${error.message}`);
+    }
+    
+    console.log('[SupabaseStorage] Successfully created project document:', data.id);
+    return data as ProjectDocument;
+  }
+
+  async getProjectDocument(id: string): Promise<ProjectDocument | undefined> {
+    const { data, error } = await supabase
+      .from('project_documents')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return undefined;
+      throw new Error(`Failed to get project document: ${error.message}`);
+    }
+    
+    return data as ProjectDocument;
+  }
+
+  async updateProjectDocumentStatus(id: string, status: string): Promise<ProjectDocument | undefined> {
+    const updateData: any = { status };
+    
+    if (status === 'processed') {
+      updateData.processed_at = new Date().toISOString();
+    }
+    
+    const { data, error } = await supabase
+      .from('project_documents')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return undefined;
+      throw new Error(`Failed to update project document status: ${error.message}`);
+    }
+    
+    return data as ProjectDocument;
+  }
 }
 
 // Special patched method that will get a document with its answers in one query

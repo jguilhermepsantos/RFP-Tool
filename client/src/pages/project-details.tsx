@@ -9,6 +9,7 @@ import ProspectDocumentUpload from "@/components/prospect-document-upload";
 import ProjectDocumentsList from "@/components/project-documents-list";
 import SimpleChat from "@/components/simple-chat";
 import ProspectTabTest from "@/components/prospect-tab-test";
+import { ProjectDocuments } from "@/components/project-documents";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -630,14 +631,10 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                   </CardHeader>
                   
                   <CardContent className="space-y-4">
-                    <ProspectDocumentUpload 
+                    <ProjectDocuments 
                       projectId={projectId}
-                      onUploadSuccess={() => {
-                        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'documents'] });
-                      }}
+                      userEmail={user?.email || ''}
                     />
-                    
-                    <ProjectDocumentsList projectId={projectId} />
                     
                     <SimpleChat projectId={projectId} />
                   </CardContent>

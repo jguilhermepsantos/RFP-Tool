@@ -108,6 +108,40 @@ export class AssistantService {
   }
 
   /**
+   * Upload a file to OpenAI and attach it to a thread for assistant context
+   */
+  async uploadFileToThread(threadId: string, fileBuffer: Buffer, fileName: string, fileType: string): Promise<string> {
+    try {
+      // Upload file to OpenAI
+      const file = await openai.files.create({
+        file: fileBuffer,
+        purpose: 'assistants'
+      });
+      
+      console.log(`[AssistantService] Uploaded file to OpenAI: ${file.id}`);
+      
+      // Attach file to assistant thread by sending a message with the file
+      await openai.beta.threads.messages.create(threadId, {
+        role: 'user',
+        content: `I've uploaded a document "${fileName}" for this project. Please use this document as context for our conversation.`,
+        attachments: [
+          {
+            file_id: file.id,
+            tools: [{ type: "file_search" }]
+          }
+        ]
+      });
+      
+      console.log(`[AssistantService] Attached file ${file.id} to thread ${threadId}`);
+      return file.id;
+      
+    } catch (error) {
+      console.error('Failed to upload file to OpenAI:', error);
+      throw new Error(`Failed to upload file to OpenAI: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
    * Get the assistant ID being used
    */
   getAssistantId(): string {

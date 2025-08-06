@@ -110,7 +110,6 @@ export interface IStorage {
   getProjectDocument(id: string): Promise<ProjectDocument | undefined>;
   createProjectDocument(document: InsertProjectDocument): Promise<ProjectDocument>;
   updateProjectDocumentStatus(id: string, status: string): Promise<ProjectDocument | undefined>;
-  deleteProjectDocument(id: string): Promise<void>;
 
   // Assistants Migration - Project Thread operations
   getProjectThread(projectId: string): Promise<ProjectThread | undefined>;

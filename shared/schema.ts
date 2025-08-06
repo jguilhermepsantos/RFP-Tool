@@ -233,6 +233,8 @@ export const insertSectionAssignmentSchema = createInsertSchema(sectionAssignmen
   createdAt: true
 });
 
+
+
 // Update schema for answer feedback
 export const updateAnswerFeedbackSchema = insertAnswerFeedbackSchema.omit({
   rfpQuestionId: true,

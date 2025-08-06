@@ -18,8 +18,17 @@ import {
   updateRfpAnswerSchema,
 } from "@shared/schema";
 import { z } from "zod";
+import multer from 'multer';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure multer for file uploads
+  const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 50 * 1024 * 1024 // 50MB limit
+    }
+  });
+
   // API Routes
   const apiRouter = express.Router();
   app.use("/api", apiRouter);
@@ -2388,6 +2397,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     },
   );
+
+  // Project Document endpoints
+  apiRouter.get("/projects/:projectId/documents", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const documents = await storage.getProjectDocuments(projectId);
+      res.json({ documents });
+    } catch (error) {
+      console.error("Error getting project documents:", error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/projects/:projectId/documents", upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const userEmail = req.headers.authorization;
+      
+      if (!userEmail) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      const user = await storage.getUserByEmail(userEmail);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Upload file to Supabase Storage
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const filePath = `${projectId}/${fileName}`;
+      
+      console.log('[DOCUMENT UPLOAD] Uploading to Supabase storage:', filePath);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(filePath, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('[DOCUMENT UPLOAD] Supabase upload error:', uploadError);
+        throw new Error(`Failed to upload file: ${uploadError.message}`);
+      }
+      
+      // Create database record
+      const documentData = {
+        projectId,
+        fileName: req.file.originalname,
+        filePath: uploadData.path,
+        fileType: req.file.mimetype,
+        uploadedBy: user.id
+      };
+      
+      console.log('[DOCUMENT UPLOAD] Creating database record:', documentData);
+      const document = await storage.createProjectDocument(documentData);
+      
+      // Get project thread and upload file to OpenAI
+      try {
+        let thread = await storage.getProjectThread(projectId);
+        
+        if (!thread) {
+          // Create OpenAI assistant thread if it doesn't exist
+          const threadResult = await assistantService.createThread();
+          thread = await storage.createProjectThread({
+            project_id: projectId,
+            thread_id: threadResult.threadId,
+            assistant_id: threadResult.assistantId
+          });
+        }
+        
+        // Upload file to OpenAI and attach to thread
+        console.log('[DOCUMENT UPLOAD] Uploading to OpenAI thread:', thread.thread_id);
+        const openaiFileId = await assistantService.uploadFileToThread(
+          thread.thread_id,
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+        
+        // Update document status to processed
+        await storage.updateProjectDocumentStatus(document.id, 'processed');
+        
+        console.log(`[DOCUMENT UPLOAD] Successfully uploaded document ${document.id} with OpenAI file ${openaiFileId}`);
+      } catch (openaiError) {
+        console.error('[DOCUMENT UPLOAD] OpenAI upload failed:', openaiError);
+        // Update document status to failed but still return the document record
+        await storage.updateProjectDocumentStatus(document.id, 'failed');
+      }
+      
+      res.json({ document });
+    } catch (error) {
+      console.error("Error uploading project document:", error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
 
   // Create the HTTP server
   const httpServer = createServer(app);
