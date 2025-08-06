@@ -11,6 +11,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Send, Bot, User, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatMessage {
   id: string;
@@ -178,7 +180,15 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
                           : 'bg-muted'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      {msg.message_type === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 px-1">
                       {formatDistanceToNow(new Date(msg.created_at))} ago
