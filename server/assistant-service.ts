@@ -72,7 +72,18 @@ export class AssistantService {
       }
 
       if (runStatus.status !== 'completed') {
-        throw new Error(`Assistant run failed with status: ${runStatus.status}`);
+        console.error('Assistant run failed. Full run details:', JSON.stringify(runStatus, null, 2));
+        
+        // Get detailed error information if available
+        let errorDetails = `Assistant run failed with status: ${runStatus.status}`;
+        if (runStatus.last_error) {
+          errorDetails += `. Error: ${runStatus.last_error.code} - ${runStatus.last_error.message}`;
+        }
+        if (runStatus.failed_at) {
+          errorDetails += `. Failed at: ${new Date(runStatus.failed_at * 1000).toISOString()}`;
+        }
+        
+        throw new Error(errorDetails);
       }
 
       // Get the assistant's response
