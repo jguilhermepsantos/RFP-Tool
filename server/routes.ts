@@ -2432,6 +2432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileName = `${Date.now()}-${req.file.originalname}`;
       const filePath = `${projectId}/${fileName}`;
       
+      // First upload to Supabase bucket
       console.log('[DOCUMENT UPLOAD] Uploading to Supabase storage:', filePath);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
@@ -2445,11 +2446,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
       
-      // Create database record (using snake_case for Supabase)
+      console.log('[DOCUMENT UPLOAD] File uploaded to bucket, path:', uploadData.path);
+      
+      // Get the public URL for the uploaded file
+      const { data: urlData } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(uploadData.path);
+      
+      // Now create database record with the actual file path (using snake_case for Supabase)
       const documentData = {
         project_id: projectId,
         file_name: req.file.originalname,
-        file_path: uploadData.path,
+        file_path: uploadData.path, // Use the path from bucket upload
         file_type: req.file.mimetype,
         uploaded_by: user.id
       };
