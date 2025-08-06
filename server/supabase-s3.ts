@@ -45,12 +45,13 @@ export function getPublicUrl(filePath: string): string {
 export async function uploadBuffer(
   buffer: Buffer,
   filePath: string,
-  contentType: string
+  contentType: string,
+  bucketName: string = SUPABASE_BUCKET_NAME
 ): Promise<{ fileUrl: string; filePath: string }> {
   try {
     // Simple direct upload for smaller files
     const params = {
-      Bucket: SUPABASE_BUCKET_NAME,
+      Bucket: bucketName,
       Key: filePath,
       Body: buffer,
       ContentType: contentType,
@@ -63,7 +64,7 @@ export async function uploadBuffer(
     console.log('S3 Upload Response:', response);
 
     // Generate the public URL
-    const fileUrl = getPublicUrl(filePath);
+    const fileUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/${bucketName}/${filePath}`;
 
     console.log(`File uploaded successfully to: ${fileUrl}`);
     return { fileUrl, filePath };

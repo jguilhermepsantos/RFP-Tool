@@ -2429,36 +2429,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
-      // Upload file to Supabase Storage
-      const fileName = `${Date.now()}-${req.file.originalname}`;
+      // Upload file to Supabase Storage - sanitize filename for valid storage key
+      const sanitizedFileName = req.file.originalname
+        .replace(/[^\w\s.-]/g, '') // Remove special characters except word chars, spaces, dots, dashes
+        .replace(/\s+/g, '_'); // Replace spaces with underscores
+      const fileName = `${Date.now()}-${sanitizedFileName}`;
       const filePath = `${projectId}/${fileName}`;
       
-      // First upload to Supabase bucket
+      // First upload to Supabase bucket using S3 SDK approach (same as vtex-files)
       console.log('[DOCUMENT UPLOAD] Uploading to Supabase storage:', filePath);
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(filePath, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: false
-        });
       
-      if (uploadError) {
-        console.error('[DOCUMENT UPLOAD] Supabase upload error:', uploadError);
-        throw new Error(`Failed to upload file: ${uploadError.message}`);
-      }
+      // Import the upload utility from supabase-s3.ts
+      const { uploadBuffer } = await import('./supabase-s3');
+      const uploadResult = await uploadBuffer(req.file.buffer, filePath, req.file.mimetype, 'project-files');
       
-      console.log('[DOCUMENT UPLOAD] File uploaded to bucket, path:', uploadData.path);
-      
-      // Get the public URL for the uploaded file
-      const { data: urlData } = supabase.storage
-        .from('project-files')
-        .getPublicUrl(uploadData.path);
+      console.log('[DOCUMENT UPLOAD] File uploaded to bucket:', uploadResult);
       
       // Now create database record with the actual file path (using snake_case for Supabase)
       const documentData = {
         project_id: projectId,
-        file_name: req.file.originalname,
-        file_path: uploadData.path, // Use the path from bucket upload
+        file_name: sanitizedFileName, // Use sanitized filename
+        file_path: uploadResult.filePath, // Use the path from S3 upload
         file_type: req.file.mimetype,
         uploaded_by: user.id
       };
