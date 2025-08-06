@@ -112,20 +112,29 @@ export class AssistantService {
    */
   async uploadFileToThread(threadId: string, fileBuffer: Buffer, fileName: string, fileType: string): Promise<string> {
     try {
-      // Convert Buffer to ReadableStream for OpenAI API
-      const { Readable } = await import('stream');
-      const fileStream = new Readable();
-      fileStream.push(fileBuffer);
-      fileStream.push(null); // End the stream
+      // Create a temporary file and use fs.createReadStream for proper OpenAI upload
+      const fs = await import('fs');
+      const path = await import('path');
+      const os = await import('os');
       
-      // Add filename property to stream for OpenAI
-      (fileStream as any).name = fileName;
+      // Create temporary file path
+      const tempDir = os.tmpdir();
+      const tempFilePath = path.join(tempDir, `temp_${Date.now()}_${fileName}`);
       
-      // Upload file to OpenAI using proper stream
+      // Write buffer to temporary file
+      fs.writeFileSync(tempFilePath, fileBuffer);
+      
+      // Create read stream from temporary file
+      const fileStream = fs.createReadStream(tempFilePath);
+      
+      // Upload file to OpenAI using fs.ReadStream
       const file = await openai.files.create({
         file: fileStream,
         purpose: 'assistants'
       });
+      
+      // Clean up temporary file
+      fs.unlinkSync(tempFilePath);
       
       console.log(`[AssistantService] Uploaded file to OpenAI: ${file.id}`);
       
