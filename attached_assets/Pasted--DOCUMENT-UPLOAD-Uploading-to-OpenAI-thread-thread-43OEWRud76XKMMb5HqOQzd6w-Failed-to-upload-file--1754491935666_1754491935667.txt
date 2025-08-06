@@ -1,0 +1,41 @@
+[DOCUMENT UPLOAD] Uploading to OpenAI thread: thread_43OEWRud76XKMMb5HqOQzd6w
+Failed to upload file to OpenAI: APIError: 413 The data value transmitted exceeds the capacity limit.
+    at Function.generate (/home/runner/workspace/node_modules/openai/src/error.ts:103:12)
+    at OpenAI.makeStatusError (/home/runner/workspace/node_modules/openai/src/core.ts:462:21)
+    at OpenAI.makeRequest (/home/runner/workspace/node_modules/openai/src/core.ts:526:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async AssistantService.uploadFileToThread (/home/runner/workspace/server/assistant-service.ts:116:20)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:2494:30) {
+  status: 413,
+  headers: {
+    'access-control-allow-origin': '*',
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '96af36e0cfeb44db-ATL',
+    connection: 'keep-alive',
+    'content-length': '158',
+    'content-type': 'application/json',
+    date: 'Wed, 06 Aug 2025 14:27:21 GMT',
+    'openai-processing-ms': '50',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=T2BxNqXRVAfdz.wmCVItcxeB5k8lXLXXnTcxwwyYWgs-1754490441-1.0.1.1-4ymszwSxk8NSvuNK7b.RP9kzqRqQ3gcimF8HbmBKGaMwYCev5hbeXQIb4NVAdz54xa.Duc__WL4XCQE30LhFivM1.yzdoUuje1lkArIb12c; path=/; expires=Wed, 06-Aug-25 14:57:21 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=QBOM11ui00KLpKMVzhdnSpMdpGRbqrqIGpN.zkqVsTo-1754490441869-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'x-content-type-options': 'nosniff',
+    'x-envoy-upstream-service-time': '366',
+    'x-request-id': 'req_cdb269bcbeb019c21bbc93cde2595661'
+  },
+  request_id: 'req_cdb269bcbeb019c21bbc93cde2595661',
+  error: {
+    message: 'The data value transmitted exceeds the capacity limit.',
+    type: 'server_error',
+    param: null,
+    code: null
+  },
+  code: null,
+  param: null,
+  type: 'server_error'
+}
+[DOCUMENT UPLOAD] OpenAI upload failed: Error: Failed to upload file to OpenAI: 413 The data value transmitted exceeds the capacity limit.
+    at AssistantService.uploadFileToThread (/home/runner/workspace/server/assistant-service.ts:140:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:2494:30)
