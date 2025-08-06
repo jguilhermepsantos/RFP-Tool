@@ -1513,14 +1513,16 @@ export class SupabaseStorage implements IStorage {
   async createProjectDocument(document: InsertProjectDocument): Promise<ProjectDocument> {
     console.log('[SupabaseStorage] Creating project document:', document);
     
-    // Convert camelCase to snake_case for Supabase if needed
-    const dbDocument = typeof document.projectId !== 'undefined' ? {
-      project_id: document.projectId,
-      file_name: document.fileName,
-      file_path: document.filePath,
-      file_type: document.fileType,
-      uploaded_by: document.uploadedBy
-    } : document;
+    // Ensure we have all required fields - convert camelCase to snake_case if needed
+    const dbDocument = {
+      project_id: (document as any).project_id || (document as any).projectId,
+      file_name: (document as any).file_name || (document as any).fileName,
+      file_path: (document as any).file_path || (document as any).filePath,
+      file_type: (document as any).file_type || (document as any).fileType,
+      uploaded_by: (document as any).uploaded_by || (document as any).uploadedBy
+    };
+    
+    console.log('[SupabaseStorage] Converted document data:', dbDocument);
     
     const { data, error } = await supabase
       .from('project_documents')

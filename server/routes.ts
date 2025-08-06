@@ -2197,32 +2197,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.post("/projects/:projectId/documents", async (req: Request, res: Response) => {
-    try {
-      const { projectId } = req.params;
-      const userEmail = req.headers.authorization;
+  // This endpoint is replaced by the file upload endpoint below
+  // apiRouter.post("/projects/:projectId/documents", async (req: Request, res: Response) => {
+  //   try {
+  //     const { projectId } = req.params;
+  //     const userEmail = req.headers.authorization;
       
-      if (!userEmail) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
+  //     if (!userEmail) {
+  //       return res.status(401).json({ error: "Authentication required" });
+  //     }
       
-      const user = await storage.getUserByEmail(userEmail);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
+  //     const user = await storage.getUserByEmail(userEmail);
+  //     if (!user) {
+  //       return res.status(404).json({ error: "User not found" });
+  //     }
       
-      const documentData = {
-        ...req.body,
-        projectId,
-        uploadedBy: user.id
-      };
+  //     const documentData = {
+  //       ...req.body,
+  //       projectId,
+  //       uploadedBy: user.id
+  //     };
       
-      const document = await storage.createProjectDocument(documentData);
-      res.json({ document });
-    } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
-    }
-  });
+  //     const document = await storage.createProjectDocument(documentData);
+  //     res.json({ document });
+  //   } catch (error) {
+  //     res.status(500).json({ error: (error as Error).message });
+  //   }
+  // });
 
   apiRouter.delete("/projects/:projectId/documents/:documentId", async (req: Request, res: Response) => {
     try {
