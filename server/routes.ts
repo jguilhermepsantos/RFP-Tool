@@ -2445,13 +2445,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
       
-      // Create database record
+      // Create database record (using snake_case for Supabase)
       const documentData = {
-        projectId,
-        fileName: req.file.originalname,
-        filePath: uploadData.path,
-        fileType: req.file.mimetype,
-        uploadedBy: user.id
+        project_id: projectId,
+        file_name: req.file.originalname,
+        file_path: uploadData.path,
+        file_type: req.file.mimetype,
+        uploaded_by: user.id
       };
       
       console.log('[DOCUMENT UPLOAD] Creating database record:', documentData);

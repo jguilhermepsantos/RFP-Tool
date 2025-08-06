@@ -314,6 +314,13 @@ export const insertProjectDocumentSchema = createInsertSchema(projectDocuments).
   uploadedAt: true,
   processedAt: true,
   status: true
+}).extend({
+  // Accept both camelCase and snake_case for flexibility
+  projectId: z.string().uuid().optional(),
+  fileName: z.string().optional(),
+  filePath: z.string().optional(),
+  fileType: z.string().optional(),
+  uploadedBy: z.string().uuid().optional()
 });
 
 export const insertProjectThreadSchema = createInsertSchema(projectThreads).omit({

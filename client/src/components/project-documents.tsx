@@ -11,13 +11,13 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface ProjectDocument {
   id: string;
-  projectId: string;
-  fileName: string;
-  filePath: string;
-  fileType: string;
-  uploadedBy: string;
-  uploadedAt: string;
-  processedAt?: string;
+  project_id: string;
+  file_name: string;
+  file_path: string;
+  file_type: string;
+  uploaded_by: string;
+  uploaded_at: string;
+  processed_at?: string;
   status: 'pending' | 'processed' | 'failed';
 }
 
@@ -257,15 +257,15 @@ export function ProjectDocuments({ projectId, userEmail }: ProjectDocumentsProps
                   <div className="flex items-center gap-3">
                     {getStatusIcon(doc.status)}
                     <div>
-                      <p className="font-medium">{doc.fileName}</p>
+                      <p className="font-medium">{doc.file_name}</p>
                       <p className="text-sm text-gray-500">
-                        Uploaded {formatDistanceToNow(new Date(doc.uploadedAt))} ago
+                        Uploaded {formatDistanceToNow(new Date(doc.uploaded_at))} ago
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {getStatusBadge(doc.status)}
-                    <span className="text-sm text-gray-500">{doc.fileType}</span>
+                    <span className="text-sm text-gray-500">{doc.file_type}</span>
                   </div>
                 </div>
               ))}
