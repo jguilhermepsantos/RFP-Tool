@@ -1449,12 +1449,12 @@ export class SupabaseStorage implements IStorage {
     const { data: projectExists } = await supabase
       .from('projects')
       .select('id')
-      .eq('id', message.project_id)
+      .eq('id', message.projectId)
       .single();
     
     if (!projectExists) {
-      console.error('[SupabaseStorage] Project does not exist:', message.project_id);
-      throw new Error(`Project with ID ${message.project_id} does not exist in Supabase database`);
+      console.error('[SupabaseStorage] Project does not exist:', message.projectId);
+      throw new Error(`Project with ID ${message.projectId} does not exist in Supabase database`);
     }
     
     console.log('[SupabaseStorage] About to insert message to Supabase...');
