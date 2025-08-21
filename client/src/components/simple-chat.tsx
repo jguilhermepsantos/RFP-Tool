@@ -40,6 +40,7 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
   const { toast } = useToast();
   const [message, setMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Fetch or cache project thread info for performance
@@ -77,15 +78,32 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
     retry: false,
   });
 
-  const messages: ChatMessage[] = Array.isArray(chatData?.messages) ? chatData.messages : [];
+  const serverMessages: ChatMessage[] = Array.isArray(chatData?.messages) ? chatData.messages : [];
+  
+  // Combine server messages with optimistic messages for display
+  const allMessages = [...serverMessages, ...optimisticMessages];
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
+      // Create optimistic user message immediately
+      const thread = threadData?.thread;
+      const optimisticUserMessage: ChatMessage = {
+        id: `optimistic-user-${Date.now()}`,
+        project_id: projectId,
+        thread_id: thread?.thread_id || '',
+        message_type: 'user',
+        content,
+        user_id: user?.id,
+        created_at: new Date().toISOString()
+      };
+      
+      // Add user message immediately to UI
+      setOptimisticMessages([optimisticUserMessage]);
       setIsGenerating(true);
+      
       console.log('[FRONTEND] Sending message to backend:', content);
       
       // Include thread info and user info to avoid backend database lookups
-      const thread = threadData?.thread;
       return await apiRequest(`/api/projects/${projectId}/chat`, {
         method: 'POST',
         headers: {
@@ -104,6 +122,8 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
     },
     onSuccess: (data) => {
       console.log('[FRONTEND] Message sent successfully:', data);
+      // Clear optimistic messages as server now has the real ones
+      setOptimisticMessages([]);
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'chat'] });
       setMessage("");
       setIsGenerating(false);
@@ -111,6 +131,8 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
     },
     onError: (error) => {
       console.error('Error sending message:', error);
+      // Clear optimistic messages on error
+      setOptimisticMessages([]);
       setIsGenerating(false);
       toast({
         title: "Failed to send message",
@@ -140,7 +162,7 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
         scrollElement.scrollTop = scrollElement.scrollHeight;
       }
     }
-  }, [messages]);
+  }, [allMessages, isGenerating]);
 
   return (
     <Card>
@@ -172,7 +194,7 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
             </div>
           )}
           
-          {!isLoading && !error && messages.length === 0 && (
+          {!isLoading && !error && allMessages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
               <Bot className="h-12 w-12 text-muted-foreground" />
               <div>
@@ -184,9 +206,9 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
             </div>
           )}
           
-          {!isLoading && !error && messages.length > 0 && (
+          {!isLoading && !error && allMessages.length > 0 && (
             <div className="space-y-4">
-              {messages.map((msg) => (
+              {allMessages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex space-x-3 ${
