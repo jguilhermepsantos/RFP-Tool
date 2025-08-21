@@ -2274,33 +2274,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.post("/projects/:projectId/chat", async (req: Request, res: Response) => {
+  // Get project thread info for chat optimization
+  apiRouter.get("/projects/:projectId/thread", async (req: Request, res: Response) => {
     try {
       const { projectId } = req.params;
-      const { content, messageType } = req.body;
       const userEmail = req.headers.authorization;
       
       if (!userEmail) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
-      if (!content || !content.trim()) {
-        return res.status(400).json({ error: "Message content is required" });
-      }
-      
-      const user = await storage.getUserByEmail(userEmail);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      // Only handle user messages - assistant responses are generated automatically
-      if (messageType !== 'user') {
-        return res.status(400).json({ error: "Only user messages can be sent via this endpoint" });
-      }
-      
-      // Get or create thread for this project
+      // Get or create thread for this project (only once per project)
       let thread = await storage.getProjectThread(projectId);
-      console.log('[CHAT] Retrieved thread from database:', thread);
       
       if (!thread) {
         // Create OpenAI assistant thread if it doesn't exist
@@ -2312,26 +2297,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Store the user message
-      console.log('[CHAT] About to create user message with storage:', typeof storage);
+      res.json({ thread });
+    } catch (error) {
+      console.error("Error getting project thread:", error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/projects/:projectId/chat", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const { content, messageType, threadId, userId } = req.body;
+      const userEmail = req.headers.authorization;
+      
+      if (!userEmail) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      if (!content || !content.trim()) {
+        return res.status(400).json({ error: "Message content is required" });
+      }
+      
+      // Only handle user messages - assistant responses are generated automatically
+      if (messageType !== 'user') {
+        return res.status(400).json({ error: "Only user messages can be sent via this endpoint" });
+      }
+      
+      // Performance optimization: Use provided user ID and thread ID to avoid database lookups
+      let finalUserId = userId;
+      let finalThreadId = threadId;
+      
+      // Fallback: If frontend doesn't provide IDs, do the lookups (backward compatibility)
+      if (!finalUserId) {
+        const user = await storage.getUserByEmail(userEmail);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+        finalUserId = user.id;
+      }
+      
+      if (!finalThreadId) {
+        // Get or create thread for this project
+        let thread = await storage.getProjectThread(projectId);
+        console.log('[CHAT] Retrieved thread from database:', thread);
+        
+        if (!thread) {
+          // Create OpenAI assistant thread if it doesn't exist
+          const threadResult = await assistantService.createThread();
+          thread = await storage.createProjectThread({
+            project_id: projectId,
+            thread_id: threadResult.threadId,
+            assistant_id: threadResult.assistantId
+          });
+        }
+        finalThreadId = thread.thread_id;
+      }
+      
+      // Store the user message (using optimized IDs)
+      console.log('[CHAT] Creating user message with optimized context - User ID:', finalUserId, 'Thread ID:', finalThreadId);
       const userMessage = await storage.createProjectChatMessage({
         project_id: projectId,
-        thread_id: thread.thread_id,
+        thread_id: finalThreadId,
         message_type: 'user',
         content,
-        user_id: user.id
+        user_id: finalUserId
       });
       console.log('[CHAT] User message created:', userMessage.id);
       
       // Send message to OpenAI Assistant and get response
       let assistantMessage = null;
       try {
-        const assistantResponse = await assistantService.sendMessage(thread.thread_id, content);
+        const assistantResponse = await assistantService.sendMessage(finalThreadId, content);
         
         // Store the assistant response
         assistantMessage = await storage.createProjectChatMessage({
           project_id: projectId,
-          thread_id: thread.thread_id,
+          thread_id: finalThreadId,
           message_type: 'assistant',
           content: assistantResponse.content,
           user_id: null
@@ -2344,7 +2385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Store an error message from the assistant
         assistantMessage = await storage.createProjectChatMessage({
           project_id: projectId,
-          thread_id: thread.thread_id,
+          thread_id: finalThreadId,
           message_type: 'assistant',
           content: "I'm sorry, I'm having trouble responding right now. Please try again later.",
           user_id: null

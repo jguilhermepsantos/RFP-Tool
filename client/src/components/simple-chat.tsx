@@ -28,12 +28,34 @@ interface SimpleChatProps {
   projectId: string;
 }
 
+interface ProjectThread {
+  id: string;
+  project_id: string;
+  thread_id: string;
+  assistant_id: string;
+}
+
 export default function SimpleChat({ projectId }: SimpleChatProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [message, setMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Fetch or cache project thread info for performance
+  const { data: threadData } = useQuery({
+    queryKey: ['/api/projects', projectId, 'thread'],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects/${projectId}/thread`, {
+        headers: { 'Authorization': user?.email || '' },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    },
+    enabled: !!projectId && !!user?.email,
+    staleTime: 5 * 60 * 1000, // Cache thread info for 5 minutes
+    retry: false,
+  });
 
   // Fetch chat messages with correct field mapping
   const { data: chatData, isLoading, error } = useQuery({
@@ -61,6 +83,9 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
     mutationFn: async (content: string) => {
       setIsGenerating(true);
       console.log('[FRONTEND] Sending message to backend:', content);
+      
+      // Include thread info and user info to avoid backend database lookups
+      const thread = threadData?.thread;
       return await apiRequest(`/api/projects/${projectId}/chat`, {
         method: 'POST',
         headers: {
@@ -69,7 +94,10 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
         },
         body: JSON.stringify({
           content,
-          messageType: 'user'
+          messageType: 'user',
+          // Performance optimization: include thread and user context
+          threadId: thread?.thread_id,
+          userId: user?.id
         }),
         timeout: 90000, // 90 seconds for chat operations (OpenAI can be slow)
       });
