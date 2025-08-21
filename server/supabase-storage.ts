@@ -1,4 +1,5 @@
-import { supabase } from './db';
+import { supabase, db } from './db';
+import { projectChatMessages } from '@shared/schema';
 import { IStorage } from './storage';
 import {
   User, InsertUser,
@@ -1457,38 +1458,18 @@ export class SupabaseStorage implements IStorage {
       throw new Error(`Project with ID ${message.projectId} does not exist in Supabase database`);
     }
     
-    console.log('[SupabaseStorage] About to insert message to Supabase...');
-    const { data, error } = await supabase
-      .from('project_chat_messages')
-      .insert(message)
-      .select()
-      .single();
-    
-    console.log('[SupabaseStorage] Insert response:', { data, error });
-    
-    if (error) {
-      console.error('[SupabaseStorage] Error creating project chat message:', error);
-      console.error('[SupabaseStorage] Error details:', JSON.stringify(error, null, 2));
-      throw new Error(`Failed to create project chat message: ${error.message}`);
+    console.log('[SupabaseStorage] About to insert message using Drizzle...');
+    try {
+      // Use Drizzle ORM for proper schema mapping
+      const [data] = await db.insert(projectChatMessages).values(message).returning();
+      
+      console.log('[SupabaseStorage] Successfully created project chat message:', data);
+      
+      return data;
+    } catch (error) {
+      console.error('[SupabaseStorage] Error creating project chat message with Drizzle:', error);
+      throw new Error(`Failed to create project chat message: ${error instanceof Error ? error.message : String(error)}`);
     }
-    
-    if (!data) {
-      console.error('[SupabaseStorage] No data returned from insert operation');
-      throw new Error('No data returned from Supabase insert operation');
-    }
-    
-    console.log('[SupabaseStorage] Successfully created project chat message:', data);
-    
-    // Verify the message was actually stored
-    const { data: verifyData } = await supabase
-      .from('project_chat_messages')
-      .select('id')
-      .eq('id', data.id)
-      .single();
-    
-    console.log('[SupabaseStorage] Verification query result:', verifyData);
-    
-    return data as ProjectChatMessage;
   }
 
   // Project Document operations
