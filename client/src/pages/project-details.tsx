@@ -622,10 +622,10 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
               </TabsContent>
               
               <TabsContent value="prospect" className="space-y-4">
-                <div className="flex gap-6 h-[calc(100vh-300px)] min-h-[600px]">
+                <div className="flex gap-6 h-[calc(100vh-250px)] max-h-[calc(100vh-250px)] min-h-[500px]">
                   {/* Left Sidebar - Documents */}
                   <div className="w-80 flex-shrink-0">
-                    <Card className="h-full">
+                    <Card className="h-full max-h-full">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg">Project Documents</CardTitle>
                         <CardDescription>
@@ -633,7 +633,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                         </CardDescription>
                       </CardHeader>
                       
-                      <CardContent className="flex flex-col h-full">
+                      <CardContent className="flex flex-col h-full min-h-0">
                         <div className="flex-1 overflow-hidden">
                           <ProjectDocuments 
                             projectId={projectId}
@@ -645,7 +645,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                   </div>
                   
                   {/* Main Content - Chat */}
-                  <div className="flex-1 h-full">
+                  <div className="flex-1 h-full max-h-full overflow-hidden">
                     <SimpleChat projectId={projectId} />
                   </div>
                 </div>
