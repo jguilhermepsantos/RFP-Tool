@@ -165,8 +165,8 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
   }, [allMessages, isGenerating]);
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex-shrink-0">
         <CardTitle className="flex items-center space-x-2">
           <Bot className="h-5 w-5" />
           <span>Project Assistant</span>
@@ -177,9 +177,9 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="flex-1 flex flex-col space-y-4">
         {/* Chat Messages */}
-        <ScrollArea ref={scrollAreaRef} className="h-[400px] w-full border rounded-md p-4">
+        <ScrollArea ref={scrollAreaRef} className="flex-1 w-full border rounded-md p-4">
           {isLoading && (
             <div className="space-y-4">
               <Skeleton className="h-16 w-full" />
@@ -293,7 +293,7 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
         </ScrollArea>
 
         {/* Input Area */}
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 flex-shrink-0">
           <Textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
