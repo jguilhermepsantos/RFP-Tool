@@ -622,7 +622,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
               </TabsContent>
               
               <TabsContent value="prospect" className="space-y-4">
-                <div className="flex gap-6 h-[800px]">
+                <div className="flex gap-6 h-[calc(100vh-300px)] min-h-[600px]">
                   {/* Left Sidebar - Documents */}
                   <div className="w-80 flex-shrink-0">
                     <Card className="h-full">
@@ -645,7 +645,7 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
                   </div>
                   
                   {/* Main Content - Chat */}
-                  <div className="flex-1">
+                  <div className="flex-1 h-full">
                     <SimpleChat projectId={projectId} />
                   </div>
                 </div>
