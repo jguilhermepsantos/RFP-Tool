@@ -1458,18 +1458,39 @@ export class SupabaseStorage implements IStorage {
       throw new Error(`Project with ID ${message.projectId} does not exist in Supabase database`);
     }
     
-    console.log('[SupabaseStorage] About to insert message using Drizzle...');
-    try {
-      // Use Drizzle ORM for proper schema mapping
-      const [data] = await db.insert(projectChatMessages).values(message).returning();
-      
-      console.log('[SupabaseStorage] Successfully created project chat message:', data);
-      
-      return data;
-    } catch (error) {
-      console.error('[SupabaseStorage] Error creating project chat message with Drizzle:', error);
-      throw new Error(`Failed to create project chat message: ${error instanceof Error ? error.message : String(error)}`);
+    console.log('[SupabaseStorage] About to insert message to Supabase with raw column names...');
+    
+    // Use raw database column names for Supabase insert
+    const messageForDb = {
+      project_id: message.projectId,
+      thread_id: message.threadId,
+      message_type: message.messageType,
+      content: message.content,
+      user_id: message.userId
+    };
+    
+    const { data, error } = await supabase
+      .from('project_chat_messages')
+      .insert(messageForDb)
+      .select()
+      .single();
+    
+    console.log('[SupabaseStorage] Insert response:', { data, error });
+    
+    if (error) {
+      console.error('[SupabaseStorage] Error creating project chat message:', error);
+      console.error('[SupabaseStorage] Error details:', JSON.stringify(error, null, 2));
+      throw new Error(`Failed to create project chat message: ${error.message}`);
     }
+    
+    if (!data) {
+      console.error('[SupabaseStorage] No data returned from insert operation');
+      throw new Error('No data returned from Supabase insert operation');
+    }
+    
+    console.log('[SupabaseStorage] Successfully created project chat message:', data);
+    
+    return data as ProjectChatMessage;
   }
 
   // Project Document operations
