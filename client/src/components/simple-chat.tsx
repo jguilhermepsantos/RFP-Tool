@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Send, Bot, User, Loader2, FileSearch } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -41,6 +43,7 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
   const [message, setMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
+  const [rfpMode, setRfpMode] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Fetch or cache project thread info for performance
@@ -101,7 +104,7 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
       setOptimisticMessages([optimisticUserMessage]);
       setIsGenerating(true);
       
-      console.log('[FRONTEND] Sending message to backend:', content);
+      console.log(`[FRONTEND] Sending message to backend (RFP Mode: ${rfpMode}):`, content);
       
       // Include thread info and user info to avoid backend database lookups
       return await apiRequest(`/api/projects/${projectId}/chat`, {
@@ -113,6 +116,7 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
         body: JSON.stringify({
           content,
           messageType: 'user',
+          rfpMode, // Include RFP mode flag
           // Performance optimization: include thread and user context
           threadId: thread?.thread_id,
           userId: user?.id
@@ -167,14 +171,30 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
   return (
     <Card className="h-full flex flex-col max-h-full">
       <CardHeader className="flex-shrink-0">
-        <CardTitle className="flex items-center space-x-2">
-          <Bot className="h-5 w-5" />
-          <span>Project Assistant</span>
-          <Badge variant="secondary">AI-Powered</Badge>
-        </CardTitle>
-        <CardDescription>
-          Ask questions about this project, get RFP guidance, or discuss technical details
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center space-x-2">
+              <Bot className="h-5 w-5" />
+              <span>Project Assistant</span>
+              <Badge variant="secondary">AI-Powered</Badge>
+              {rfpMode && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300"><FileSearch className="h-3 w-3 mr-1" />RFP Mode</Badge>}
+            </CardTitle>
+            <CardDescription>
+              Ask questions about this project, get RFP guidance, or discuss technical details
+            </CardDescription>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="rfp-mode"
+              checked={rfpMode}
+              onCheckedChange={setRfpMode}
+            />
+            <Label htmlFor="rfp-mode" className="text-sm font-medium cursor-pointer">
+              RFP Mode
+            </Label>
+          </div>
+        </div>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col space-y-4 min-h-0">

@@ -138,7 +138,7 @@ export async function initializePineconeIndex(): Promise<boolean> {
 /**
  * Search for relevant chunks in Pinecone based on a question
  */
-async function searchChunks(query: string, nResults: number = 3): Promise<{
+export async function searchChunks(query: string, nResults: number = 3): Promise<{
   content: string[];
   metadata: { chunkId: string; similarity: number; source: 'document' | 'rfp' }[];
 }> {

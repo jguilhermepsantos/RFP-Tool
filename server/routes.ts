@@ -6,6 +6,7 @@ import { supabase } from "./db";
 import { handleMockUpload, isS3Configured } from "./supabase-s3";
 import { chunkingRouter } from "./routes-chunking";
 import { assistantService } from "./assistant-service";
+import { searchChunks } from "./ai-service";
 import {
   insertUserSchema,
   insertProjectSchema,
@@ -2291,9 +2292,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create OpenAI assistant thread if it doesn't exist
         const threadResult = await assistantService.createThread();
         thread = await storage.createProjectThread({
-          project_id: projectId,
-          thread_id: threadResult.threadId,
-          assistant_id: threadResult.assistantId
+          projectId: projectId,
+          threadId: threadResult.threadId,
+          assistantId: threadResult.assistantId
         });
       }
       
@@ -2307,7 +2308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/projects/:projectId/chat", async (req: Request, res: Response) => {
     try {
       const { projectId } = req.params;
-      const { content, messageType, threadId, userId } = req.body;
+      const { content, messageType, threadId, userId, rfpMode = false } = req.body;
       const userEmail = req.headers.authorization;
       
       if (!userEmail) {
@@ -2350,32 +2351,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
             assistant_id: threadResult.assistantId
           });
         }
-        finalThreadId = thread.thread_id;
+        finalThreadId = thread.threadId;
       }
       
       // Store the user message (using optimized IDs)
       console.log('[CHAT] Creating user message with optimized context - User ID:', finalUserId, 'Thread ID:', finalThreadId);
       const userMessage = await storage.createProjectChatMessage({
-        project_id: projectId,
-        thread_id: finalThreadId,
-        message_type: 'user',
+        projectId: projectId,
+        threadId: finalThreadId,
+        messageType: 'user',
         content,
-        user_id: finalUserId
+        userId: finalUserId
       });
       console.log('[CHAT] User message created:', userMessage.id);
+      
+      // Prepare message content for assistant (with RAG if enabled)
+      let messageToAssistant = content;
+      
+      if (rfpMode) {
+        console.log('[RFP-MODE] RFP answering mode enabled - performing vector search');
+        try {
+          // Step 1: Embed question and search for relevant chunks
+          const { content: retrievedChunks, metadata } = await searchChunks(content, 5);
+          
+          if (retrievedChunks.length > 0) {
+            // Step 2: Enhance prompt with retrieved context
+            const contextSection = retrievedChunks.join('\n\n---\n\n');
+            messageToAssistant = `CONTEXT FROM DOCUMENTS:
+${contextSection}
+
+---
+
+QUESTION FROM USER:
+${content}
+
+Please answer the question using the provided context from our documents. If the context doesn't fully address the question, clearly indicate what information is missing.`;
+            
+            console.log(`[RFP-MODE] Enhanced prompt with ${retrievedChunks.length} relevant chunks`);
+            console.log('[RFP-MODE] Similarity scores:', metadata.map(m => m.similarity));
+          } else {
+            console.log('[RFP-MODE] No relevant chunks found, proceeding with original question');
+          }
+        } catch (ragError) {
+          console.error('[RFP-MODE] Error in RAG pipeline:', ragError);
+          // Continue with original message if RAG fails
+        }
+      }
       
       // Send message to OpenAI Assistant and get response
       let assistantMessage = null;
       try {
-        const assistantResponse = await assistantService.sendMessage(finalThreadId, content);
+        const assistantResponse = await assistantService.sendMessage(finalThreadId, messageToAssistant);
         
         // Store the assistant response
         assistantMessage = await storage.createProjectChatMessage({
-          project_id: projectId,
-          thread_id: finalThreadId,
-          message_type: 'assistant',
+          projectId: projectId,
+          threadId: finalThreadId,
+          messageType: 'assistant',
           content: assistantResponse.content,
-          user_id: null
+          userId: null
         });
         
         console.log(`Assistant responded to message in project ${projectId}`);
@@ -2384,11 +2418,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Store an error message from the assistant
         assistantMessage = await storage.createProjectChatMessage({
-          project_id: projectId,
-          thread_id: finalThreadId,
-          message_type: 'assistant',
+          projectId: projectId,
+          threadId: finalThreadId,
+          messageType: 'assistant',
           content: "I'm sorry, I'm having trouble responding right now. Please try again later.",
-          user_id: null
+          userId: null
         });
       }
       
