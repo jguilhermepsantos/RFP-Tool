@@ -233,7 +233,22 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
                     >
                       {msg.message_type === 'assistant' ? (
                         <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              a: ({ href, children, ...props }) => (
+                                <a 
+                                  href={href} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 underline"
+                                  {...props}
+                                >
+                                  {children}
+                                </a>
+                              )
+                            }}
+                          >
                             {msg.content}
                           </ReactMarkdown>
                         </div>
