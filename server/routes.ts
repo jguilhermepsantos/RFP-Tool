@@ -343,8 +343,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Store the thread information in project_threads table
         const threadData = {
           project_id: newProject.id,
-          thread_id: threadResult.threadId,
-          assistant_id: threadResult.assistantId
+          threadId: threadResult.threadId,
+          assistantId: threadResult.assistantId
         };
         console.log("[PROJECT CREATION] Storing thread data with corrected field names:", threadData);
         
@@ -2346,9 +2346,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create OpenAI assistant thread if it doesn't exist
           const threadResult = await assistantService.createThread();
           thread = await storage.createProjectThread({
-            project_id: projectId,
-            thread_id: threadResult.threadId,
-            assistant_id: threadResult.assistantId
+            projectId: projectId,
+            threadId: threadResult.threadId,
+            assistantId: threadResult.assistantId
           });
         }
         finalThreadId = thread.threadId;
@@ -2540,7 +2540,7 @@ Please answer the question using the provided context from our documents. If the
                            req.file.originalname.split('.').pop()?.toLowerCase() || 'unknown';
       
       const documentData = {
-        project_id: projectId,
+        projectId: projectId,
         file_name: sanitizedFileName, // Use sanitized filename
         file_path: uploadData.path, // Use the path from Supabase upload
         file_type: fileExtension, // Use file extension instead of MIME type
@@ -2558,16 +2558,16 @@ Please answer the question using the provided context from our documents. If the
           // Create OpenAI assistant thread if it doesn't exist
           const threadResult = await assistantService.createThread();
           thread = await storage.createProjectThread({
-            project_id: projectId,
-            thread_id: threadResult.threadId,
-            assistant_id: threadResult.assistantId
+            projectId: projectId,
+            threadId: threadResult.threadId,
+            assistantId: threadResult.assistantId
           });
         }
         
         // Upload file to OpenAI and attach to thread
-        console.log('[DOCUMENT UPLOAD] Uploading to OpenAI thread:', thread.thread_id);
+        console.log('[DOCUMENT UPLOAD] Uploading to OpenAI thread:', thread.threadId);
         const openaiFileId = await assistantService.uploadFileToThread(
-          thread.thread_id,
+          thread.threadId,
           req.file.buffer,
           req.file.originalname,
           req.file.mimetype
