@@ -151,128 +151,114 @@ export function ProjectDocuments({ projectId, userEmail }: ProjectDocumentsProps
   };
 
   return (
-    <div className="space-y-6">
-      {/* Upload Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Upload Project Documents
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Drag and Drop Zone */}
-          <div
-            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-              isDragOver 
-                ? 'border-blue-400 bg-blue-50' 
-                : 'border-gray-300 hover:border-gray-400'
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-lg font-medium mb-2">
-              {selectedFile ? selectedFile.name : 'Drop files here or click to upload'}
-            </p>
-            <p className="text-sm text-gray-500 mb-4">
-              Support for PDF, TXT, DOC, DOCX files up to 50MB
-            </p>
-            <Input
-              type="file"
-              accept=".pdf,.txt,.doc,.docx"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileSelect(file);
-              }}
-              className="hidden"
-              id="file-upload"
-            />
+    <div className="space-y-4 h-full flex flex-col relative">
+      {/* Compact Upload Button */}
+      <div className="flex-shrink-0">
+        <Input
+          type="file"
+          accept=".pdf,.txt,.doc,.docx"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFileSelect(file);
+          }}
+          className="hidden"
+          id="file-upload"
+        />
+        <Button
+          onClick={() => document.getElementById('file-upload')?.click()}
+          disabled={uploadMutation.isPending}
+          className="w-full"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          {uploadMutation.isPending ? 'Uploading...' : 'Add Document'}
+        </Button>
+      </div>
+
+      {/* Selected File Info */}
+      {selectedFile && (
+        <div className="flex-shrink-0 p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-900 truncate">{selectedFile.name}</span>
+          </div>
+          <div className="flex gap-2">
             <Button
+              size="sm"
+              onClick={handleUpload}
+              disabled={uploadMutation.isPending}
+              className="flex-1"
+            >
+              Upload
+            </Button>
+            <Button
+              size="sm"
               variant="outline"
-              onClick={() => document.getElementById('file-upload')?.click()}
+              onClick={() => setSelectedFile(null)}
               disabled={uploadMutation.isPending}
             >
-              Choose File
+              Cancel
             </Button>
           </div>
-
-          {/* Selected File Info */}
-          {selectedFile && (
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                <span className="font-medium">{selectedFile.name}</span>
-                <span className="text-sm text-gray-500">({formatFileSize(selectedFile.size)})</span>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleUpload}
-                  disabled={uploadMutation.isPending}
-                >
-                  {uploadMutation.isPending ? 'Uploading...' : 'Upload'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedFile(null)}
-                  disabled={uploadMutation.isPending}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {/* Documents List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Project Documents</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="animate-pulse flex items-center gap-3 p-3 bg-gray-100 rounded-lg">
-                  <div className="w-4 h-4 bg-gray-300 rounded"></div>
-                  <div className="flex-1 h-4 bg-gray-300 rounded"></div>
-                  <div className="w-16 h-4 bg-gray-300 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : documents.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No documents uploaded yet</p>
-              <p className="text-sm">Upload documents to provide context to the AI assistant</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {documents.map((doc: ProjectDocument) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(doc.status)}
-                    <div>
-                      <p className="font-medium">{doc.file_name}</p>
-                      <p className="text-sm text-gray-500">
-                        Uploaded {formatDistanceToNow(new Date(doc.uploaded_at))} ago
-                      </p>
+      <div className="flex-1 overflow-auto">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="animate-pulse flex items-center gap-2 p-2 bg-gray-100 rounded">
+                <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                <div className="flex-1 h-3 bg-gray-300 rounded"></div>
+              </div>
+            ))}
+          </div>
+        ) : documents.length === 0 ? (
+          <div className="text-center py-6 text-gray-500">
+            <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No documents yet</p>
+            <p className="text-xs">Upload to provide AI context</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {documents.map((doc: ProjectDocument) => (
+              <div key={doc.id} className="p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-start gap-2">
+                  {getStatusIcon(doc.status)}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" title={doc.file_name}>
+                      {doc.file_name}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs px-1.5 py-0.5 bg-white rounded text-gray-600">
+                        {doc.file_type}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {formatDistanceToNow(new Date(doc.uploaded_at))} ago
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(doc.status)}
-                    <span className="text-sm text-gray-500">{doc.file_type}</span>
-                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Drag and drop overlay */}
+      {isDragOver && (
+        <div
+          className="absolute inset-0 bg-blue-50/90 border-2 border-blue-300 border-dashed rounded-lg flex items-center justify-center"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <div className="text-center">
+            <Upload className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+            <p className="text-sm font-medium text-blue-900">Drop file to upload</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

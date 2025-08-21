@@ -622,23 +622,33 @@ export default function ProjectDetails({ projectId }: ProjectDetailsProps) {
               </TabsContent>
               
               <TabsContent value="prospect" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Prospect Discovery</CardTitle>
-                    <CardDescription>
-                      Upload documents and context about this specific prospect to generate better RFP responses
-                    </CardDescription>
-                  </CardHeader>
+                <div className="flex gap-6 h-[800px]">
+                  {/* Left Sidebar - Documents */}
+                  <div className="w-80 flex-shrink-0">
+                    <Card className="h-full">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Project Documents</CardTitle>
+                        <CardDescription>
+                          Upload context documents for this prospect
+                        </CardDescription>
+                      </CardHeader>
+                      
+                      <CardContent className="flex flex-col h-full">
+                        <div className="flex-1 overflow-hidden">
+                          <ProjectDocuments 
+                            projectId={projectId}
+                            userEmail={user?.email || ''}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                   
-                  <CardContent className="space-y-4">
-                    <ProjectDocuments 
-                      projectId={projectId}
-                      userEmail={user?.email || ''}
-                    />
-                    
+                  {/* Main Content - Chat */}
+                  <div className="flex-1">
                     <SimpleChat projectId={projectId} />
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </TabsContent>
               
               <TabsContent value="team">
