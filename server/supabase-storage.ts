@@ -1368,13 +1368,32 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createProjectDocument(document: InsertProjectDocument): Promise<ProjectDocument> {
+    console.log('[SupabaseStorage] Creating project document with data:', document);
+    
+    // Convert camelCase to snake_case for Supabase
+    const dbDocument = {
+      project_id: (document as any).projectId || (document as any).project_id,
+      file_name: (document as any).fileName || (document as any).file_name,
+      file_path: (document as any).filePath || (document as any).file_path,
+      file_type: (document as any).fileType || (document as any).file_type,
+      uploaded_by: (document as any).uploadedBy || (document as any).uploaded_by
+    };
+    
+    console.log('[SupabaseStorage] Converted document data for database:', dbDocument);
+    
     const { data, error } = await supabase
       .from('project_documents')
-      .insert(document)
+      .insert(dbDocument)
       .select()
       .single();
     
-    if (error) throw new Error(`Failed to create project document: ${error.message}`);
+    console.log('[SupabaseStorage] Insert response:', { data, error });
+    
+    if (error) {
+      console.error('[SupabaseStorage] Error creating project document:', error);
+      throw new Error(`Failed to create project document: ${error.message}`);
+    }
+    
     return data as ProjectDocument;
   }
 
