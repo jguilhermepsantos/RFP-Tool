@@ -4,7 +4,6 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["jq"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -41,10 +40,3 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
-
-[agent]
-<<<<<<< HEAD
-integrations = ["javascript_websocket==1.0.0", "javascript_openai==1.0.0", "javascript_supabase==1.0.0"]
-=======
-integrations = ["javascript_supabase==1.0.0", "javascript_websocket==1.0.0", "javascript_openai==1.0.0"]
->>>>>>> main
