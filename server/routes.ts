@@ -2350,8 +2350,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             threadId: threadResult.threadId,
             assistantId: threadResult.assistantId
           });
+          console.log('[CHAT] Created new thread:', thread);
         }
-        finalThreadId = thread.threadId;
+        finalThreadId = thread.threadId || thread.thread_id;
       }
       
       // Store the user message (using optimized IDs)
