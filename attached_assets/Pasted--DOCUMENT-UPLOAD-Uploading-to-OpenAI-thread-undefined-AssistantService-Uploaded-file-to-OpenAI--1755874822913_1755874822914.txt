@@ -1,0 +1,45 @@
+[DOCUMENT UPLOAD] Uploading to OpenAI thread: undefined
+[AssistantService] Uploaded file to OpenAI: file-MbKAP5Ph1oQfVLXEe5GDtD
+Failed to upload file to OpenAI: BadRequestError: 400 Invalid 'thread_id': 'undefined'. Expected an ID that begins with 'thread'.
+    at Function.generate (/home/runner/workspace/node_modules/openai/src/error.ts:72:14)
+    at OpenAI.makeStatusError (/home/runner/workspace/node_modules/openai/src/core.ts:462:21)
+    at OpenAI.makeRequest (/home/runner/workspace/node_modules/openai/src/core.ts:526:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async AssistantService.uploadFileToThread (/home/runner/workspace/server/assistant-service.ts:203:7)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:2578:30) {
+  status: 400,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '97333c1fcb2044e2-ATL',
+    connection: 'keep-alive',
+    'content-length': '205',
+    'content-type': 'application/json',
+    date: 'Fri, 22 Aug 2025 14:59:35 GMT',
+    'openai-organization': 'vtex-w74lnj',
+    'openai-processing-ms': '30',
+    'openai-project': 'proj_WyEsiNQkh5SEKX9Hh3OsHOUZ',
+    'openai-version': '2020-10-01',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=JWwxbeAdlI2BAsFAb7arEUAgyHH0FLVVYIZ0Kgsi2R0-1755874775-1.0.1.1-9XxdsCCjb4fNaO2dErC.1ifQNY.2VF.qyCWDBIngh5yeqmYiKVBg1Q.caFk_CB8Qecx1HlKUMk8XkhphFcyQ2qwFhoXSKzgD5P9Kcbtbkr0; path=/; expires=Fri, 22-Aug-25 15:29:35 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=mhMdg7BX9sHOUoKPyUwpw09bKaFj1KV.WHj1.eMJzsg-1755874775132-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_767079071fadc10b318d8eb1cf6a70da'
+  },
+  request_id: 'req_767079071fadc10b318d8eb1cf6a70da',
+  error: {
+    message: "Invalid 'thread_id': 'undefined'. Expected an ID that begins with 'thread'.",
+    type: 'invalid_request_error',
+    param: 'thread_id',
+    code: 'invalid_value'
+  },
+  code: 'invalid_value',
+  param: 'thread_id',
+  type: 'invalid_request_error'
+}
+[DOCUMENT UPLOAD] OpenAI upload failed: Error: Failed to upload file to OpenAI: 400 Invalid 'thread_id': 'undefined'. Expected an ID that begins with 'thread'.
+    at AssistantService.uploadFileToThread (/home/runner/workspace/server/assistant-service.ts:219:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:2578:30)
+2:59:35 PM [express] POST /api/projects/b18d2f04-0b5d-43a3-86a0-503c639c63d3/documents 200 in 3500ms…
+2:59:35 PM [express] GET /api/projects/b18d2f04-0b5d-43a3-86a0-503c639c63d3/documents 200 in 323ms :…

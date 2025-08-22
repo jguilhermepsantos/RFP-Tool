@@ -2574,9 +2574,10 @@ Please answer the question using the provided context from our documents. If the
         }
         
         // Upload file to OpenAI and attach to thread
-        console.log('[DOCUMENT UPLOAD] Uploading to OpenAI thread:', thread.threadId);
+        const finalThreadId = thread.threadId || thread.thread_id;
+        console.log('[DOCUMENT UPLOAD] Uploading to OpenAI thread:', finalThreadId);
         const openaiFileId = await assistantService.uploadFileToThread(
-          thread.threadId,
+          finalThreadId,
           req.file.buffer,
           req.file.originalname,
           req.file.mimetype
