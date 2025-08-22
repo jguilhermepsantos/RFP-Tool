@@ -34,6 +34,12 @@ Preferred communication style: Simple, everyday language.
 ### System Design Choices
 The application follows a monorepo structure with shared schema definitions and clear separation between client, server, and shared code. It supports scalability through microservice-style separation of concerns while maintaining development simplicity through a unified codebase. Hierarchical organization of RFP questions, including sections and subsections, is a core design decision, supporting multi-level assignments and detailed progress tracking. Optimistic UI updates and thread caching have been implemented for chat performance.
 
+## Recent Changes
+- **August 2025**: Fixed critical field naming issues between TypeScript (camelCase) and Supabase database (snake_case)
+- **Security Fix**: Resolved document upload security concern by implementing proper thread-scoped file handling
+- **Project Management**: Fixed project deletion permissions issue - changed from `member.userId` to `member.id` field access
+- **Chat Integration**: Successfully deployed OpenAI Assistant integration with proper thread management for existing projects
+
 ## External Dependencies
 
 ### Core Services
