@@ -171,30 +171,15 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
   return (
     <Card className="h-full flex flex-col max-h-full">
       <CardHeader className="flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center space-x-2">
-              <Bot className="h-5 w-5" />
-              <span>Project Assistant</span>
-              <Badge variant="secondary">AI-Powered</Badge>
-              {rfpMode && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300"><FileSearch className="h-3 w-3 mr-1" />RFP Mode</Badge>}
-            </CardTitle>
-            <CardDescription>
-              Ask questions about this project, get RFP guidance, or discuss technical details
-            </CardDescription>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="rfp-mode"
-              checked={rfpMode}
-              onCheckedChange={setRfpMode}
-            />
-            <Label htmlFor="rfp-mode" className="text-sm font-medium cursor-pointer">
-              RFP Mode
-            </Label>
-          </div>
-        </div>
+        <CardTitle className="flex items-center space-x-2">
+          <Bot className="h-5 w-5" />
+          <span>Project Assistant</span>
+          <Badge variant="secondary">AI-Powered</Badge>
+          {rfpMode && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300"><FileSearch className="h-3 w-3 mr-1" />VTEX Knowledge</Badge>}
+        </CardTitle>
+        <CardDescription>
+          Ask questions about this project, get RFP guidance, or discuss technical details
+        </CardDescription>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col space-y-4 min-h-0">
@@ -313,27 +298,41 @@ export default function SimpleChat({ projectId }: SimpleChatProps) {
         </ScrollArea>
 
         {/* Input Area */}
-        <div className="flex space-x-2 flex-shrink-0">
-          <Textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask about this project, request RFP help, or discuss technical details..."
-            className="min-h-[60px] max-h-[120px] resize-none"
-            disabled={sendMessageMutation.isPending || isGenerating}
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!message.trim() || sendMessageMutation.isPending || isGenerating}
-            size="sm"
-            className="px-3 h-[60px]"
-          >
-            {sendMessageMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+        <div className="space-y-3 flex-shrink-0">
+          <div className="flex space-x-2">
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask about this project, request RFP help, or discuss technical details..."
+              className="min-h-[60px] max-h-[120px] resize-none"
+              disabled={sendMessageMutation.isPending || isGenerating}
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!message.trim() || sendMessageMutation.isPending || isGenerating}
+              size="sm"
+              className="px-3 h-[60px]"
+            >
+              {sendMessageMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          
+          {/* VTEX Knowledge toggle */}
+          <div className="flex items-center space-x-2 px-1">
+            <Switch
+              id="vtex-knowledge"
+              checked={rfpMode}
+              onCheckedChange={setRfpMode}
+            />
+            <Label htmlFor="vtex-knowledge" className="text-sm font-medium cursor-pointer">
+              Use VTEX knowledge base
+            </Label>
+          </div>
         </div>
       </CardContent>
     </Card>
