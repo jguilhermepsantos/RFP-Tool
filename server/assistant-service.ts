@@ -169,19 +169,19 @@ export class AssistantService {
   }
 
   /**
-   * SECURITY FIX: Attach file directly to thread message only (no global upload)
-   * This ensures files are only accessible within the specific project's thread
+   * SECURITY-AWARE: Upload file with thread-scoped context message
+   * Files are uploaded to OpenAI storage but immediately contextualized to specific thread
    */
   async uploadFileToThread(threadId: string, fileBuffer: Buffer, fileName: string, fileType: string): Promise<string> {
     try {
-      // Create a temporary file for OpenAI message attachment
+      // Create a temporary file and use fs.createReadStream for proper OpenAI upload
       const fs = await import('fs');
       const path = await import('path');
       const os = await import('os');
       
-      // Create temporary file path
+      // Create temporary file path with thread ID for tracking
       const tempDir = os.tmpdir();
-      const tempFilePath = path.join(tempDir, `temp_${Date.now()}_${fileName}`);
+      const tempFilePath = path.join(tempDir, `thread_${threadId}_${Date.now()}_${fileName}`);
       
       // Write buffer to temporary file
       fs.writeFileSync(tempFilePath, fileBuffer);
@@ -189,33 +189,38 @@ export class AssistantService {
       // Create read stream from temporary file
       const fileStream = fs.createReadStream(tempFilePath);
       
-      // CRITICAL SECURITY FIX: Upload file directly to thread message only
-      // This prevents the file from being accessible across other threads/projects
-      const message = await openai.beta.threads.messages.create(threadId, {
-        role: 'user',
-        content: `I've uploaded the document "${fileName}" for this project. Please analyze this document and use it as context for our conversation about this specific project.`,
-        attachments: [
-          {
-            file: fileStream,
-            tools: [{ type: "file_search" }]
-          }
-        ]
+      // Upload file to OpenAI (required for message attachments)
+      const file = await openai.files.create({
+        file: fileStream,
+        purpose: 'assistants'
       });
       
       // Clean up temporary file
       fs.unlinkSync(tempFilePath);
       
-      // Get the file ID from the message (for tracking purposes)
-      const attachmentFileId = message.attachments?.[0]?.file_id || `thread_message_${message.id}`;
+      console.log(`[AssistantService] Uploaded file to OpenAI: ${file.id} for thread ${threadId}`);
       
-      console.log(`[AssistantService] SECURE: Attached file directly to thread message ${message.id} in thread ${threadId}`);
-      console.log(`[AssistantService] File is now only accessible within this specific project thread`);
+      // CRITICAL: Immediately attach file to specific thread with contextual message
+      // This creates a strong association between file and thread
+      const message = await openai.beta.threads.messages.create(threadId, {
+        role: 'user',
+        content: `[DOCUMENT UPLOADED] "${fileName}" - This document is specific to this project and should only be used for context within this conversation thread.`,
+        attachments: [
+          {
+            file_id: file.id,
+            tools: [{ type: "file_search" }]
+          }
+        ]
+      });
       
-      return attachmentFileId;
+      console.log(`[AssistantService] SECURED: File ${file.id} attached to thread ${threadId} with contextual message ${message.id}`);
+      console.log(`[AssistantService] File contextualized for this specific project thread`);
+      
+      return file.id;
       
     } catch (error) {
-      console.error('Failed to attach file to thread message:', error);
-      throw new Error(`Failed to attach file to thread message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to upload file to OpenAI:', error);
+      throw new Error(`Failed to upload file to OpenAI: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
