@@ -2416,6 +2416,14 @@ Please answer the question using the provided context from our documents. If the
       } catch (assistantError) {
         console.error(`Failed to get assistant response for project ${projectId}:`, assistantError);
         
+        // Cancel any stuck runs so the user can try again
+        try {
+          await assistantService.cancelActiveRuns(finalThreadId);
+          console.log(`[CHAT] Canceled any active runs on thread ${finalThreadId} after error`);
+        } catch (cancelError) {
+          console.error('Error canceling runs after assistant failure:', cancelError);
+        }
+        
         // Store an error message from the assistant
         assistantMessage = await storage.createProjectChatMessage({
           projectId: projectId,

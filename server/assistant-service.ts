@@ -22,6 +22,28 @@ export interface AssistantMessageResult {
 export class AssistantService {
   
   /**
+   * Cancel any active runs on a thread to allow new messages
+   */
+  async cancelActiveRuns(threadId: string): Promise<void> {
+    try {
+      const activeRuns = await openai.beta.threads.runs.list(threadId, {
+        limit: 5,
+        order: 'desc'
+      });
+      
+      for (const run of activeRuns.data) {
+        if (run.status === 'queued' || run.status === 'in_progress') {
+          console.log(`[AssistantService] Canceling active run ${run.id}`);
+          await openai.beta.threads.runs.cancel(threadId, run.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error canceling active runs:', error);
+      // Don't throw - this is cleanup, not critical
+    }
+  }
+  
+  /**
    * Create a new thread for the OpenAI Assistant
    */
   async createThread(): Promise<AssistantThreadResult> {
