@@ -2385,7 +2385,7 @@ ${contextSection}
 QUESTION FROM USER:
 ${content}
 
-Please answer the question using the provided context from our documents. If the context doesn't fully address the question, clearly indicate what information is missing.`;
+Please answer the question using the provided context from our documents. If the context doesn't fully address the question, clearly indicate what information is missing. Provide links if they are available in the presented context`;
             
             console.log(`[RFP-MODE] Enhanced prompt with ${retrievedChunks.length} relevant chunks`);
             console.log('[RFP-MODE] Similarity scores:', metadata.map(m => m.similarity));

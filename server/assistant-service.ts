@@ -43,6 +43,34 @@ export class AssistantService {
    */
   async sendMessage(threadId: string, message: string): Promise<AssistantMessageResult> {
     try {
+      // Check if there are any active runs on this thread
+      const activeRuns = await openai.beta.threads.runs.list(threadId, {
+        limit: 1,
+        order: 'desc'
+      });
+      
+      if (activeRuns.data.length > 0) {
+        const latestRun = activeRuns.data[0];
+        if (latestRun.status === 'queued' || latestRun.status === 'in_progress') {
+          // Wait for the active run to complete before proceeding
+          console.log(`[AssistantService] Waiting for active run ${latestRun.id} to complete...`);
+          
+          let attempts = 0;
+          const maxAttempts = 30; // 30 seconds timeout for existing run
+          
+          while (latestRun.status === 'queued' || latestRun.status === 'in_progress') {
+            if (attempts >= maxAttempts) {
+              throw new Error('Timeout waiting for existing run to complete');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const updatedRun = await openai.beta.threads.runs.retrieve(threadId, latestRun.id);
+            Object.assign(latestRun, updatedRun); // Update the run status
+            attempts++;
+          }
+        }
+      }
+      
       // Add the user message to the thread
       await openai.beta.threads.messages.create(threadId, {
         role: 'user',
