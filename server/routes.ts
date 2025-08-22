@@ -342,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Store the thread information in project_threads table
         const threadData = {
-          project_id: newProject.id,
+          projectId: newProject.id,
           threadId: threadResult.threadId,
           assistantId: threadResult.assistantId
         };
