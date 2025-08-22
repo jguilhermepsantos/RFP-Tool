@@ -1412,13 +1412,30 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createProjectThread(thread: InsertProjectThread): Promise<ProjectThread> {
+    console.log('[SupabaseStorage] Creating project thread with data:', thread);
+    
+    // Convert camelCase to snake_case for Supabase
+    const dbThread = {
+      project_id: thread.projectId,
+      thread_id: thread.threadId,
+      assistant_id: thread.assistantId
+    };
+    
+    console.log('[SupabaseStorage] Converted thread data for database:', dbThread);
+    
     const { data, error } = await supabase
       .from('project_threads')
-      .insert(thread)
+      .insert(dbThread)
       .select()
       .single();
     
-    if (error) throw new Error(`Failed to create project thread: ${error.message}`);
+    console.log('[SupabaseStorage] Insert response:', { data, error });
+    
+    if (error) {
+      console.error('[SupabaseStorage] Error creating project thread:', error);
+      throw new Error(`Failed to create project thread: ${error.message}`);
+    }
+    
     return data as ProjectThread;
   }
 
