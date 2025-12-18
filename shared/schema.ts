@@ -172,7 +172,8 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true, 
   createdAt: true
 }).extend({
-  created_by: z.string().uuid().optional()
+  created_by: z.string().uuid().optional(),
+  salesforce_link: z.string().optional()
 });
 
 export const insertProjectPermissionSchema = createInsertSchema(projectPermissions).omit({
