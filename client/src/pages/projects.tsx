@@ -30,7 +30,7 @@ interface ProjectWithRole extends Project {
 const formSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   description: z.string().optional(),
-  salesforceLink: z.string().optional(),
+  salesforceLink: z.string().min(1, "Salesforce link is required").url("Please enter a valid URL"),
   region: z.enum(['US', 'Brazil', 'South LATAM', 'North LATAM', 'EMEA', 'APAC'], {
     required_error: "Region is required"
   }),
@@ -128,7 +128,7 @@ export default function Projects() {
         body: JSON.stringify({
           name: values.name,
           description: values.description || null,
-          salesforce_link: values.salesforceLink || null,
+          salesforce_link: values.salesforceLink,
           region: values.region,
           language: values.language,
         }),
@@ -227,7 +227,7 @@ export default function Projects() {
                     name="salesforceLink"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Salesforce Link (Optional)</FormLabel>
+                        <FormLabel>Salesforce Link</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Enter Salesforce link" 
