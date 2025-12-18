@@ -126,10 +126,11 @@ export class SupabaseStorage implements IStorage {
     console.log('[SupabaseStorage] Creating project with data:', project);
     
     // Create project with all fields including created_by
+    // Handle both camelCase and snake_case field names for salesforce_link
     const insertData = {
       name: project.name,
       description: project.description,
-      salesforce_link: project.salesforceLink, 
+      salesforce_link: (project as any).salesforce_link || project.salesforceLink, 
       region: project.region,
       language: project.language,
       created_by: project.created_by
